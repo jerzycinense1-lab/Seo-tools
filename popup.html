@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO Tools Pro</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-top">
+      <h1>🛠️SEO Tools Pro</h1>
+      <div class="header-actions">
+        <button id="templatesBtn" class="icon-btn" title="Template Manager">📝</button>
+        <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
+      </div>
+    </div>
+    <p class="subtitle">Your Complete SEO & Outreach Toolkit</p>
+    <div class="current-site">
+      <span class="label">Current Site:</span>
+      <span id="currentDomain" class="domain">-</span>
+      <button id="copyDomainBtn" class="mini-btn" title="Copy Domain">📋</button>
+    </div>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="🔍 Search tools... (Press / to focus)">
+    <span class="shortcut-hint">/</span>
+  </div>
+
+  
+ <div class="tabs">
+    <button class="tab-btn active" data-tab="favorites">⭐ Favs</button> 
+    <button class="tab-btn" data-tab="seo">📊 SEO</button>
+    <button class="tab-btn" data-tab="email">📧 Email</button>
+    <button class="tab-btn" data-tab="extract">🔗 Extract</button>
+    <button class="tab-btn" data-tab="utils">⚡ Utils</button>
+    <button class="tab-btn" data-tab="apps">🔗 Apps</button>
+  </div>
+
+  <div class="content">
+    <div id="favorites" class="tab-content active">
+      <div class="tool-group">
+        <h3>⭐ Pinned Tools</h3>
+        <div class="tool-grid" id="favorites-grid">
+          <!-- Favorites will be populated dynamically -->
+        </div>
+      </div>
+    </div>
+    
+    <div id="seo" class="tab-content">
+      <div class="tool-group">
+        <h3>🌐 Website Analysis</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="wayback">📜 Wayback Machine</button>
+          <button class="tool-btn" data-action="whois">🔎 WHOIS</button>
+          <button class="tool-btn" data-action="pingdom">⚡ Pingdom</button>
+          <button class="tool-btn" data-action="pagespeed">🚀 PageSpeed Insights</button>
+          <button class="tool-btn" data-action="schema">📋 Schema Validator</button>
+          <button class="tool-btn" data-action="richresults">✨ Rich Results</button>
+          <button class="tool-btn" data-action="amp">📱 AMP Test</button>
+          <button class="tool-btn" data-action="mobile-friendly">📱 Mobile-Friendly Test</button>
+        </div>
+      </div>
+<!-- Add these sections to the SEO tab -->
+
+<div class="tool-group">
+  <h3>📅 Publishing & Freshness</h3>
+  <div class="tool-grid">
+    <button class="tool-btn" data-action="pubdate-checker">📅 Publication Date Checker</button>
+  </div>
+</div>
+
+<div class="tool-group">
+  <h3>📱 Mobile SEO</h3>
+  <div class="tool-grid">
+    <button class="tool-btn" data-action="mobile-usability">📱 Mobile Usability Test</button>
+  </div>
+</div>
+
+<div class="tool-group">
+  <h3>📄 Content Audit</h3>
+  <div class="tool-grid">
+    <button class="tool-btn" data-action="duplicate-content">🔄 Duplicate Content Finder</button>
+  </div>
+</div>
+
+<div class="tool-group">
+  <h3>🏗️ Site Architecture</h3>
+  <div class="tool-grid">
+    <button class="tool-btn" data-action="site-structure">🗺️ Site Structure Visualizer</button>
+  </div>
+</div>
+
+<div class="tool-group">
+  <h3>📍 Local SEO Pro</h3>
+  <div class="tool-grid">
+    <button class="tool-btn" data-action="maps-scraper">🗺️ Google Maps Scraper</button>
+    <button class="tool-btn" data-action="citation-finder">📋 Local Citation Finder</button>
+  </div>
+</div>
+
+<div class="tool-group">
+  <h3>📊 Reporting</h3>
+  <div class="tool-grid">
+    <button class="tool-btn" data-action="seo-dashboard">📊 SEO Dashboard</button>
+  </div>
+</div>
+      <div class="tool-group">
+        <h3>🔗 Link Analysis</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="highlight-dofollow">✅ Highlight Do-Follow Links</button>
+          <button class="tool-btn" data-action="remove-highlights">🗑️ Remove Highlights</button>
+          <button class="tool-btn" data-action="analyze-links">🔗 Internal vs External Links</button>
+          <button class="tool-btn" data-action="broken-links">🚨 Broken Link Checker</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>🔍 Link Building</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="link-prospects">🎯 Link Prospect Finder</button>
+          <button class="tool-btn" data-action="resource-pages">📚 Resource Page Finder</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>📊 On-Page SEO</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="analyze-headings">📊 Heading Structure (H1-H6)</button>
+          <button class="tool-btn" data-action="analyze-meta">🏷️ Meta Tags Analysis</button>
+          <button class="tool-btn" data-action="analyze-images">🖼️ Images Alt Text</button>
+          <button class="tool-btn" data-action="analyze-content">📝 Word Count & Readability</button>
+          <button class="tool-btn" data-action="keyword-density">🔤 Keyword Density</button>
+          <button class="tool-btn" data-action="serp-preview">👁️ SERP Preview</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>🤖 AI-Powered SEO</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="ai-meta-generator">🏷️ AI Meta Generator</button>
+          <button class="tool-btn" data-action="title-generator">📝 SEO Title Generator</button>
+          <button class="tool-btn" data-action="meta-description-generator">📄 Meta Description Generator</button>
+          <button class="tool-btn" data-action="ai-topic-generator">💡 AI Topic Generator</button>
+          <button class="tool-btn" data-action="alt-generator">🖼️ AI Alt Text Generator</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>📍 Local SEO</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="local-keyword-finder">📍 Local Keyword Finder</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>🌍 International SEO</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="hreflang-generator">🌐 Hreflang Generator</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>⚙️ Technical SEO</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="structured-data">📋 Structured Data (Schema)</button>
+          <button class="tool-btn" data-action="robots-txt">🤖 Check robots.txt</button>
+          <button class="tool-btn" data-action="sitemap">🗺️ Find Sitemap</button>
+          <button class="tool-btn" data-action="url-optimizer">🔗 URL Optimizer</button>
+          <button class="tool-btn" data-action="export-seo-data">💾 Export SEO Data</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>📈 Authority & Metrics</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="authority">💪 Authority (AS)</button>
+          <button class="tool-btn" data-action="spamscore">⚠️ Spam Score (SS)</button>
+          <button class="tool-btn" data-action="domainrating">📊 Domain Rating (DR)</button>
+          <button class="tool-btn" data-action="traffic">📈 Organic Traffic (OT)</button>
+          <button class="tool-btn" data-action="metrics">🎯 All Metrics</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>🔎 Search & Discovery</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="blogs">📰 Find Blog</button>
+          <button class="tool-btn" data-action="guestpost">✍️ Guest Post Pages</button>
+          <button class="tool-btn" data-action="advsearch">🔬 Advanced Search</button>
+          <button class="tool-btn" data-action="searchoperators">🔤 Search Operators</button>
+          <button class="tool-btn" data-action="keyword-rank-tracker">🎯 Keyword Rank Tracker</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>✅ SEO Audit</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="seo-audit-checklist">✅ SEO Audit </button>
+              <button class="tool-btn" data-action="audit-checklist">✅ SEO Audit Checklist</button>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Email Templates Tab -->
+    <div id="email" class="tab-content">
+      <div class="tool-group">
+        <h3>💰 Payment Requests</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="advance-payment">💵 Advance Payment (PayPal)</button>
+          <button class="tool-btn" data-action="payment-paypal">📬 Payment Request (PayPal)</button>
+          <button class="tool-btn" data-action="payment-gcash">📱 Payment Request (GCash)</button>
+          <button class="tool-btn" data-action="send-invoice">📄 Send Invoice to WM</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>📝 Article Communication</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="send-article">📤 Sending Article</button>
+          <button class="tool-btn" data-action="send-quick-article">⚡ Quick Article</button>
+          <button class="tool-btn" data-action="article-followup">📞 Article Follow-up</button>
+          <button class="tool-btn" data-action="second-followup">📞 2nd Follow-up</button>
+          <button class="tool-btn" data-action="final-notice">⚠️ Final Notice</button>
+          <button class="tool-btn" data-action="cancel">❌ Cancellation</button>
+          <button class="tool-btn" data-action="declined">🙏 Declined Response</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>🤝 Outreach & Negotiation</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="email-outreach">📧 Email Outreach</button>
+          <button class="tool-btn" data-action="nego">💬 Negotiation Templates</button>
+          <button class="tool-btn" data-action="contact-form">📝 Contact Form Filler</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extractors Tab -->
+    <div id="extract" class="tab-content">
+      <div class="tool-group">
+        <h3>🔗 Link & Domain Extraction</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="linkextract">🔗 Link Extractor</button>
+          <button class="tool-btn" data-action="domainextract">🌐 Domain Extractor</button>
+          <button class="tool-btn" data-action="googledomain">🔍 Google Domain Search</button>
+          <button class="tool-btn" data-action="email-extract">📧 Email Extractor</button>
+          <button class="tool-btn" data-action="social-extract">📱 Social Media Links</button>
+          <button class="tool-btn" data-action="bulk-google-domains" data-keywords="deep bulk multi page scrape google">🌐 Deep Google Domain Extractor</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Utilities Tab -->
+    <div id="utils" class="tab-content">
+      <div class="tool-group">
+        <h3>⚡ Quick Utilities</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="urlslug">🔗 URL Slug Generator</button>
+          <button class="tool-btn" data-action="whatsapp-link">💬 WhatsApp Link</button>
+          <button class="tool-btn" data-action="copy-url">📋 Copy Current URL</button>
+          <button class="tool-btn" data-action="copy-domain">🌐 Copy Domain</button>
+          <button class="tool-btn" data-action="scroll">⬇️ Scroll to Bottom</button>
+          <button class="tool-btn" data-action="nextpage">➡️ Next Page</button>
+          <button class="tool-btn" data-action="bulk-url">📂 Bulk URL Opener</button>
+          <button class="tool-btn" data-action="full-page-capture">📸 Full Page Capture</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>🔧 Advanced Toolkits</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" data-action="advanced-text-compare">🔍 SEO Text Compare</button>
+          <button class="tool-btn" data-action="image-toolkit">🖼️ Image Toolkit</button>
+          <button class="tool-btn" data-action="seo-utilities">🔧 SEO Utilities</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>🎨 Display Options</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" id="toggleDarkMode">🌙 Toggle Dark Mode</button>
+          <button class="tool-btn" id="clearCache">🗑️ Clear Cached Data</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apps Tab -->
+    <div id="apps" class="tab-content">
+      <div class="tool-group">
+        <h3>📱 GDI Applications</h3>
+        <div class="tool-grid">
+          <button class="tool-btn external" data-url="https://task-tracker.searchworks.ph/">📋 Task Tracker</button>
+          <button class="tool-btn external" data-url="https://gdi-profiler.searchworks.ph/dashboard">📊 GDI Profiler</button>
+          <button class="tool-btn external" data-url="https://link-tool.searchworks.ph/dashboard">🔗 Link Tool</button>
+          <button class="tool-btn external" data-url="https://pbn-buster.searchworks.ph/">🛡️ PBN Buster</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>📚 Learn SEO</h3>
+        <div class="tool-grid">
+          <button class="tool-btn external" data-url="https://searchworks.ph/blog/">📖 SearchWorks Blog</button>
+          <button class="tool-btn external" data-url="https://www.youtube.com/@searchworksph">🎥 YouTube Channel</button>
+          <button class="tool-btn external" data-url="https://www.seroundtable.com/">📰 Search Engine Roundtable</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-info">
+      <span>Version 2.4.0</span>
+      <span class="separator">|</span>
+      <span id="toolCount">0 tools</span>
+      <span class="credit">Created by <a href="https://searchworks.ph" target="_blank" class="credit-link">Searchworks.ph</a></span>
+    </div>
+    <div class="footer-actions">
+      <button id="exportSettings" class="mini-btn" title="Export Settings">💾 Export</button>
+      <button id="importSettings" class="mini-btn" title="Import Settings">📂 Import</button>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="notification" class="notification">
+    <span class="notification-message"></span>
+    <button class="notification-close">×</button>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚙️ Settings</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <h3>👤 Personal Information</h3>
+          <div class="setting-field">
+            <label for="userName">Your Name</label>
+            <input type="text" id="userName" placeholder="e.g., Jonathan Harris">
+          </div>
+          <div class="setting-field">
+            <label for="userEmail">Your Email</label>
+            <input type="email" id="userEmail" placeholder="e.g., jonathn.p.harris@gmail.com">
+          </div>
+          <div class="setting-field">
+            <label for="userPhone">Your Phone</label>
+            <input type="text" id="userPhone" placeholder="e.g., 9928524796">
+          </div>
+          <div class="setting-field">
+            <label for="userLinkedin">LinkedIn Profile</label>
+            <input type="url" id="userLinkedin" placeholder="https://linkedin.com/in/...">
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>🎨 Appearance</h3>
+          <div class="setting-field">
+            <label for="darkMode">Dark Mode</label>
+            <label class="switch">
+              <input type="checkbox" id="darkMode">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>💰 Payment Defaults</h3>
+          <div class="setting-field">
+            <label for="defaultCurrency">Default Currency</label>
+            <select id="defaultCurrency">
+              <option value="USD">USD ($)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="PESO">PESO (₱)</option>
+              <option value="SGD">SGD (S$)</option>
+            </select>
+          </div>
+          <div class="setting-field">
+            <label for="defaultAmount">Default Amount</label>
+            <input type="number" id="defaultAmount" placeholder="e.g., 50">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveSettings" class="btn-primary">💾 Save Settings</button>
+        <button id="resetSettings" class="btn-secondary">🔄 Reset Defaults</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Manager Modal -->
+  <div id="templateManagerModal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2>📝 Template Manager</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="template-manager">
+          <div class="template-sidebar">
+            <h3>📋 Templates</h3>
+            <div class="template-search">
+              <input type="text" id="templateSearch" placeholder="🔍 Search templates...">
+            </div>
+            <div class="template-list" id="templateList"></div>
+            <button id="addNewTemplate" class="btn-secondary full-width">➕ Add New Template</button>
+          </div>
+          
+          <div class="template-editor">
+            <div class="editor-header">
+              <h3 id="editorTitle">Edit Template</h3>
+              <div class="editor-actions">
+                <button id="previewTemplate" class="btn-secondary">👁️ Preview</button>
+                <button id="resetTemplate" class="btn-secondary">🔄 Reset to Default</button>
+                <button id="saveTemplate" class="btn-primary">💾 Save Changes</button>
+              </div>
+            </div>
+            
+            <div class="editor-fields">
+              <div class="setting-field">
+                <label for="templateName">Template Name</label>
+                <input type="text" id="templateName" placeholder="e.g., Advance Payment Request">
+              </div>
+              
+              <div class="setting-field">
+                <label for="templateCategory">Category</label>
+                <select id="templateCategory">
+                  <option value="payment">💰 Payment Requests</option>
+                  <option value="article">📝 Article Communication</option>
+                  <option value="outreach">🤝 Outreach & Negotiation</option>
+                  <option value="custom">📋 Custom</option>
+                </select>
+              </div>
+              
+              <div class="setting-field">
+                <label for="templateDescription">Description</label>
+                <input type="text" id="templateDescription" placeholder="Brief description of this template">
+              </div>
+              
+              <div class="setting-field full-height">
+                <label for="templateContent">Template Content</label>
+                <textarea id="templateContent" placeholder="Enter your email template here..."></textarea>
+                <div class="variable-hints">
+                  <span class="hint-title">Available Variables:</span>
+                  <div class="variable-tags">
+                    <span class="var-tag">{{yourName}}</span>
+                    <span class="var-tag">{{webmaster}}</span>
+                    <span class="var-tag">{{website}}</span>
+                    <span class="var-tag">{{amount}}</span>
+                    <span class="var-tag">{{currency}}</span>
+                    <span class="var-tag">{{articleTitle}}</span>
+                    <span class="var-tag">{{clientAccount}}</span>
+                    <span class="var-tag">{{publishedLink}}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="exportTemplates" class="btn-secondary">📤 Export All Templates</button>
+        <button id="importTemplates" class="btn-secondary">📥 Import Templates</button>
+        <button id="closeTemplateManager" class="btn-primary">✅ Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div id="previewModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>👁️ Template Preview</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-field">
+          <label>Sample Output:</label>
+          <div id="templatePreview" class="preview-box"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="copyPreview" class="btn-primary">📋 Copy Preview</button>
+        <button id="closePreview" class="btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
