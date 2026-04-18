@@ -41,7 +41,7 @@
   <div class="content">
     <div id="favorites" class="tab-content active">
       <div class="tool-group">
-        <h3>⭐ Pinned Tools</h3>
+        <h3>Pinned Tools</h3>
         <div class="tool-grid" id="favorites-grid">
           <!-- Favorites will be populated dynamically -->
         </div>
@@ -140,9 +140,7 @@
         <h3>🤖 AI-Powered SEO</h3>
         <div class="tool-grid">
           <button class="tool-btn" data-action="ai-meta-generator">🏷️ AI Meta Generator</button>
-          <button class="tool-btn" data-action="title-generator">📝 SEO Title Generator</button>
-          <button class="tool-btn" data-action="meta-description-generator">📄 Meta Description Generator</button>
-          <button class="tool-btn" data-action="ai-topic-generator">💡 AI Topic Generator</button>
+          <button class="tool-btn" data-action="title-generator">📝 SEO Title Generator</button>          <button class="tool-btn" data-action="ai-topic-generator">💡 AI Topic Generator</button>
           <button class="tool-btn" data-action="alt-generator">🖼️ AI Alt Text Generator</button>
         </div>
       </div>
@@ -275,7 +273,6 @@
         <div class="tool-grid">
           <button class="tool-btn" data-action="advanced-text-compare">🔍 SEO Text Compare</button>
           <button class="tool-btn" data-action="image-toolkit">🖼️ Image Toolkit</button>
-          <button class="tool-btn" data-action="seo-utilities">🔧 SEO Utilities</button>
         </div>
       </div>
 
@@ -490,7 +487,27 @@
       </div>
     </div>
   </div>
-
+<div id="bulkUrlModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📂 Bulk URL Opener</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-field full-height">
+          <label for="bulkUrlInput">Paste your list of URLs (one per line):</label>
+          <textarea id="bulkUrlInput" placeholder="example.com&#10;https://google.com&#10;searchworks.ph" style="min-height: 200px; font-family: var(--font-mono); white-space: pre;"></textarea>
+          <div class="variable-hints" style="margin-top: 8px;">
+            <span class="hint-title" style="color: var(--warning-color);">⚠️ Note: Opening more than 10-15 tabs at once may slow down your browser.</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="executeBulkUrls" class="btn-primary">🚀 Open All URLs</button>
+        <button id="closeBulkUrl" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
   <script src="popup.js"></script>
 </body>
 </html>

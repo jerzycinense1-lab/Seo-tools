@@ -1,34 +1,48 @@
 {
   "manifest_version": 3,
   "name": "SEO Tools Pro",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Complete SEO toolkit with customizable email templates, link extractors, website analysis tools, and productivity utilities. Created by SearchWorks.ph",
   "homepage_url": "https://searchworks.ph",
+  
   "permissions": [
     "activeTab",
     "clipboardWrite",
     "tabs",
     "storage",
     "scripting",
-    "alarms"
+    "alarms",
+    "contextMenus"
   ],
+  
   "host_permissions": [
     "<all_urls>"
   ],
+  
   "action": {
     "default_popup": "popup.html",
     "default_title": "SEO Tools Pro"
   },
+  
   "background": {
     "service_worker": "background.js"
   },
+  
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_end"
+      "js": ["utils.js", "seo-tools.js", "content.js"],
+      "run_at": "document_idle"
     }
   ],
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["utils.js", "seo-tools.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  
   "commands": {
     "toggle-extension": {
       "suggested_key": {

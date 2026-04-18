@@ -427,52 +427,532 @@ function handleTabSwitch(e) {
   document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('hidden'));
 }
 
-// Replace the handleBulkUrlOpener function in popup.js with this improved version:
 
-async function handleBulkUrlOpener() {
-  const urlsText = prompt("📂 Bulk URL Opener\n\nPaste your list of URLs (one per line):\n\nExample:\nhttps://example.com\nhttps://google.com\nexample2.com (https will be added automatically)");
-  
-  if (!urlsText) return;
+// ==================== ENHANCED BULK URL OPENER ====================
+function handleBulkUrlOpener() {
+  const modal = document.getElementById('bulkUrlModal');
+  const input = document.getElementById('bulkUrlInput');
+  const executeBtn = document.getElementById('executeBulkUrls');
+  const closeBtn = document.getElementById('closeBulkUrl');
+  const modalClose = modal.querySelector('.modal-close');
 
-  // Clean the input and automatically add https if missing
-  const urls = urlsText.split(/\n/)
-    .map(u => u.trim())
-    .filter(u => u.length > 0)
-    .map(u => {
-      // If it doesn't start with http:// or https://, add https://
-      if (!/^https?:\/\//i.test(u)) {
-        return 'https://' + u;
-      }
-      return u;
-    });
-  
-  if (urls.length === 0) {
-    showNotification('No valid URLs found.', 'error');
-    return;
-  }
+  // Clear previous input and show modal
+  input.value = '';
+  modal.classList.add('show');
 
-  if (urls.length > 10) {
-    if (!confirm(`⚠️ You are about to open ${urls.length} tabs.\n\nContinue?`)) return;
-  }
+  // Focus input
+  setTimeout(() => input.focus(), 100);
 
-  let opened = 0;
-  urls.forEach((url, index) => {
-    // Validate URL before opening
+  // Function to close modal safely
+  const closeModal = () => {
+    modal.classList.remove('show');
+    // Remove listeners to prevent duplicates next time it opens
+    executeBtn.removeEventListener('click', processUrls);
+    closeBtn.removeEventListener('click', closeModal);
+    modalClose.removeEventListener('click', closeModal);
+    document.removeEventListener('keydown', handleKeyboard);
+  };
+
+  // Keyboard shortcuts
+  const handleKeyboard = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      processUrls();
+    }
+  };
+  document.addEventListener('keydown', handleKeyboard);
+
+  // Validate URL format
+  const isValidUrl = (urlString) => {
     try {
-      new URL(url);
-      // Staggered loading: opens one tab every 300ms
-      setTimeout(() => {
-        chrome.tabs.create({ url: url, active: false });
-        opened++;
-      }, index * 300);
-    } catch (e) {
-      console.warn('Invalid URL skipped:', url);
+      const url = new URL(urlString);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  // Extract domain for display
+  const getDomain = (url) => {
+    try {
+      return new URL(url).hostname.replace('www.', '');
+    } catch {
+      return url;
+    }
+  };
+
+  // Smart URL processing with validation
+  const processUrls = async () => {
+    const urlsText = input.value.trim();
+    
+    if (!urlsText) {
+      showNotification('❌ Please enter at least one URL.', 'error');
+      input.style.borderColor = '#f44336';
+      setTimeout(() => input.style.borderColor = '', 1000);
+      return;
+    }
+
+    // Parse and clean URLs
+    const rawUrls = urlsText.split(/\n/)
+      .map(u => u.trim())
+      .filter(u => u.length > 0);
+
+    // Process each URL
+    const processedUrls = [];
+    const invalidUrls = [];
+    const duplicateUrls = new Set();
+
+    rawUrls.forEach(url => {
+      // Remove common prefixes that might be pasted
+      url = url.replace(/^[•\-*\d]+[.)\s]*/, ''); // Remove bullet points and numbers
+      
+      // Add protocol if missing
+      let fullUrl = url;
+      if (!/^https?:\/\//i.test(fullUrl)) {
+        fullUrl = 'https://' + fullUrl;
+      }
+
+      // Validate URL
+      if (isValidUrl(fullUrl)) {
+        if (!duplicateUrls.has(fullUrl)) {
+          duplicateUrls.add(fullUrl);
+          processedUrls.push({
+            original: url,
+            full: fullUrl,
+            domain: getDomain(fullUrl)
+          });
+        }
+      } else {
+        invalidUrls.push(url);
+      }
+    });
+
+    // Show warning for invalid URLs
+    if (invalidUrls.length > 0) {
+      const continueAnyway = confirm(
+        `⚠️ Found ${invalidUrls.length} invalid URL(s):\n\n` +
+        invalidUrls.slice(0, 5).map(u => `• ${u}`).join('\n') +
+        (invalidUrls.length > 5 ? `\n• ...and ${invalidUrls.length - 5} more` : '') +
+        `\n\nContinue with ${processedUrls.length} valid URLs?`
+      );
+      if (!continueAnyway) return;
+    }
+
+    // Check URL count
+    if (processedUrls.length === 0) {
+      showNotification('❌ No valid URLs to open.', 'error');
+      return;
+    }
+
+    // Warning for many tabs
+    if (processedUrls.length > 15) {
+      const userConfirmed = await new Promise(resolve => {
+        const confirmDialog = createConfirmDialog(
+          '⚠️ High Volume Warning',
+          `You are about to open ${processedUrls.length} tabs simultaneously.\n\n` +
+          `This may:\n` +
+          `• Slow down your browser\n` +
+          `• Trigger pop-up blockers\n` +
+          `• Consume significant memory\n\n` +
+          `Consider opening in batches or using a session manager.\n\n` +
+          `How would you like to proceed?`,
+          [
+            { text: 'Open All', value: 'all', style: 'danger' },
+            { text: 'Open First 15', value: 'batch', style: 'primary' },
+            { text: 'Cancel', value: 'cancel', style: 'secondary' }
+          ]
+        );
+        resolve(confirmDialog);
+      });
+
+      if (userConfirmed === 'cancel') return;
+      if (userConfirmed === 'batch') {
+        processedUrls.length = 15;
+      }
+    }
+
+    // Show progress
+    const progressNotification = showProgressNotification(
+      `Opening ${processedUrls.length} tabs...`,
+      0
+    );
+
+    // Open tabs with smart delay
+    const results = {
+      opened: 0,
+      blocked: 0,
+      failed: 0
+    };
+
+    for (let i = 0; i < processedUrls.length; i++) {
+      const url = processedUrls[i];
+      
+      try {
+        // Update progress
+        const progress = Math.round((i / processedUrls.length) * 100);
+        progressNotification.update(progress, `Opening ${url.domain}...`);
+
+        // Open tab
+        const tab = await new Promise((resolve, reject) => {
+          chrome.tabs.create({ 
+            url: url.full, 
+            active: false 
+          }, (tab) => {
+            if (chrome.runtime.lastError) {
+              reject(chrome.runtime.lastError);
+            } else {
+              resolve(tab);
+            }
+          });
+        });
+
+        if (tab) {
+          results.opened++;
+        }
+
+        // Progressive delay based on count
+        const delay = i < 10 ? 200 : i < 20 ? 300 : 500;
+        await sleep(delay);
+
+      } catch (error) {
+        console.warn('Failed to open URL:', url.full, error);
+        if (error.message?.includes('popup') || error.message?.includes('blocked')) {
+          results.blocked++;
+        } else {
+          results.failed++;
+        }
+      }
+    }
+
+    // Close modal and progress
+    progressNotification.close();
+    closeModal();
+
+    // Show final results
+    setTimeout(() => {
+      let message = `✅ Opened ${results.opened} tabs successfully!`;
+      if (results.blocked > 0) {
+        message += `\n⚠️ ${results.blocked} blocked by pop-up blocker.`;
+      }
+      if (results.failed > 0) {
+        message += `\n❌ ${results.failed} failed to open.`;
+      }
+      
+      showNotification(message, results.failed > 0 ? 'warning' : 'success');
+
+      // Offer to save session if many tabs were opened
+      if (results.opened > 10) {
+        setTimeout(() => {
+          offerSaveSession(processedUrls.map(u => u.full));
+        }, 1000);
+      }
+    }, 500);
+  };
+
+  // Helper: Sleep function
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // Helper: Create confirm dialog
+  const createConfirmDialog = (title, message, buttons) => {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 100000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `;
+
+      const dialog = document.createElement('div');
+      dialog.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 450px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      `;
+
+      dialog.innerHTML = `
+        <h3 style="margin: 0 0 16px; color: #333; font-size: 18px;">${title}</h3>
+        <p style="margin: 0 0 24px; color: #666; line-height: 1.6; white-space: pre-line;">${message}</p>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          ${buttons.map(btn => `
+            <button class="confirm-btn-${btn.value}" style="
+              padding: 10px 20px;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-weight: 500;
+              ${btn.style === 'danger' ? 
+                'background: #f44336; color: white;' : 
+                btn.style === 'primary' ? 
+                'background: #667eea; color: white;' : 
+                'background: #e0e0e0; color: #333;'}
+            ">${btn.text}</button>
+          `).join('')}
+        </div>
+      `;
+
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+
+      // Add button listeners
+      buttons.forEach(btn => {
+        dialog.querySelector(`.confirm-btn-${btn.value}`).onclick = () => {
+          overlay.remove();
+          resolve(btn.value);
+        };
+      });
+
+      // Close on overlay click
+      overlay.onclick = (e) => {
+        if (e.target === overlay) {
+          overlay.remove();
+          resolve('cancel');
+        }
+      };
+
+      // Close on Escape
+      const onEscape = (e) => {
+        if (e.key === 'Escape') {
+          overlay.remove();
+          resolve('cancel');
+          document.removeEventListener('keydown', onEscape);
+        }
+      };
+      document.addEventListener('keydown', onEscape);
+    });
+  };
+
+  // Helper: Progress notification
+  const showProgressNotification = (message, initialProgress) => {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      z-index: 100001;
+      min-width: 300px;
+    `;
+
+    notification.innerHTML = `
+      <div style="margin-bottom: 12px; display: flex; justify-content: space-between;">
+        <span style="font-weight: 500;">${message}</span>
+        <span class="progress-percent">${initialProgress}%</span>
+      </div>
+      <div style="background: #f0f0f0; height: 6px; border-radius: 3px; overflow: hidden;">
+        <div class="progress-bar" style="
+          width: ${initialProgress}%;
+          height: 100%;
+          background: linear-gradient(90deg, #667eea, #764ba2);
+          transition: width 0.3s;
+        "></div>
+      </div>
+      <div class="progress-detail" style="margin-top: 8px; font-size: 12px; color: #666;"></div>
+    `;
+
+    document.body.appendChild(notification);
+
+    return {
+      update: (progress, detail) => {
+        const percentEl = notification.querySelector('.progress-percent');
+        const barEl = notification.querySelector('.progress-bar');
+        const detailEl = notification.querySelector('.progress-detail');
+        
+        if (percentEl) percentEl.textContent = `${progress}%`;
+        if (barEl) barEl.style.width = `${progress}%`;
+        if (detailEl && detail) detailEl.textContent = detail;
+      },
+      close: () => {
+        notification.style.transition = 'opacity 0.3s';
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+      }
+    };
+  };
+
+  // Helper: Offer to save session
+  const offerSaveSession = (urls) => {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      z-index: 100001;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    `;
+
+    notification.innerHTML = `
+      <span>💾 Save these ${urls.length} tabs as a session?</span>
+      <button id="saveSessionYes" style="
+        padding: 8px 16px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      ">Save</button>
+      <button id="saveSessionNo" style="
+        padding: 8px 16px;
+        background: transparent;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+      ">Dismiss</button>
+    `;
+
+    document.body.appendChild(notification);
+
+    notification.querySelector('#saveSessionYes').onclick = () => {
+      const session = {
+        name: `Session ${new Date().toLocaleString()}`,
+        urls: urls,
+        timestamp: Date.now()
+      };
+      
+      // Save to storage
+      chrome.storage.local.get(['savedSessions'], (result) => {
+        const sessions = result.savedSessions || [];
+        sessions.push(session);
+        chrome.storage.local.set({ savedSessions: sessions }, () => {
+          showNotification('✅ Session saved successfully!', 'success');
+        });
+      });
+      
+      notification.remove();
+    };
+
+    notification.querySelector('#saveSessionNo').onclick = () => {
+      notification.remove();
+    };
+
+    // Auto-dismiss after 10 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 10000);
+  };
+
+  // Add paste detection for better UX
+  input.addEventListener('paste', (e) => {
+    setTimeout(() => {
+      const pastedText = input.value;
+      const lines = pastedText.split('\n').filter(l => l.trim());
+      
+      if (lines.length > 0) {
+        const firstLine = lines[0].trim();
+        // Auto-detect if it's a list of URLs
+        if (lines.length > 1 || firstLine.includes('http')) {
+          showNotification(`📋 Detected ${lines.length} URLs`, 'info');
+        }
+      }
+    }, 10);
+  });
+
+  // Add input validation visual feedback
+  let validationTimeout;
+  input.addEventListener('input', () => {
+    clearTimeout(validationTimeout);
+    validationTimeout = setTimeout(() => {
+      const lines = input.value.split('\n').filter(l => l.trim());
+      const validCount = lines.filter(line => {
+        const url = line.trim().replace(/^[•\-*\d]+[.)\s]*/, '');
+        try {
+          const urlObj = new URL(/^https?:\/\//i.test(url) ? url : 'https://' + url);
+          return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      }).length;
+
+      if (lines.length > 0) {
+        if (validCount === lines.length) {
+          input.style.borderColor = '#4CAF50';
+        } else if (validCount > 0) {
+          input.style.borderColor = '#FF9800';
+        } else {
+          input.style.borderColor = '#f44336';
+        }
+      } else {
+        input.style.borderColor = '';
+      }
+    }, 300);
+  });
+
+  // Add example URLs placeholder functionality
+  input.addEventListener('focus', () => {
+    if (!input.value) {
+      input.placeholder = `Enter one URL per line...\n\nExamples:\nexample.com\nhttps://google.com\ngithub.com/features`;
     }
   });
-  
+
+  // Attach event listeners
+  executeBtn.addEventListener('click', processUrls);
+  closeBtn.addEventListener('click', closeModal);
+  modalClose.addEventListener('click', closeModal);
+}
+
+// Helper function for notifications (if not already defined)
+function showNotification(message, type = 'success') {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : type === 'warning' ? '#FF9800' : '#2196F3'};
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 100000;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideIn 0.3s ease;
+    white-space: pre-line;
+  `;
+
+  // Add animation
+  if (!document.querySelector('#notification-style')) {
+    const style = document.createElement('style');
+    style.id = 'notification-style';
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(notification);
+
   setTimeout(() => {
-    showNotification(`✅ Opened ${opened} of ${urls.length} tabs successfully!`, 'success');
-  }, urls.length * 300 + 100);
+    notification.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, type === 'error' ? 5000 : 3000);
 }
 
 // Tool Click Handler
@@ -515,7 +995,7 @@ async function handleToolClick(e) {
   }
 }
 
-// Send Message to Content Script
+// Send Message to Content Script (Upgraded for Modular Files)
 function sendMessageToContent(message) {
   return new Promise((resolve) => {
     if (!window.currentTabId) {
@@ -525,9 +1005,14 @@ function sendMessageToContent(message) {
     
     chrome.tabs.sendMessage(window.currentTabId, message, (response) => {
       if (chrome.runtime.lastError) {
+        // --- NEW: Inject all 3 modular files in the correct order! ---
         chrome.scripting.executeScript({
           target: { tabId: window.currentTabId },
-          files: ['content.js']
+          files: [
+            'utils.js',     // 1. Helpers
+            'seo-tools.js', // 2. Tool Logic
+            'content.js'    // 3. Message Router
+          ]
         }, () => {
           setTimeout(() => {
             chrome.tabs.sendMessage(window.currentTabId, message, resolve);
@@ -797,23 +1282,37 @@ function clearCache() {
   }
 }
 
-// Export/Import Settings
+// Export Settings (Upgraded to include both Sync and Local data)
 function exportSettings() {
-  chrome.storage.sync.get(null, (settings) => {
-    const dataStr = JSON.stringify(settings, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'gdi-tools-settings-' + new Date().toISOString().split('T')[0] + '.json';
-    a.click();
-    
-    URL.revokeObjectURL(url);
-    showNotification('Settings exported!', 'success');
+  // 1. Get personal info from Sync storage
+  chrome.storage.sync.get(null, (syncData) => {
+    // 2. Get templates and favorites from Local storage
+    chrome.storage.local.get(null, (localData) => {
+      
+      // 3. Combine them into one master backup object
+      const masterBackup = {
+        sync: syncData,
+        local: localData,
+        exportDate: new Date().toISOString()
+      };
+      
+      // 4. Trigger the download
+      const dataStr = JSON.stringify(masterBackup, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'seo-tools-pro-backup-' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
+      
+      URL.revokeObjectURL(url);
+      showNotification('Complete backup exported successfully!', 'success');
+    });
   });
 }
 
+// Import Settings (Upgraded to handle both Sync and Local data)
 function importSettings() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -826,15 +1325,39 @@ function importSettings() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const settings = JSON.parse(event.target.result);
-        chrome.storage.sync.set(settings, () => {
-          loadSettings().then(() => {
-            showNotification('Settings imported successfully!', 'success');
-            checkDarkMode();
+        const backupData = JSON.parse(event.target.result);
+        
+        // Check if this is our new master backup format
+        if (backupData.sync && backupData.local) {
+          
+          // Restore Sync data
+          chrome.storage.sync.set(backupData.sync, () => {
+            // Restore Local data
+            chrome.storage.local.set(backupData.local, () => {
+              // Reload everything into the UI
+              loadSettings().then(() => {
+                loadTemplates().then(() => {
+                  renderTemplateList();
+                  renderFavorites();
+                  checkDarkMode();
+                  showNotification('Settings and templates imported successfully!', 'success');
+                });
+              });
+            });
           });
-        });
+          
+        } else {
+          // Fallback for older backups (before we added the local storage upgrade)
+          chrome.storage.sync.set(backupData, () => {
+            loadSettings().then(() => {
+              showNotification('Legacy settings imported successfully!', 'success');
+              checkDarkMode();
+            });
+          });
+        }
       } catch (error) {
-        showNotification('Invalid settings file', 'error');
+        showNotification('Invalid backup file format', 'error');
+        console.error('Import error:', error);
       }
     };
     reader.readAsText(file);
@@ -1154,6 +1677,7 @@ function updateToolCount() {
 
 // ==================== FAVORITES / PINNING SYSTEM ====================
 
+
 function setupPinning() {
   const allTools = document.querySelectorAll('.tool-btn[data-action], .tool-btn.external');
   
@@ -1191,6 +1715,9 @@ function setupPinning() {
       // Save settings and update the UI
       chrome.storage.sync.set({ favorites: appSettings.favorites }, () => {
         renderFavorites();
+        
+        // NEW: Notify background script to refresh context menu
+        chrome.runtime.sendMessage({ action: 'refreshContextMenu' }).catch(() => {});
       });
     });
     
@@ -1199,6 +1726,15 @@ function setupPinning() {
   
   renderFavorites();
 }
+
+// Also add a listener in popup.js to handle the settings open request from context menu
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'openSettings') {
+    openSettings();
+    sendResponse({ success: true });
+  }
+  return true;
+});
 
 function renderFavorites() {
   const grid = document.getElementById('favorites-grid');
@@ -1678,5 +2214,4 @@ async function showWelcomeTour() {
   showStep();
 }
 
-// Call this after initExtension()
-// showWelcomeTour();
+
