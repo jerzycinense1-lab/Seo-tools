@@ -1,41 +1,130 @@
-// Enhanced generateUrlSlug with better error handling
+// Enhanced generateUrlSlug with Live Preview Modal
 function generateUrlSlug() {
-  const input = prompt('Enter text to generate a clean URL slug:', document.title || '');
-  if (!input) return;
-  
-  const slug = input.trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-  
-  copyToClipboard(slug).then(() => {
-    showNotification('Slug copied: ' + slug, 'success');
-  }).catch(() => {
-    showNotification('Slug generated: ' + slug, 'success');
-  });
+  const content = document.createElement('div');
+  content.innerHTML = `
+    <div style="padding: 15px;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 10px;">🔗 URL Slug Generator</h3>
+        <p style="margin: 0; opacity: 0.9; font-size: 13px;">Convert any text into a clean, SEO-friendly URL slug.</p>
+      </div>
+      
+      <div style="margin-bottom: 15px;">
+        <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 5px;">Original Text:</label>
+        <textarea id="slugInput" placeholder="Enter your blog post title or text here..." style="width: 100%; height: 80px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; resize: none; font-family: inherit; box-sizing: border-box;"></textarea>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 5px;">SEO-Friendly Slug:</label>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="slugOutput" readonly style="flex: 1; padding: 10px; border: 1px solid #667eea; border-radius: 6px; background: #f8f9fa; font-family: monospace; color: #333; box-sizing: border-box;">
+          <button id="copySlugBtn" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s;">📋 Copy</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  createModal('URL Slug Generator', content);
+
+  // Logic for live preview and copying
+  setTimeout(() => {
+    const input = document.getElementById('slugInput');
+    const output = document.getElementById('slugOutput');
+    
+    // Auto-fill with the current page title as a helpful default
+    input.value = document.title || '';
+    
+    const updateSlug = () => {
+      output.value = input.value.trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    };
+    
+    updateSlug(); // Run once immediately
+    input.addEventListener('input', updateSlug); // Live update as the user types
+    
+    document.getElementById('copySlugBtn').addEventListener('click', (e) => {
+      if (!output.value) {
+        showNotification('Nothing to copy!', 'warning');
+        return;
+      }
+      copyToClipboard(output.value).then(() => {
+        const btn = e.target;
+        btn.textContent = '✓ Copied!';
+        btn.style.background = '#2e7d32';
+        setTimeout(() => {
+          btn.textContent = '📋 Copy';
+          btn.style.background = '#4CAF50';
+        }, 1500);
+        showNotification('Slug copied to clipboard!', 'success');
+      });
+    });
+  }, 100);
 }
 
-// Enhanced generateWhatsappLink with validation
-function generateWhatsappLink() {
-  const sel = window.getSelection ? window.getSelection().toString().trim() : '';
-  let num = sel || prompt('Enter phone number in international format (e.g., 842862705825):', '');
-  if (!num) return;
+// Enhanced generateWhatsappLink with Relaxed Validation & Context Support
+function generateWhatsappLink(selectedText = '') {
+  // Use passed text (from context menu) or grab from window
+  const sel = selectedText || (window.getSelection ? window.getSelection().toString().trim() : '');
   
-  num = num.replace(/[^\d]/g, '');
-  if (!num || num.length < 10) {
-    showNotification('Please enter a valid phone number with country code', 'error');
-    return;
-  }
-  
-  const url = 'https://wa.me/' + num;
-  window.open(url, '_blank');
-  copyToClipboard(url).then(() => {
-    showNotification('WhatsApp link generated and copied!', 'success');
-  }).catch(() => {
-    showNotification('WhatsApp link opened!', 'success');
-  });
+  const content = document.createElement('div');
+  content.innerHTML = `
+    <div style="padding: 15px;">
+      <div style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 10px;">💬 WhatsApp Link Generator</h3>
+        <p style="margin: 0; opacity: 0.9; font-size: 13px;">Create a direct chat link for any phone number.</p>
+      </div>
+      
+      <div style="margin-bottom: 15px;">
+        <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 5px;">Phone Number (with Country Code):</label>
+        <input type="text" id="waInput" placeholder="e.g., 1234567890" value="${escapeHtml(sel)}" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px;">
+        <p style="font-size: 11px; color: #666; margin-top: 5px;">Include country code. Symbols like + or - are automatically cleaned.</p>
+      </div>
+      
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button id="openWaBtn" style="flex: 1; padding: 12px; background: #25D366; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: opacity 0.2s;">🚀 Open Chat</button>
+        <button id="copyWaBtn" style="flex: 1; padding: 12px; background: #2196F3; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: opacity 0.2s;">📋 Copy Link</button>
+      </div>
+    </div>
+  `;
+
+  createModal('WhatsApp Link', content);
+
+  setTimeout(() => {
+    const input = document.getElementById('waInput');
+    
+    // Helper to strip out spaces, dashes, and plus signs
+    const getCleanNumber = () => input.value.replace(/[^\d]/g, '');
+    
+    document.getElementById('openWaBtn').addEventListener('click', () => {
+      const num = getCleanNumber();
+      if (num.length < 5) { // Relaxed length check
+        showNotification('Please enter a valid phone number.', 'warning');
+        return;
+      }
+      window.open('https://wa.me/' + num, '_blank');
+    });
+    
+    document.getElementById('copyWaBtn').addEventListener('click', (e) => {
+      const num = getCleanNumber();
+      if (num.length < 5) {
+        showNotification('Please enter a valid phone number.', 'warning');
+        return;
+      }
+      copyToClipboard('https://wa.me/' + num).then(() => {
+        const btn = e.target;
+        btn.textContent = '✓ Copied!';
+        btn.style.background = '#4CAF50';
+        setTimeout(() => {
+            btn.textContent = '📋 Copy Link';
+            btn.style.background = '#2196F3';
+        }, 1500);
+        showNotification('WhatsApp link copied!', 'success');
+      });
+    });
+  }, 100);
 }
 
 // 1. Smarter Email Extractor (Modal UI + Mailto scanning)
@@ -1507,64 +1596,107 @@ function checkMobileFriendly() {
   showNotification('Opening Mobile-Friendly Test...', 'success');
 }
 
-// Check Structured Data (Schema)
+// ==================== STRUCTURED DATA (SCHEMA) VALIDATOR PRO ====================
 function checkStructuredData() {
   const scripts = document.querySelectorAll('script[type="application/ld+json"]');
-  const newWindow = window.open('', '_blank');
-  
-  let html = `<!DOCTYPE html>
-  <html>
-  <head>
-    <title>Structured Data Analysis</title>
-    <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        padding: 20px;
-        background: #f9fafb;
-        margin: 0;
-      }
-      h1 { color: #1a202c; font-size: 24px; margin-bottom: 20px; }
-      .card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-      .success { background: #d4edda; border-left: 4px solid #28a745; padding: 10px; margin: 10px 0; }
-      .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 10px 0; }
-      pre { background: #f0f4f8; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
-    </style>
-  </head>
-  <body>
-    <h1>Structured Data Analysis</h1>
-    <div class="card">
-      <h3>Summary</h3>
-      <div>Found ${scripts.length} structured data script(s)</div>`;
+  const currentUrl = window.location.href;
   
   if (scripts.length === 0) {
-    html += '<div class="warning">⚠️ No structured data found. Consider adding Schema.org markup for better SEO.</div>';
-  } else {
-    html += '<div class="success">✅ Structured data found! Validate with Google Rich Results Test.</div>';
-    html += `<div style="margin-top: 15px;">
-      <button onclick="window.open('https://search.google.com/test/rich-results?url=${encodeURIComponent(window.location.href)}', '_blank')" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
-        Validate with Rich Results Test
-      </button>
-    </div>`;
-    
-    scripts.forEach((script, i) => {
-      try {
-        const data = JSON.parse(script.textContent);
-        html += `<div class="card">
-          <h3>Script ${i + 1}</h3>
-          <pre>${escapeHtml(JSON.stringify(data, null, 2).substring(0, 1000))}${JSON.stringify(data, null, 2).length > 1000 ? '\n... (truncated)' : ''}</pre>
-        </div>`;
-      } catch (e) {
-        html += `<div class="card">
-          <h3>Script ${i + 1}</h3>
-          <div class="warning">⚠️ Invalid JSON-LD data</div>
-        </div>`;
-      }
-    });
+    showNotification('No JSON-LD schema markup found on this page.', 'warning');
+    return;
   }
-  
-  html += `</div></body></html>`;
-  newWindow.document.write(html);
-  newWindow.document.close();
+
+  const content = document.createElement('div');
+  let schemaHtml = '';
+
+  scripts.forEach((script, i) => {
+    let formattedJson = '';
+    let isValid = true;
+    let type = 'Unknown Schema Type';
+    
+    try {
+      const data = JSON.parse(script.textContent);
+      formattedJson = JSON.stringify(data, null, 2); // Neatly format the JSON
+      // Try to extract the schema type (handles both single objects and arrays)
+      if (data['@type']) {
+        type = Array.isArray(data['@type']) ? data['@type'].join(', ') : data['@type'];
+      } else if (Array.isArray(data) && data.length > 0 && data[0]['@type']) {
+        type = `Array of Types (e.g., ${data[0]['@type']})`;
+      } else if (data['@graph']) {
+        type = 'Schema Graph';
+      }
+    } catch (e) {
+      formattedJson = script.textContent; // Fallback to raw text if parsing fails
+      isValid = false;
+    }
+
+    schemaHtml += `
+      <div style="margin-bottom: 20px; border: 1px solid ${isValid ? '#e0e0e0' : '#f44336'}; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div style="background: ${isValid ? '#f8f9fa' : '#ffebee'}; padding: 12px 15px; border-bottom: 1px solid ${isValid ? '#e0e0e0' : '#f44336'}; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="color: ${isValid ? '#333' : '#c62828'}; font-size: 14px;">📦 ${escapeHtml(type)}</strong>
+            ${!isValid ? '<span style="margin-left: 10px; color: #f44336; font-size: 12px; font-weight: bold;">⚠️ Invalid JSON</span>' : ''}
+          </div>
+          <button class="copy-schema-btn" data-index="${i}" style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: background 0.2s;">
+            📋 Copy JSON
+          </button>
+        </div>
+        <div style="background: #282c34; padding: 15px; max-height: 350px; overflow-y: auto;">
+          <pre id="schema-code-${i}" style="margin: 0; color: #abb2bf; font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all;">${escapeHtml(formattedJson)}</pre>
+        </div>
+      </div>
+    `;
+  });
+
+  content.innerHTML = `
+    <div style="padding: 10px;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0 0 5px;">📋 Schema Markup Validator</h3>
+          <p style="margin: 0; opacity: 0.9; font-size: 13px;">Successfully detected ${scripts.length} JSON-LD script(s)</p>
+        </div>
+        <button id="btnGoogleRichResults" style="padding: 10px 15px; background: white; color: #667eea; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.2s;">
+          🔍 Test in Google Rich Results
+        </button>
+      </div>
+      
+      <div style="max-height: 60vh; overflow-y: auto; padding-right: 5px;">
+        ${schemaHtml}
+      </div>
+    </div>
+  `;
+
+  // Use your existing modal creation helper from utils.js
+  createModal('Schema Validator', content);
+
+  // Add event listeners after the modal is injected into the DOM
+  setTimeout(() => {
+    // Handling the copy buttons for each schema block
+    document.querySelectorAll('.copy-schema-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = e.target.getAttribute('data-index');
+        const codeElement = document.getElementById(`schema-code-${index}`);
+        
+        if (codeElement) {
+          copyToClipboard(codeElement.textContent).then(() => {
+            const originalText = e.target.innerHTML;
+            e.target.innerHTML = '✓ Copied!';
+            e.target.style.background = '#4CAF50';
+            setTimeout(() => {
+              e.target.innerHTML = originalText;
+              e.target.style.background = '#667eea';
+            }, 1500);
+          });
+        }
+      });
+    });
+
+    // Handling the Google Rich Results launch button
+    document.getElementById('btnGoogleRichResults')?.addEventListener('click', () => {
+      const richResultsUrl = `https://search.google.com/test/rich-results?url=${encodeURIComponent(currentUrl)}`;
+      window.open(richResultsUrl, '_blank');
+    });
+  }, 100);
 }
 
 // Check Robots.txt
@@ -1610,64 +1742,131 @@ function checkSitemap() {
     });
 }
 
-// Word Count and Readability
+// ==================== CONTENT & READABILITY ANALYZER PRO ====================
 function analyzeContent() {
-  const bodyText = document.body.innerText || document.body.textContent;
-  const words = bodyText.match(/\b\w+\b/g) || [];
+  const bodyText = document.body.innerText || document.body.textContent || '';
+  
+  // Clean and parse text
+  const cleanText = bodyText.replace(/\s+/g, ' ').trim();
+  const words = cleanText.match(/\b[a-zA-Z]{2,}\b/g) || [];
   const wordCount = words.length;
-  const paragraphs = document.querySelectorAll('p');
-  const avgWordsPerParagraph = paragraphs.length > 0 ? Math.round(wordCount / paragraphs.length) : 0;
-  
-  // Simple readability score (Flesch Reading Ease approximation)
-  const sentences = bodyText.match(/[^.!?]+[.!?]+/g) || [];
-  const avgWordsPerSentence = sentences.length > 0 ? Math.round(wordCount / sentences.length) : 0;
-  let readabilityScore = 'Unknown';
-  if (avgWordsPerSentence < 15) readabilityScore = 'Easy to Read';
-  else if (avgWordsPerSentence < 20) readabilityScore = 'Moderate';
-  else readabilityScore = 'Difficult to Read';
-  
-  const newWindow = window.open('', '_blank');
-  let html = `<!DOCTYPE html>
-  <html>
-  <head>
-    <title>Content Analysis</title>
-    <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        padding: 20px;
-        background: #f9fafb;
-        margin: 0;
-      }
-      h1 { color: #1a202c; font-size: 24px; margin-bottom: 20px; }
-      .card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-      .metric { font-size: 36px; font-weight: bold; color: #4CAF50; margin: 10px 0; }
-      .label { color: #666; font-size: 14px; }
-    </style>
-  </head>
-  <body>
-    <h1>Content Analysis</h1>
-    <div class="card">
-      <div class="metric">${wordCount.toLocaleString()}</div>
-      <div class="label">Total Words</div>
-    </div>
-    <div class="card">
-      <div class="metric">${paragraphs.length}</div>
-      <div class="label">Paragraphs</div>
-      <div>Average ${avgWordsPerParagraph} words per paragraph</div>
-    </div>
-    <div class="card">
-      <div class="metric">${sentences.length}</div>
-      <div class="label">Sentences</div>
-      <div>Average ${avgWordsPerSentence} words per sentence</div>
-      <div>Readability: <strong>${readabilityScore}</strong></div>
-    </div>
-  </body>
-  </html>`;
-  
-  newWindow.document.write(html);
-  newWindow.document.close();
-}
+  const characters = cleanText.length;
+  const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
+  const sentenceCount = sentences.length || 1; // Prevent division by zero
+  const paragraphs = document.querySelectorAll('p').length || 1;
 
+  // 1. Syllable counting logic
+  const countSyllables = (word) => {
+    word = word.toLowerCase();
+    if (word.length <= 3) return 1;
+    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+    word = word.replace(/^y/, '');
+    const syllables = word.match(/[aeiouy]{1,2}/g);
+    return syllables ? syllables.length : 1;
+  };
+
+  const totalSyllables = words.reduce((acc, word) => acc + countSyllables(word), 0);
+
+  // 2. Flesch Reading Ease Formula
+  let readingEase = 0;
+  if (wordCount > 0) {
+    readingEase = 206.835 - (1.015 * (wordCount / sentenceCount)) - (84.6 * (totalSyllables / wordCount));
+  }
+  // Clamp score between 0 and 100
+  readingEase = Math.max(0, Math.min(100, Math.round(readingEase)));
+
+  // Determine readability grading
+  let readabilityLabel = '';
+  let readabilityColor = '';
+  if (readingEase >= 90) { readabilityLabel = 'Very Easy (5th Grade)'; readabilityColor = '#4CAF50'; }
+  else if (readingEase >= 80) { readabilityLabel = 'Easy (6th Grade)'; readabilityColor = '#4CAF50'; }
+  else if (readingEase >= 70) { readabilityLabel = 'Fairly Easy (7th Grade)'; readabilityColor = '#8BC34A'; }
+  else if (readingEase >= 60) { readabilityLabel = 'Standard (8th-9th Grade)'; readabilityColor = '#FF9800'; }
+  else if (readingEase >= 50) { readabilityLabel = 'Fairly Difficult (10th-12th Grade)'; readabilityColor = '#FF9800'; }
+  else if (readingEase >= 30) { readabilityLabel = 'Difficult (College)'; readabilityColor = '#f44336'; }
+  else { readabilityLabel = 'Very Difficult (College Grad)'; readabilityColor = '#c62828'; }
+
+  // 3. Time estimates
+  const readingTime = Math.max(1, Math.ceil(wordCount / 238)); // Avg 238 words per min
+  const speakingTime = Math.max(1, Math.ceil(wordCount / 130)); // Avg 130 words per min
+
+  // 4. Keyword Extraction (Basic)
+  const stopWords = new Set(['the','and','to','of','a','in','for','is','on','that','by','this','with','i','you','it','not','or','be','are', 'as', 'your', 'from']);
+  const wordFreq = {};
+  words.forEach(w => {
+    const word = w.toLowerCase();
+    if (!stopWords.has(word) && word.length > 3) {
+      wordFreq[word] = (wordFreq[word] || 0) + 1;
+    }
+  });
+  const topKeywords = Object.entries(wordFreq).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  // 5. Create UI
+  const content = document.createElement('div');
+  content.innerHTML = `
+    <div style="padding: 10px;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0 0 5px;">📝 Content & Readability Pro</h3>
+          <p style="margin: 0; opacity: 0.9; font-size: 13px;">In-depth text analysis for SEO</p>
+        </div>
+        <div style="text-align: center; background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 8px;">
+          <div style="font-size: 28px; font-weight: bold; color: ${readingEase > 50 ? '#fff' : '#ffebee'};">${readingEase}</div>
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Score</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+          <h4 style="margin: 0 0 15px; color: #333; font-size: 14px; border-bottom: 2px solid #667eea; padding-bottom: 5px;">📊 Core Metrics</h4>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color:#666;">Words</span> <strong style="font-size: 14px;">${wordCount.toLocaleString()}</strong></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color:#666;">Characters</span> <strong style="font-size: 14px;">${characters.toLocaleString()}</strong></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color:#666;">Sentences</span> <strong style="font-size: 14px;">${sentenceCount.toLocaleString()}</strong></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color:#666;">Paragraphs</span> <strong style="font-size: 14px;">${paragraphs.toLocaleString()}</strong></div>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+          <h4 style="margin: 0 0 15px; color: #333; font-size: 14px; border-bottom: 2px solid #4CAF50; padding-bottom: 5px;">⏱️ Time Estimates</h4>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+            <span style="font-size: 24px;">📖</span>
+            <div>
+              <div style="font-weight: bold; color: #333; font-size: 14px;">${readingTime} min</div>
+              <div style="font-size: 11px; color: #666;">Silent Reading</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">🗣️</span>
+            <div>
+              <div style="font-weight: bold; color: #333; font-size: 14px;">${speakingTime} min</div>
+              <div style="font-size: 11px; color: #666;">Speaking / Presentation</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 20px;">
+        <h4 style="margin: 0 0 10px; color: #333; font-size: 14px;">📚 Readability Level</h4>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <div style="flex: 1; height: 10px; background: #f0f0f0; border-radius: 5px; overflow: hidden;">
+            <div style="height: 100%; width: ${readingEase}%; background: ${readabilityColor}; transition: width 0.5s ease-out;"></div>
+          </div>
+          <span style="font-weight: bold; color: ${readabilityColor}; font-size: 13px; min-width: 150px; text-align: right;">${readabilityLabel}</span>
+        </div>
+        <p style="margin: 5px 0 0; font-size: 11px; color: #888;">Based on the Flesch Reading Ease scale. A score of 60-70 is largely considered acceptable for standard web copy.</p>
+      </div>
+
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <h4 style="margin: 0 0 10px; color: #333; font-size: 14px;">🔑 Top Keywords Detected</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${topKeywords.map(([kw, count]) => `<span style="background: #e3f2fd; color: #1565c0; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">${escapeHtml(kw)} (${count})</span>`).join('') || '<span style="color: #999; font-size: 12px;">Not enough text to analyze.</span>'}
+        </div>
+      </div>
+    </div>
+  `;
+
+  createModal('Content Analyzer', content);
+}
+3
 // Export All SEO Data
 function exportSEOData() {
   const data = {
@@ -4226,14 +4425,38 @@ function extractBulkGoogleDomains() {
     outputWindow.document.write(htmlContent);
     outputWindow.document.close();
 
-    // CSP Compliant Event Listener
-    outputWindow.document.getElementById('copyAllBtn').addEventListener('click', () => {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(domainList).then(() => {
-          outputWindow.alert('Copied ' + sortedDomains.length + ' domains!');
-        }).catch(() => outputWindow.prompt('Copy these domains:', domainList));
-      } else {
-        outputWindow.prompt('Copy these domains:', domainList);
+    // Bulletproof Copy Event Listener for about:blank windows
+    outputWindow.document.getElementById('copyAllBtn').addEventListener('click', (e) => {
+      try {
+        // Create a temporary textarea inside the NEW window
+        const textarea = outputWindow.document.createElement('textarea');
+        textarea.value = domainList;
+        textarea.style.position = 'fixed'; // Prevent scrolling to bottom
+        textarea.style.opacity = '0';
+        outputWindow.document.body.appendChild(textarea);
+        
+        // Select and execute copy
+        textarea.select();
+        const successful = outputWindow.document.execCommand('copy');
+        
+        // Clean up
+        outputWindow.document.body.removeChild(textarea);
+        
+        if (successful) {
+          // Visual feedback on the button
+          const btn = e.target;
+          btn.innerText = '✅ Copied!';
+          btn.style.background = '#2e7d32'; // Success green
+          setTimeout(() => {
+            btn.innerText = '📋 Copy All Domains';
+            btn.style.background = '#4CAF50'; // Original green
+          }, 2000);
+        } else {
+          throw new Error('Copy command failed');
+        }
+      } catch (err) {
+        // Ultimate fallback if browser completely blocks execution
+        outputWindow.prompt('Press Ctrl+C or Cmd+C to copy these domains:', domainList);
       }
     });
   }
@@ -9412,3 +9635,85 @@ Quick Stats:
   }, 100);
 }
 
+// ==================== CURRENCY SYMBOL COPIER ====================
+
+function showCurrencyCopier() {
+  // Define the currencies we want to feature
+  const currencies = [
+    { symbol: '$', code: 'USD / CAD / AUD', name: 'Dollar' },
+    { symbol: '€', code: 'EUR', name: 'Euro' },
+    { symbol: '£', code: 'GBP', name: 'British Pound' },
+    { symbol: '¥', code: 'JPY / CNY', name: 'Yen / Yuan' },
+    { symbol: '₱', code: 'PHP', name: 'Philippine Peso' },
+    { symbol: '₹', code: 'INR', name: 'Indian Rupee' },
+    { symbol: '₩', code: 'KRW', name: 'South Korean Won' },
+    { symbol: '₽', code: 'RUB', name: 'Russian Ruble' },
+    { symbol: 'R$', code: 'BRL', name: 'Brazilian Real' },
+    { symbol: 'Fr', code: 'CHF', name: 'Swiss Franc' },
+    { symbol: '฿', code: 'THB', name: 'Thai Baht' },
+    { symbol: '₫', code: 'VND', name: 'Vietnamese Dong' }
+  ];
+
+  const content = document.createElement('div');
+  content.innerHTML = `
+    <div style="padding: 15px;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 10px;">💰 Currency Symbol Copier</h3>
+        <p style="margin: 0; opacity: 0.9; font-size: 13px;">Click any card to instantly copy the symbol to your clipboard.</p>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 5px;">
+        ${currencies.map(c => `
+          <div class="currency-card" data-symbol="${c.symbol}" style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s;">
+            <div style="font-size: 32px; font-weight: bold; color: #1565c0; margin-bottom: 5px;">${c.symbol}</div>
+            <div style="font-size: 12px; font-weight: 600; color: #333;">${c.code}</div>
+            <div style="font-size: 10px; color: #666;">${c.name}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  // Use your existing modal creation helper from utils.js
+  createModal('Currency Symbol Copier', content);
+
+  // Add click events and hover effects after the modal renders
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.currency-card');
+    
+    cards.forEach(card => {
+      // Hover effects
+      card.addEventListener('mouseenter', () => {
+        card.style.background = '#e3f2fd';
+        card.style.borderColor = '#90caf9';
+        card.style.transform = 'translateY(-2px)';
+        card.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.background = '#f8f9fa';
+        card.style.borderColor = '#e0e0e0';
+        card.style.transform = 'translateY(0)';
+        card.style.boxShadow = 'none';
+      });
+
+      // Copy functionality
+      card.addEventListener('click', () => {
+        const symbol = card.dataset.symbol;
+        
+        // Use your existing copy helper from utils.js
+        copyToClipboard(symbol).then(() => {
+          showNotification(`Copied ${symbol} to clipboard!`, 'success');
+          
+          // Visual feedback animation on the card
+          card.style.background = '#c8e6c9';
+          card.style.borderColor = '#81c784';
+          
+          setTimeout(() => {
+            card.style.background = '#f8f9fa';
+            card.style.borderColor = '#e0e0e0';
+          }, 400);
+        });
+      });
+    });
+  }, 100);
+}

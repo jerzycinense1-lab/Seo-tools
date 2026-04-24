@@ -12,8 +12,7 @@
     "storage",
     "scripting",
     "alarms",
-    "contextMenus",
-    "downloads"
+    "contextMenus"
   ],
   
   "host_permissions": [
