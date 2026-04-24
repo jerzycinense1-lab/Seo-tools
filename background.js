@@ -262,6 +262,16 @@ function getToolInfo(actionId) {
     'advanced-text-compare': { name: '🔍 SEO Text Compare' },
     'image-toolkit': { name: '🖼️ Image Toolkit' },
     
+    // Productivity Tools
+    'screenshot': { name: '📷 Screenshot Tool' },
+    'color-picker': { name: '🎨 Color Picker' },
+    'notes': { name: '📝 Quick Notes' },
+    'qr-generator': { name: '📱 QR Code Generator' },
+    'text-case': { name: '🔤 Text Case Converter' },
+    'word-counter': { name: '📊 Word Counter' },
+    'timer': { name: '⏱️ Focus Timer' },
+    'lorem-ipsum': { name: '📄 Lorem Ipsum Generator' },
+    
     // External Apps
     'https://task-tracker.searchworks.ph/': { name: '📋 Task Tracker' },
     'https://gdi-profiler.searchworks.ph/dashboard': { name: '📊 GDI Profiler' },
@@ -430,6 +440,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'captureVisibleTab') {
     chrome.tabs.captureVisibleTab(null, { format: 'png' }, (dataUrl) => {
       sendResponse({ dataUrl: dataUrl });
+    });
+    return true; // Keep the message channel open for the asynchronous response
+  }
+  
+  // Handle screenshot capture and download
+  if (request.action === 'captureScreenshot') {
+    chrome.tabs.captureVisibleTab(null, { format: 'png' }, (dataUrl) => {
+      if (chrome.runtime.lastError) {
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        // Create a blob URL and trigger download
+        fetch(dataUrl)
+          .then(res => res.blob())
+          .then(blob => {
+            const url = URL.createObjectURL(blob);
+            chrome.downloads.download({
+              url: url,
+              filename: `screenshot-${new Date().toISOString().replace(/[:.]/g, '-')}.png`,
+              saveAs: false
+            }, (downloadId) => {
+              sendResponse({ success: true, downloadId });
+            });
+          })
+          .catch(err => {
+            sendResponse({ success: false, error: err.message });
+          });
+      }
     });
     return true; // Keep the message channel open for the asynchronous response
   }
