@@ -665,7 +665,7 @@ body.dark-mode {
 |:---|:---|
 | 🌐 **Website** | [searchworks.ph](https://searchworks.ph) |
 | 📧 **Email** | [jerzycinense1@gmail.com](mailto:jerzycinense1@gmail.com) |
-| 📱 **Phone** | +63 905 410 5922 |
+| 📱 **Phone** | +*** |
 | 💼 **LinkedIn** | [Jerzy Cinense](https://www.linkedin.com/in/j-b-c/) |
 
 </div>
@@ -686,7 +686,7 @@ Have an idea for a new tool? Let me know! I'm always looking to add genuinely us
 
 <div align="center">
 
-**Made with ❤️ by [SearchWorks.ph](https://searchworks.ph)**
+**Made by [SearchWorks.ph](https://searchworks.ph)**
 
 *"Empowering SEO professionals with the right tools, right in their browser."*
 
