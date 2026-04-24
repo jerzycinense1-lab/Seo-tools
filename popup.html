@@ -271,14 +271,20 @@
       <div class="tool-group">
         <h3>🛠️ Productivity Tools</h3>
         <div class="tool-grid">
-          <button class="tool-btn" data-action="screenshot">📷 Screenshot Tool</button>
-          <button class="tool-btn" data-action="color-picker">🎨 Color Picker</button>
           <button class="tool-btn" data-action="notes">📝 Quick Notes</button>
           <button class="tool-btn" data-action="qr-generator">📱 QR Code Generator</button>
           <button class="tool-btn" data-action="text-case">🔤 Text Case Converter</button>
           <button class="tool-btn" data-action="word-counter">📊 Word Counter</button>
           <button class="tool-btn" data-action="timer">⏱️ Focus Timer</button>
           <button class="tool-btn" data-action="lorem-ipsum">📄 Lorem Ipsum Generator</button>
+          <button class="tool-btn" data-action="password-generator">🔐 Password Generator</button>
+          <button class="tool-btn" data-action="unit-converter">🔄 Unit Converter</button>
+          <button class="tool-btn" data-action="stopwatch">⏱️ Stopwatch</button>
+          <button class="tool-btn" data-action="calculator">🧮 Quick Calculator</button>
+          <button class="tool-btn" data-action="timezone-converter">🌍 Timezone Converter</button>
+          <button class="tool-btn" data-action="markdown-preview">📝 Markdown Preview</button>
+          <button class="tool-btn" data-action="json-formatter">📋 JSON Formatter</button>
+          <button class="tool-btn" data-action="base64-converter">🔃 Base64 Converter</button>
         </div>
       </div>
 
@@ -522,6 +528,228 @@
       </div>
     </div>
   </div>
+
+  <!-- Password Generator Modal -->
+  <div id="passwordGeneratorModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🔐 Password Generator</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="password-display">
+          <input type="text" id="generatedPassword" readonly class="password-input">
+          <button id="copyPasswordBtn" class="btn-icon">📋</button>
+        </div>
+        <div class="password-options">
+          <div class="option-row">
+            <label>Password Length: <span id="passwordLengthValue">16</span></label>
+            <input type="range" id="passwordLength" min="4" max="64" value="16">
+          </div>
+          <div class="option-row">
+            <input type="checkbox" id="includeUppercase" checked>
+            <label for="includeUppercase">Include Uppercase (A-Z)</label>
+          </div>
+          <div class="option-row">
+            <input type="checkbox" id="includeLowercase" checked>
+            <label for="includeLowercase">Include Lowercase (a-z)</label>
+          </div>
+          <div class="option-row">
+            <input type="checkbox" id="includeNumbers" checked>
+            <label for="includeNumbers">Include Numbers (0-9)</label>
+          </div>
+          <div class="option-row">
+            <input type="checkbox" id="includeSymbols" checked>
+            <label for="includeSymbols">Include Symbols (!@#$)</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="generatePasswordBtn" class="btn-primary">🔄 Generate New Password</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unit Converter Modal -->
+  <div id="unitConverterModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🔄 Unit Converter</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="converter-type">
+          <select id="converterType">
+            <option value="length">Length</option>
+            <option value="weight">Weight</option>
+            <option value="temperature">Temperature</option>
+            <option value="area">Area</option>
+            <option value="speed">Speed</option>
+          </select>
+        </div>
+        <div class="converter-inputs">
+          <div class="input-group">
+            <input type="number" id="convertFromValue" value="1" placeholder="Value">
+            <select id="convertFromUnit"></select>
+          </div>
+          <div class="swap-btn" id="swapUnits">⇄</div>
+          <div class="input-group">
+            <input type="number" id="convertToValue" readonly placeholder="Result">
+            <select id="convertToUnit"></select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stopwatch Modal -->
+  <div id="stopwatchModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⏱️ Stopwatch</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="stopwatch-display" id="stopwatchDisplay">00:00:00</div>
+        <div class="stopwatch-controls">
+          <button id="startStopwatch" class="btn-primary">▶️ Start</button>
+          <button id="resetStopwatch" class="btn-secondary">🔄 Reset</button>
+          <button id="lapStopwatch" class="btn-secondary">🏁 Lap</button>
+        </div>
+        <div class="laps-container" id="lapsContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calculator Modal -->
+  <div id="calculatorModal" class="modal">
+    <div class="modal-content modal-small">
+      <div class="modal-header">
+        <h2>🧮 Quick Calculator</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="calculator-display">
+          <input type="text" id="calcDisplay" readonly placeholder="0">
+        </div>
+        <div class="calculator-buttons">
+          <button class="calc-btn" data-calc="C">C</button>
+          <button class="calc-btn" data-calc="CE">CE</button>
+          <button class="calc-btn" data-calc="%">%</button>
+          <button class="calc-btn" data-calc="/">÷</button>
+          <button class="calc-btn" data-calc="7">7</button>
+          <button class="calc-btn" data-calc="8">8</button>
+          <button class="calc-btn" data-calc="9">9</button>
+          <button class="calc-btn" data-calc="*">×</button>
+          <button class="calc-btn" data-calc="4">4</button>
+          <button class="calc-btn" data-calc="5">5</button>
+          <button class="calc-btn" data-calc="6">6</button>
+          <button class="calc-btn" data-calc="-">−</button>
+          <button class="calc-btn" data-calc="1">1</button>
+          <button class="calc-btn" data-calc="2">2</button>
+          <button class="calc-btn" data-calc="3">3</button>
+          <button class="calc-btn" data-calc="+">+</button>
+          <button class="calc-btn" data-calc="0">0</button>
+          <button class="calc-btn" data-calc=".">.</button>
+          <button class="calc-btn" data-calc="backspace">⌫</button>
+          <button class="calc-btn calc-btn-equals" data-calc="=">=</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timezone Converter Modal -->
+  <div id="timezoneConverterModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🌍 Timezone Converter</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="timezone-input">
+          <label>Select Time:</label>
+          <input type="datetime-local" id="tzDateTime">
+        </div>
+        <div class="timezone-selectors">
+          <div class="input-group">
+            <label>From:</label>
+            <select id="fromTimezone"></select>
+          </div>
+          <div class="input-group">
+            <label>To:</label>
+            <select id="toTimezone"></select>
+          </div>
+        </div>
+        <div class="timezone-result" id="timezoneResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Markdown Preview Modal -->
+  <div id="markdownPreviewModal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2>📝 Markdown Preview</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="markdown-container">
+          <textarea id="markdownInput" placeholder="Enter Markdown here..."></textarea>
+          <div id="markdownOutput" class="markdown-output"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON Formatter Modal -->
+  <div id="jsonFormatterModal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2>📋 JSON Formatter</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="json-container">
+          <textarea id="jsonInput" placeholder="Paste JSON here..."></textarea>
+          <div class="json-controls">
+            <button id="formatJson" class="btn-primary">✨ Format</button>
+            <button id="minifyJson" class="btn-secondary">📦 Minify</button>
+            <button id="copyJson" class="btn-secondary">📋 Copy</button>
+            <button id="validateJson" class="btn-secondary">✅ Validate</button>
+          </div>
+          <textarea id="jsonOutput" readonly placeholder="Formatted JSON will appear here..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Base64 Converter Modal -->
+  <div id="base64ConverterModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🔃 Base64 Converter</h2>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="base64-container">
+          <div class="input-group">
+            <label>Text:</label>
+            <textarea id="base64Text" placeholder="Enter text to encode/decode"></textarea>
+          </div>
+          <div class="base64-controls">
+            <button id="encodeBase64" class="btn-primary">⬆️ Encode</button>
+            <button id="decodeBase64" class="btn-secondary">⬇️ Decode</button>
+            <button id="copyBase64" class="btn-secondary">📋 Copy</button>
+          </div>
+          <div class="input-group">
+            <label>Base64:</label>
+            <textarea id="base64Output" readonly placeholder="Result will appear here"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
