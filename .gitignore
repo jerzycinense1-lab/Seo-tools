@@ -1,1 +1,1 @@
-Nothing should be ignored since only JavaScript source files (background.js, content.js) were modified and no build artifacts, dependencies, or temporary files were detected in the changes.
+Nothing should be ignored based on the provided file changes. The modified files (`popup.html` and `popup.js`) are source code files that should be tracked in version control. There are no build artifacts, dependency directories, temporary files, or other items that need to be added to the .gitignore file.
