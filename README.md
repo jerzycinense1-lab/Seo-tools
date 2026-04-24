@@ -664,9 +664,9 @@ body.dark-mode {
 | Contact Method | Details |
 |:---|:---|
 | 🌐 **Website** | [searchworks.ph](https://searchworks.ph) |
-| 📧 **Email** | [jonathn.p.harris@gmail.com](mailto:jonathn.p.harris@gmail.com) |
-| 📱 **Phone** | +63 992 852 4796 |
-| 💼 **LinkedIn** | [Jonathan Harris](https://linkedin.com/in/jonathan-harris) |
+| 📧 **Email** | [jerzycinense1@gmail.com](mailto:jerzycinense1@gmail.com) |
+| 📱 **Phone** | +63 905 410 5922 |
+| 💼 **LinkedIn** | [Jerzy Cinense](https://www.linkedin.com/in/j-b-c/) |
 
 </div>
 
