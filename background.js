@@ -449,24 +449,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     chrome.tabs.captureVisibleTab(null, { format: 'png' }, (dataUrl) => {
       if (chrome.runtime.lastError) {
         sendResponse({ success: false, error: chrome.runtime.lastError.message });
-      } else {
-        // Create a blob URL and trigger download
-        fetch(dataUrl)
-          .then(res => res.blob())
-          .then(blob => {
-            const url = URL.createObjectURL(blob);
-            chrome.downloads.download({
-              url: url,
-              filename: `screenshot-${new Date().toISOString().replace(/[:.]/g, '-')}.png`,
-              saveAs: false
-            }, (downloadId) => {
-              sendResponse({ success: true, downloadId });
-            });
-          })
-          .catch(err => {
-            sendResponse({ success: false, error: err.message });
-          });
+        return;
       }
+      
+      // Create a blob URL and trigger download
+      fetch(dataUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const url = URL.createObjectURL(blob);
+          chrome.downloads.download({
+            url: url,
+            filename: `screenshot-${new Date().toISOString().replace(/[:.]/g, '-')}.png`,
+            saveAs: false
+          }, (downloadId) => {
+            if (chrome.runtime.lastError) {
+              sendResponse({ success: false, error: chrome.runtime.lastError.message });
+            } else {
+              sendResponse({ success: true, downloadId });
+            }
+          });
+        })
+        .catch(err => {
+          sendResponse({ success: false, error: err.message });
+        });
     });
     return true; // Keep the message channel open for the asynchronous response
   }

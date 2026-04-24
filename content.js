@@ -424,6 +424,7 @@ function activateColorPicker() {
     background: rgba(0, 0, 0, 0.7);
     z-index: 999999;
     cursor: crosshair;
+    pointer-events: none;
   `;
   
   const info = document.createElement('div');
@@ -439,6 +440,7 @@ function activateColorPicker() {
     font-size: 16px;
     z-index: 1000000;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    pointer-events: auto;
   `;
   info.textContent = 'Click anywhere to pick a color (ESC to cancel)';
   overlay.appendChild(info);
@@ -448,16 +450,29 @@ function activateColorPicker() {
     e.preventDefault();
     e.stopPropagation();
     
+    // Hide overlay temporarily to get element below
+    overlay.style.display = 'none';
     const element = document.elementFromPoint(e.clientX, e.clientY);
+    overlay.style.display = 'block';
+    
     if (element && element !== overlay && element !== info) {
-      const color = window.getComputedStyle(element).backgroundColor;
+      const computedStyle = window.getComputedStyle(element);
+      let color = computedStyle.backgroundColor;
+      
+      // If no background color, try parent elements
+      if (!color || color === 'rgba(0, 0, 0, 0)' || color === 'transparent') {
+        color = computedStyle.color;
+      }
+      
       const rgb = color.match(/\d+/g);
       let hex = '#';
-      if (rgb) {
+      if (rgb && rgb.length >= 3) {
         hex = '#' + rgb.slice(0, 3).map(x => {
           const h = parseInt(x).toString(16);
           return h.length === 1 ? '0' + h : h;
         }).join('');
+      } else {
+        hex = color;
       }
       
       copyToClipboard(hex);
@@ -472,7 +487,8 @@ function activateColorPicker() {
     }
   };
   
-  overlay.addEventListener('click', handleClick);
+  // Use mousedown instead of click for better accuracy
+  overlay.addEventListener('mousedown', handleClick);
   document.addEventListener('keydown', handleKeydown);
   
   function removeColorPicker() {
