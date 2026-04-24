@@ -1032,23 +1032,6 @@ function executeToolDirect(action) {
   const encodedDomain = encodeURIComponent(domain);
   const encodedUrl = encodeURIComponent(url);
 
-  // Productivity tools that open modals
-  const productivityTools = {
-    'password-generator': openPasswordGenerator,
-    'unit-converter': openUnitConverter,
-    'stopwatch': openStopwatch,
-    'calculator': openCalculator,
-    'timezone-converter': openTimezoneConverter,
-    'markdown-preview': openMarkdownPreview,
-    'json-formatter': openJsonFormatter,
-    'base64-converter': openBase64Converter
-  };
-
-  if (productivityTools[action]) {
-    productivityTools[action]();
-    return;
-  }
-
   const toolUrls = {
     'wayback': 'https://web.archive.org/web/*/' + url,
     'whois': 'https://www.whois.com/whois/' + encodedDomain,

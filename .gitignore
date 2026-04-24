@@ -1,1 +1,19 @@
-Nothing should be ignored based on the provided file changes. The modified files (`popup.html` and `popup.js`) are source code files that should be tracked in version control. There are no build artifacts, dependency directories, temporary files, or other items that need to be added to the .gitignore file.
+```
+# Dependencies
+node_modules/
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Environment
+.env
+.env.local
+.env.*
+
+# Editors
+.vscode/
+
+# Original rules preserved
+*.log
+```
