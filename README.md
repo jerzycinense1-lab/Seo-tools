@@ -1,560 +1,222 @@
-# 🛠️ SEO Tools Pro
+## 📖 Table of Contents
 
-<div align="center">
-
-![Version](https://img.shields.io/badge/version-2.4.0-blue?style=for-the-badge)
-![Manifest](https://img.shields.io/badge/manifest-v3-green?style=for-the-badge)
-![License](https://img.shields.io/badge/license-Proprietary-red?style=for-the-badge)
-
-**The Ultimate Chrome Extension for SEO Professionals, Content Marketers, and Link Builders**
-
-[Features](#-features) • [Installation](#-installation) • [Tools Catalog](#-tools-catalog) • [Development](#-development) • [Support](#-support)
-
-</div>
-
----
-
-## 📑 Table of Contents
-
-- [Why SEO Tools Pro?](#-why-seo-tools-pro)
-- [Quick Start](#-quick-start)
-- [Architecture Overview](#-architecture-overview)
-- [Feature Categories](#-feature-categories)
+- [✨ Why SEO Tools Pro?](#-why-seo-tools-pro)
+- [🚀 Quick Start](#-quick-start)
+- [🧰 Feature Showcase](#-feature-showcase)
   - [⭐ Favorites & Context Menu](#-favorites--context-menu)
   - [🤖 AI-Powered Tools](#-ai-powered-tools)
-  - [📊 SEO Analysis Suite](#-seo-analysis-suite)
+  - [🔍 SEO Analysis](#-seo-analysis)
   - [📧 Email & Outreach](#-email--outreach)
-  - [🔗 Extractors & Scrapers](#-extractors--scrapers)
   - [⚡ Advanced Toolkits](#-advanced-toolkits)
-- [Complete Tools Catalog](#-complete-tools-catalog)
-- [Installation Guide](#-installation-guide)
-- [Keyboard Shortcuts](#-keyboard-shortcuts)
-- [Development & Customization](#-development--customization)
-- [Permissions Explained](#-permissions-explained)
-- [Troubleshooting](#-troubleshooting)
-- [Changelog](#-changelog)
-- [Support & Contact](#-support--contact)
+- [📁 Installation](#-installation)
+- [⌨️ Keyboard Shortcuts](#️-keyboard-shortcuts)
+- [🔧 Development](#-development)
+- [🐛 Troubleshooting](#-troubleshooting)
+- [📞 Support](#-support)
 
 ---
 
 ## ✨ Why SEO Tools Pro?
 
-<div align="center">
+Stop jumping between 20 different tabs. **SEO Tools Pro** packs everything you need into one sleek popup.
 
-| 😫 Traditional Workflow | 🚀 With SEO Tools Pro |
-|:---:|:---:|
-| Switch between 15+ browser tabs | **Single popup interface** |
-| Manual copy/paste between tools | **Auto-detects page data** |
-| No contextual awareness | **Right-click context menu** |
-| Generic, untargeted tools | **85+ specialized SEO tools** |
-| No AI assistance | **AI-powered generators** |
-
-</div>
-
-**SEO Tools Pro** consolidates everything an SEO professional needs into one lightning-fast popup. Whether you're auditing a site, building links, or sending outreach emails—it's all right here.
-
-### Core Philosophy
-
-```mermaid
-graph LR
-    A[Right-Click or Popup] --> B{Action}
-    B -->|Analyze| C[On-Page SEO]
-    B -->|Extract| D[Data Scraping]
-    B -->|Generate| E[AI Content]
-    B -->|Communicate| F[Email Templates]
-    C --> G[Actionable Report]
-    D --> G
-    E --> G
-    F --> G
-```
+| Traditional Workflow | With SEO Tools Pro |
+|:---|:---|
+| Open 10+ websites | Click one button |
+| Copy/paste between tabs | Everything in one place |
+| Manual data entry | AI-generated suggestions |
+| No context awareness | Auto-detects page data |
 
 ---
 
 ## 🚀 Quick Start
 
-### One-Minute Installation
-
 ```bash
-# 1. Clone the repository
+# 1. Clone or download this repository
 git clone https://github.com/yourusername/seo-tools-pro.git
 
-# 2. Open Chrome Extensions page
+# 2. Open Chrome and navigate to:
 chrome://extensions/
 
 # 3. Enable "Developer mode" (top-right toggle)
 
-# 4. Click "Load unpacked" and select the cloned folder
+# 4. Click "Load unpacked" and select the folder
 
-# 5. Pin the extension for quick access
+# 5. Pin the extension to your toolbar and you're ready!
 ```
 
-### First Steps After Installation
-
-1. **Pin Your Favorite Tools**: Click the ★ star icon on any tool to add it to your **Favs** tab.
-2. **Set Up Your Profile**: Open Settings (⚙️) and add your name, email, and payment defaults.
-3. **Try a Quick Tool**: Right-click anywhere → **SEO Tools Pro** → **Copy Current URL**.
+> ⚡ **Pro tip:** Press `Ctrl+Shift+G` (or `Cmd+Shift+G` on Mac) to open the popup instantly.
 
 ---
 
-## 🏗️ Architecture Overview
-
-This extension is built with **Manifest V3** best practices and a modular architecture:
-
-```
-seo-tools-pro/
-├── 📄 manifest.json          # MV3 Configuration
-├── 📄 background.js           # Service Worker (Context Menu, Message Router)
-├── 📄 popup.html              # Main UI Structure
-├── 📄 popup.css               # Light/Dark Theme (CSS Variables)
-├── 📄 popup.js                # UI Logic, Favorites, Search, Settings
-├── 📄 content.js              # Content Script Router (Message Listener)
-├── 📄 seo-tools.js            # Core Business Logic (85+ tools)
-└── 📄 utils.js                # Shared Utilities (Copy, Modal, Notifications)
-```
-
-### Data Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Popup
-    participant Background
-    participant Content
-    participant Page
-
-    User->>Popup: Click Tool
-    Popup->>Background: Send Message
-    Background->>Content: Execute Action
-    Content->>seo-tools.js: Route to Tool
-    seo-tools.js->>Page: Analyze/Modify DOM
-    seo-tools.js-->>Content: Return Result
-    Content-->>Popup: Show Notification
-```
-
-### Key Technical Highlights
-
-| Feature | Implementation | Benefit |
-|:---|:---|:---|
-| **Dynamic Injection** | Scripts injected only when needed | Zero performance impact on idle pages |
-| **Context Menu Lock** | `isRebuildingMenu` semaphore | Prevents race conditions |
-| **CSP-Safe Modals** | Event listeners vs inline `onclick` | Works on strict security pages |
-| **Storage Separation** | `sync` for settings, `local` for cache | Efficient data sync across devices |
-
----
-
-## ⭐ Feature Categories
+## 🧰 Feature Showcase
 
 ### ⭐ Favorites & Context Menu
 
-> **Your Personal Command Center**
+> Build your personal command center.
 
-Pin any tool to your **Favs** tab for instant access. Pinned tools automatically appear in your right-click context menu.
+Pin your most-used tools to the **Favs** tab. They'll also appear in your **right-click context menu** for zero-click access.
 
 ```
 Right-click anywhere → SEO Tools Pro → Your Pinned Tools
-└── No clicks required to execute!
 ```
-
-**Pro Tip**: Pin your top 5 most-used tools. They'll be accessible from any page without opening the popup.
-
----
 
 ### 🤖 AI-Powered Tools
 
-> **Let Machine Learning Do the Heavy Lifting**
+> Let AI do the heavy lifting.
 
-| Tool | Input | Output | Use Case |
-|:---|:---|:---|:---|
-| 🏷️ **AI Meta Generator** | Page content | SEO-optimized title & description | On-page optimization |
-| 📝 **SEO Title Generator** | H1 + keywords | 10+ title variations | A/B testing titles |
-| 💡 **AI Topic Generator** | Niche context | 50+ blog topics across categories | Content planning |
-| 🖼️ **AI Alt Text Generator** | Image context | Descriptive alt suggestions | Accessibility & SEO |
-
-**How It Works**: Each AI tool analyzes the current page's content, extracts keywords, and applies SEO best practices to generate human-like suggestions.
-
----
-
-### 📊 SEO Analysis Suite
-
-> **Comprehensive On-Page & Technical Auditing**
-
-#### On-Page Analysis
-| Tool | What It Checks |
+| Tool | What It Does |
 |:---|:---|
-| **Heading Structure** | H1-H6 hierarchy, skipped levels, duplicates |
-| **Meta Tags Analysis** | Title length, description optimization, canonical |
-| **Keyword Density** | Top 15 keywords with density percentages |
-| **SERP Preview** | Live Google preview of your title/description |
-| **Content & Readability** | Flesch score, word count, reading time |
+| 🏷️ **AI Meta Generator** | Generates SEO titles & descriptions from page content |
+| 📝 **SEO Title Generator** | Creates 10+ optimized title variations |
+| 💡 **AI Topic Generator** | Suggests blog topics across 6 categories |
+| 🖼️ **AI Alt Text Generator** | Smart alt text suggestions with editable previews |
 
-#### Technical SEO
-| Tool | What It Checks |
-|:---|:---|
-| **Structured Data Validator** | JSON-LD schema parsing + Google Rich Results link |
-| **Robots.txt Checker** | Fetches and displays robots.txt |
-| **Sitemap Finder** | Scans common locations + robots.txt reference |
-| **URL Optimizer** | Length, case, stop words, parameter analysis |
+### 🔍 SEO Analysis
 
-#### Link Analysis
-| Tool | What It Checks |
-|:---|:---|
-| **Do-Follow Highlighter** | Green highlights + stats overlay |
-| **Broken Link Checker** | Batch HEAD requests + CSV export |
-| **Internal vs External** | Link ratio + external domain list |
-| **Link Prospect Finder** | Google dork queries for guest post opportunities |
-
----
-
-### 📧 Email & Outreach
-
-> **Pre-Written Templates with Dynamic Variables**
-
-All templates support these variables:
-
-| Variable | Description | Example |
-|:---|:---|:---|
-| `{{yourName}}` | Your name (from Settings) | `Jonathan Harris` |
-| `{{webmaster}}` | Recipient's name | `John Doe` |
-| `{{website}}` | Target website | `example.com` |
-| `{{amount}}` | Payment amount | `$50` |
-| `{{articleTitle}}` | Article title | `SEO Tips` |
-| `{{publishedLink}}` | Live URL | `https://...` |
-
-#### Template Categories
-
-| Category | Templates |
-|:---|:---|
-| 💰 **Payment** | Advance Payment (PayPal), Payment Request (PayPal/GCash), Send Invoice |
-| 📝 **Article** | Sending Article, Quick Article, 1st/2nd/Final Follow-up, Cancellation |
-| 🤝 **Outreach** | Guest Post Outreach, Negotiation ($50 offer), Contact Form Auto-Filler |
-| 📋 **Response** | Declined Response, Post-Publication Thank You |
-
-**Template Manager Features**:
-- ✏️ Create custom templates
-- 🔄 Reset to defaults
-- 👁️ Live preview with variable substitution
-- 📤 Export/Import all templates as JSON
-
----
-
-### 🔗 Extractors & Scrapers
-
-> **Data Mining Made Simple**
-
-| Extractor | What It Extracts | Output Format |
-|:---|:---|:---|
-| **Link Extractor** | All links with type (internal/external) and rel (dofollow/nofollow) | CSV, Table |
-| **Domain Extractor** | Unique external domains with link frequency count | CSV, List |
-| **Email Extractor** | Emails from page text + `mailto:` links | List, Copy All |
-| **Social Links** | Facebook, Twitter, LinkedIn, Instagram, YouTube, TikTok, etc. | List, Copy URLs |
-| **Google Maps Scraper** | Business name, rating, reviews, address, phone | CSV, Copy All |
-| **Deep Google Domain Extractor** | Scrapes up to 50 pages of Google results for unique domains | List, Copy All |
-
-**Google Maps Scraper Modes**:
-1. **Extract All Visible**: Grabs all currently loaded results
-2. **Manual Selection Mode**: Click individual listings to add
-3. **Extract from Sidebar**: Targets the left sidebar feed
-
----
-
-### ⚡ Advanced Toolkits
-
-> **Power Tools for Power Users**
-
-#### 🖼️ Image Toolkit
-| Feature | Capabilities |
-|:---|:---|
-| **Resizer** | Presets (Thumbnail, Social, OG), custom dimensions, maintain aspect ratio |
-| **Converter** | JPEG, PNG, WebP, GIF, BMP, TIFF with quality control |
-| **Optimizer** | Compression with savings percentage, WebP conversion option |
-| **SEO Analyzer** | Alt text audit, lazy loading check, dimension validation |
-| **Free Sources** | 12+ curated free stock photo sites (Unsplash, Pexels, Pixabay, etc.) |
-
-#### 🔍 Advanced Text Compare
-| Metric | Description |
-|:---|:---|
-| **Similarity %** | Jaccard index of unique words |
-| **Readability** | Flesch Reading Ease score with grade level |
-| **Keyword Gaps** | Words present in one text but missing in the other |
-| **SEO Recommendations** | Actionable tips based on comparison results |
-
-#### 📂 Bulk URL Opener
-- Paste list of URLs (one per line)
-- Smart validation and deduplication
-- Batch processing with progress bar
-- "Save Session" option for large lists
-- Warning for >15 tabs to prevent browser freeze
-
-#### 📸 Full Page Capture
-- Scrolls and stitches multiple screenshots
-- Handles sticky headers and lazy-loaded images
-- Downloads as high-resolution PNG
-
----
-
-## 📋 Complete Tools Catalog
-
-### SEO Tools (35+)
+> Everything you need to audit any page.
 
 | Category | Tools |
 |:---|:---|
-| **Website Analysis** | Wayback Machine, WHOIS, Pingdom, PageSpeed Insights, Schema Validator, Rich Results, AMP Test, Mobile-Friendly |
-| **On-Page SEO** | Heading Structure (H1-H6), Meta Tags Analysis, Images Alt Text, Word Count & Readability, Keyword Density, SERP Preview |
-| **Link Analysis** | Highlight Do-Follow, Remove Highlights, Internal vs External, Broken Link Checker, Link Prospect Finder, Resource Page Finder |
-| **Technical SEO** | Structured Data Check, robots.txt, Sitemap Finder, URL Optimizer, Export SEO Data |
-| **Authority & Metrics** | Authority Score (AS), Spam Score (SS), Domain Rating (DR), Organic Traffic (OT), All Metrics |
-| **Local SEO** | Multi-City Local Keyword Finder, Maps Scraper, Citation Finder |
-| **Reporting** | SEO Dashboard, SEO Audit Checklist, Publication Date Checker |
+| **On-Page** | Heading Structure, Meta Tags, Keyword Density, SERP Preview, Content Readability |
+| **Technical** | Schema Validator, robots.txt, Sitemap, URL Optimizer, Duplicate Content, Hreflang Generator |
+| **Links** | Do-Follow Highlighter, Broken Link Checker (with CSV), Internal/External Analysis, Link Prospect Finder |
+| **Local SEO** | Multi-City Keyword Finder, Maps Scraper, Citation Finder, Local Keyword Finder |
+| **Reporting** | SEO Dashboard, Automated SEO Audit, Interactive Audit Checklist, Site Structure Visualizer |
 
-### AI Tools (5)
+### 📧 Email & Outreach
 
-- 🏷️ AI Meta Generator
-- 📝 SEO Title Generator
-- 💡 AI Topic Generator
-- 🖼️ AI Alt Text Generator
-- 📱 Mobile Usability Test (with scoring)
+> Pre-written templates with dynamic variables.
 
-### Email Templates (14)
+| Template Type | Examples |
+|:---|:---|
+| 💰 **Payment** | PayPal Request, GCash Request, Send Invoice, Advance Payment |
+| 📝 **Article** | Sending Article, Follow-ups (1st, 2nd, Final), Cancellation |
+| 🤝 **Outreach** | Guest Post Outreach, Negotiation, Contact Form Auto-Filler, Declined Response |
 
-- 💵 Advance Payment (PayPal)
-- 📬 Payment Request (PayPal)
-- 📱 Payment Request (GCash)
-- 📄 Send Invoice
-- 📤 Sending Article
-- ⚡ Quick Article
-- 📞 Article Follow-up
-- 📞 2nd Follow-up
-- ⚠️ Final Notice
-- ❌ Cancellation
-- 🙏 Declined Response
-- 📧 Email Outreach
-- 💬 Negotiation ($50)
-- 📝 Contact Form Filler
+**Variables you can use:**
+```
+{{yourName}}  {{webmaster}}  {{website}}  {{amount}}  {{currency}}  {{articleTitle}}  {{publishedLink}}  {{clientAccount}}
+```
 
-### Extractors (6)
+### ⚡ Advanced Toolkits
 
-- 🔗 Link Extractor
-- 🌐 Domain Extractor
-- 🔍 Google Domain Search
-- 📧 Email Extractor
-- 📱 Social Media Links
-- 🌐 Deep Google Domain Extractor (50 pages)
+> Power tools for power users.
 
-### Utilities (12+)
-
-- 🔗 URL Slug Generator
-- 💬 WhatsApp Link Generator
-- 📋 Copy Current URL
-- 🌐 Copy Domain
-- ⬇️ Scroll to Bottom
-- ➡️ Next Page
-- 📂 Bulk URL Opener
-- 📸 Full Page Capture
-- 💰 Currency Symbol Copier
-- 🔍 Advanced Text Compare
-- 🖼️ Image Toolkit
-- 🌙 Dark Mode Toggle
-
-### External Apps (7)
-
-- 📋 Task Tracker (searchworks.ph)
-- 📊 GDI Profiler
-- 🔗 Link Tool
-- 🛡️ PBN Buster
-- 📖 SearchWorks Blog
-- 🎥 YouTube Channel
-- 📰 Search Engine Roundtable
+| Toolkit | Features |
+|:---|:---|
+| 🖼️ **Image Toolkit** | Resize, Convert (WebP/PNG/JPEG), Optimize, Free Stock Sources, SEO Analyzer |
+| 🔍 **Text Compare** | Similarity %, Reading Time, Keyword Gaps, Readability Scores, Recommendations |
+| 📂 **Bulk URL Opener** | Paste a list, open all tabs with progress tracking |
+| 📸 **Full Page Capture** | Screenshot entire page with intelligent stitching (handles fixed elements) |
+| 📊 **Keyword Rank Tracker** | Find your domain's position in Google (up to 100 results) |
+| 🌐 **Deep Google Domain Extractor** | Scrape up to 50 pages of Google results with filtering |
+| 🗺️ **Google Maps Scraper** | Auto-scroll, extract business info with CSV export |
+| 🏗️ **Site Structure Visualizer** | Interactive DOM tree, link graph, SEO scoring |
+| 🎨 **Design Inspector** | Extract color palettes & typography |
+| 📱 **Multi-Device Emulator** | Preview pages in mobile, tablet, and desktop frames |
+| 🧹 **Clear Site Data** | Selectively clear cookies, localStorage, IndexedDB, caches, service workers |
+| 🖼️ **Bulk Image Downloader** | Extract images from `<img>`, CSS backgrounds, srcset, video posters |
 
 ---
 
-## 📁 Installation Guide
+## 📁 Installation
 
-### Prerequisites
-- Google Chrome (v88+ recommended)
-- Developer mode enabled in `chrome://extensions/`
+### 📋 Required Files
 
-### Required Files Checklist
+Make sure your folder contains **all 8 files**:
 
-| File | Purpose | Required |
-|:---|:---|:---:|
-| `manifest.json` | Extension configuration | ✅ |
-| `background.js` | Service worker | ✅ |
-| `utils.js` | Shared utilities | ✅ |
-| `seo-tools.js` | Core tool logic | ✅ |
-| `content.js` | Page interaction router | ✅ |
-| `popup.html` | Popup interface | ✅ |
-| `popup.css` | Styling | ✅ |
-| `popup.js` | Popup logic | ✅ |
+```
+seo-tools-pro/
+├── 📄 manifest.json      # Extension configuration (Manifest V3)
+├── 📄 background.js      # Service worker (context menus, message routing)
+├── 📄 utils.js           # Shared UI library & design system (GDI)
+├── 📄 seo-tools.js       # Core tool logic (85+ functions)
+├── 📄 content.js         # Action router (connects popup to tools)
+├── 📄 popup.html         # Extension popup interface
+├── 📄 popup.css          # Styling (light/dark mode, design tokens)
+└── 📄 popup.js           # Popup logic, favorites, settings, template manager
+```
 
-### Step-by-Step Installation
+### ✅ Manifest V3 Configuration
 
-<details>
-<summary><b>📥 Click to expand installation steps</b></summary>
+Your `manifest.json` **must** include the `content_scripts` section:
 
-1. **Download or Clone**
-   ```bash
-   git clone https://github.com/yourusername/seo-tools-pro.git
-   ```
-   Or download the ZIP and extract.
+```json
+{
+  "manifest_version": 3,
+  "name": "SEO Tools Pro",
+  "version": "4.0.0",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["utils.js", "seo-tools.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
+```
 
-2. **Open Chrome Extensions**
-   - Navigate to `chrome://extensions/`
-   - Or: Menu → More Tools → Extensions
+> ⚠️ **Without this section, tools will not work on web pages!**
 
-3. **Enable Developer Mode**
-   - Toggle the switch in the top-right corner
+### 🔄 After Installation
 
-4. **Load the Extension**
-   - Click **Load unpacked**
-   - Select the folder containing all 8 files
-
-5. **Pin for Quick Access**
-   - Click the puzzle icon 🧩 in the toolbar
-   - Find "SEO Tools Pro" and click the pin 📌 icon
-
-6. **Verify Installation**
-   - You should see the 🛠️ icon in your toolbar
-   - Right-click anywhere → "SEO Tools Pro" should appear
-
-</details>
-
-### Post-Installation Setup
-
-1. **Configure Your Profile**
-   - Click the extension icon
-   - Click ⚙️ Settings
-   - Enter your name, email, and payment defaults
-
-2. **Pin Your First Tool**
-   - Browse to the **SEO** or **Email** tab
-   - Click the ★ star on a tool you use often
-   - It appears in your **Favs** tab
-
-3. **Test a Tool**
-   - Navigate to any website
-   - Click **📋 Copy Domain** in the **Utils** tab
-   - A success notification should appear
+1. Navigate to any website
+2. Click the extension icon or press `Ctrl+Shift+G`
+3. Start using any of the **85+ tools**!
 
 ---
 
 ## ⌨️ Keyboard Shortcuts
 
-### Global Shortcuts
-
 | Shortcut | Action |
 |:---|:---|
-| `Ctrl` + `Shift` + `G` (Mac: `⌘` + `Shift` + `G`) | Open extension popup |
-| Right-click → SEO Tools Pro → *Tool* | Execute any pinned tool |
-
-### Popup Shortcuts (When Popup is Open)
-
-| Shortcut | Action |
-|:---|:---|
-| `/` | Focus search bar |
-| `Esc` | Clear search / Close modal |
-| `Enter` | Execute first visible tool (after search) |
+| `Ctrl` + `Shift` + `G` | Open extension popup |
+| `/` | Focus search (when popup is open) |
 | `Ctrl` + `T` | Open Template Manager |
 | `Ctrl` + `S` | Open Settings |
 | `Ctrl` + `D` | Toggle Dark Mode |
-| `Ctrl` + `F` | Focus Search |
+| `Ctrl` + `E` | Auto-scroll (in Maps Scraper) |
+| `Esc` | Clear search / Close modal |
 
 ---
 
-## 🔧 Development & Customization
+## 🔧 Development
 
-### Adding a New Tool
+### 🏗️ Architecture
 
-<details>
-<summary><b>📝 Step-by-step guide to add a custom tool</b></summary>
-
-1. **Add UI Button** (in `popup.html`)
-   ```html
-   <button class="tool-btn" data-action="my-new-tool">🆕 My New Tool</button>
-   ```
-
-2. **Add Tool Logic** (in `seo-tools.js`)
-   ```javascript
-   function myNewTool() {
-     // Your tool logic here
-     const pageData = document.body.innerText;
-     
-     // Show results in modal
-     const content = document.createElement('div');
-     content.innerHTML = `<p>Results: ${pageData.length} characters</p>`;
-     createModal('My New Tool', content);
-   }
-   ```
-
-3. **Add to Router** (in `content.js`)
-   ```javascript
-   case 'my-new-tool':
-     myNewTool();
-     sendResponse({ success: true, message: 'Tool executed!' });
-     break;
-   ```
-
-4. **Add to Context Menu** (in `background.js`)
-   ```javascript
-   // In getToolInfo()
-   'my-new-tool': { name: '🆕 My New Tool' }
-   
-   // In rebuildContextMenu() - optional for right-click
-   chrome.contextMenus.create({ 
-     id: 'my-new-tool', 
-     parentId: 'seoToolsPro', 
-     title: '🆕 My New Tool', 
-     contexts: ['page'] 
-   });
-   ```
-
-5. **Reload Extension**
-   - Go to `chrome://extensions/`
-   - Click the refresh icon 🔄 on SEO Tools Pro
-
-</details>
-
-### Modifying Email Templates
-
-Templates are stored in `popup.js` in the `DEFAULT_TEMPLATES` object. You can:
-
-1. Edit the default templates directly
-2. Use the **Template Manager** UI to create custom templates (persisted to storage)
-3. Import/Export templates as JSON
-
-### Theming
-
-CSS variables in `popup.css` control all colors:
-
-```css
-:root {
-  --primary-color: #1A56A6;
-  --accent-color: #F58220;
-  --success-color: #10B981;
-  /* ... etc ... */
-}
-
-body.dark-mode {
-  --primary-color: #60A5FA;
-  /* ... dark theme overrides ... */
-}
+```mermaid
+graph TD
+    A[popup.html/js] -->|User clicks tool| B[background.js]
+    B -->|Send message| C[content.js]
+    C -->|Route action| D[seo-tools.js]
+    D -->|Use helpers| E[utils.js]
+    D -->|Return result| C
+    C -->|Show notification| A
+    B -->|Context menu| F[Right-click]
+    F -->|Execute| C
 ```
 
----
+### 🎨 Design System
 
-## 🔐 Permissions Explained
+All UI components use the **GDI (Graphical Design Interface)** library defined in `utils.js`:
+
+- **Theme Engine**: Automatic light/dark mode with CSS custom properties
+- **Components**: Modal, Notification, Score Ring, Progress Bar, Stat Card, Data Table, Badge, Button, Input
+- **Tokens**: Consistent colors, shadows, radii, typography, animations
+
+### 🔐 Permissions Explained
 
 | Permission | Why It's Needed |
 |:---|:---|
-| `activeTab` | Execute tools only on the current tab (not all tabs) |
-| `clipboardWrite` | Copy extracted data, URLs, and generated content |
-| `tabs` | Create new tabs for external tools (e.g., PageSpeed Insights) |
-| `storage` | Save your settings, favorites, and custom templates |
-| `scripting` | Dynamically inject content scripts (only when needed) |
+| `activeTab` | Execute tools on the current page |
+| `clipboardWrite` | Copy results to clipboard |
+| `tabs` | Create new tabs for external tools |
+| `storage` | Save your settings and templates |
+| `scripting` | Inject scripts dynamically |
 | `contextMenus` | Right-click quick access menu |
-| `alarms` | Keep service worker alive (MV3 requirement) |
+| `alarms` | Keep service worker alive |
 | `<all_urls>` | Work on any website you visit |
-
-**Privacy Note**: No data is sent to external servers. All processing happens locally in your browser.
 
 ---
 
@@ -562,136 +224,79 @@ body.dark-mode {
 
 <details>
 <summary><b>🔴 Tools don't work on web pages</b></summary>
-
-**Symptoms**: Clicking a tool does nothing or shows "Could not establish connection"
-
-**Solutions**:
-1. Ensure `manifest.json` includes the `content_scripts` section
-2. Go to `chrome://extensions/` and click **Reload** 🔄
-3. Refresh the web page and try again
-4. Check DevTools Console (F12) for errors
-
-</details>
-
-<details>
-<summary><b>🔴 Context menu not showing favorites</b></summary>
-
-**Solutions**:
-1. Open the popup and pin at least one tool (click the ★ star)
-2. Go to Settings and verify `favorites` is populated
-3. Restart Chrome (service worker may have suspended)
-
-</details>
-
-<details>
-<summary><b>🔴 Google Maps scraper not finding businesses</b></summary>
-
-**Solutions**:
-1. Scroll down to load more results first
-2. Try **Manual Selection Mode** (click individual listings)
-3. Ensure you're on `google.com/maps` (not maps.google.com redirect)
-
-</details>
-
-<details>
-<summary><b>🔴 Bulk URL opener blocked</b></summary>
-
-**Solutions**:
-1. Allow popups for the current site (click the blocked popup icon in address bar)
-2. Reduce the number of URLs (use the "Open First 15" option)
-3. Try opening in batches of 10-15
-
+<br>
+<ol>
+  <li>Ensure your <code>manifest.json</code> includes the <code>content_scripts</code> section.</li>
+  <li>Go to <code>chrome://extensions/</code> and click the <b>Reload</b> button.</li>
+  <li>Refresh the web page and try again.</li>
+</ol>
 </details>
 
 <details>
 <summary><b>🔴 Highlights or modals not appearing</b></summary>
+<br>
+<ol>
+  <li>Open DevTools (F12) and check the Console for errors.</li>
+  <li>Make sure all 8 files are in the same folder.</li>
+  <li>Try disabling and re-enabling the extension.</li>
+</ol>
+</details>
 
-**Solutions**:
-1. Open DevTools (F12) → Console tab → Check for red errors
-2. Verify all 8 files are present in the extension folder
-3. Disable and re-enable the extension
+<details>
+<summary><b>🔴 Google Maps scraper not finding businesses</b></summary>
+<br>
+<ol>
+  <li>Scroll down to load more results first.</li>
+  <li>Try <b>Manual Selection Mode</b> instead of auto-extract.</li>
+  <li>Click on individual business listings in the sidebar.</li>
+</ol>
+</details>
 
+<details>
+<summary><b>🔴 Bulk URL opener blocked by browser</b></summary>
+<br>
+<ol>
+  <li>Allow popups for the current site.</li>
+  <li>Reduce the number of URLs (open in batches of 10-15).</li>
+  <li>Use the "Open First 15" option when prompted.</li>
+</ol>
 </details>
 
 ---
 
-## 📝 Changelog
+## 📊 All 85+ Tools at a Glance
 
-### Version 2.4.0 (Current)
-- ✨ Added **SEO Dashboard** with scoring (A+ to F)
-- ✨ Added **Publication Date Checker** for content freshness analysis
-- ✨ Added **Mobile Usability Test** with tap target validation
-- ✨ Added **Duplicate Content Analyzer** with fingerprinting
-- ✨ Added **Site Structure Visualizer** with hierarchy analysis
-- 🔧 Fixed CSP issues in Google Domain Extractor
-- 🔧 Improved modal responsiveness
-- 📚 Updated documentation
-
-### Version 2.3.0
-- ✨ Added **Advanced Text Compare** tool
-- ✨ Added **Image Toolkit** (Resize, Convert, Optimize)
-- ✨ Added **Full Page Capture** with stitching
-- ✨ Added **Currency Symbol Copier**
-- 🔧 Enhanced Broken Link Checker with CSV export
-
-### Version 2.2.0
-- ✨ Added **AI Topic Generator**
-- ✨ Added **Multi-City Local Keyword Finder**
-- ✨ Added **Hreflang Generator**
-- ✨ Added **Link Prospect Finder**
-- ✨ Added **Resource Page Finder**
-
-### Version 2.1.0
-- ✨ Added **AI Meta Generator**
-- ✨ Added **SEO Title Generator**
-- ✨ Added **AI Alt Text Generator**
-- ✨ Added **URL Optimizer**
-- ✨ Added **SEO Audit Checklist** with persistence
-
-### Version 2.0.0
-- 🎉 Initial public release
-- 60+ tools across 6 categories
-- Favorites system with context menu integration
-- Template manager with custom templates
-- Dark mode support
+| Category | Count | Examples |
+|:---|:---:|:---|
+| ⭐ Favorites | ∞ | Your pinned tools |
+| 📊 SEO Analysis | 20+ | Heading Structure, Meta Tags, Keyword Density, SERP Preview, Content Readability |
+| 🔗 Link Tools | 8 | Do-Follow Highlighter, Broken Links, Link Extractor, Link Prospect Finder |
+| 🤖 AI Tools | 5 | Meta Generator, Title Generator, Topic Generator, Alt Text Generator |
+| 📍 Local SEO | 4 | Keyword Finder, Maps Scraper, Citation Finder |
+| 📧 Email Templates | 14 | Payment, Article, Outreach, Negotiation, Contact Form Filler |
+| 🔍 Extractors | 8 | Links, Domains, Emails, Social, Deep Google, Images, Colors, Fonts |
+| ⚡ Utilities | 15+ | Bulk URL, Full Page Capture, Text Compare, Image Toolkit, Site Structure |
+| 🎨 Design & Dev | 5 | Color Extractor, Typography Inspector, Multi-Device Emulator, Clear Site Data, Image Downloader |
+| 🔗 Apps | 4 | Task Tracker, Profiler, Link Tool, PBN Buster |
 
 ---
 
-## 📞 Support & Contact
+## 📞 Support
 
-<div align="center">
+<p align="center">
+  <a href="https://searchworks.ph"><img src="https://img.shields.io/badge/🌐_Website-searchworks.ph-blue?style=for-the-badge" alt="Website" /></a>
+  <a href="mailto:jonathn.p.harris@gmail.com"><img src="https://img.shields.io/badge/📧_Email-jonathn.p.harris%40gmail.com-red?style=for-the-badge" alt="Email" /></a>
+</p>
 
-| Contact Method | Details |
-|:---|:---|
-| 🌐 **Website** | [searchworks.ph](https://searchworks.ph) |
-| 📧 **Email** | [jerzycinense1@gmail.com](mailto:jerzycinense1@gmail.com) |
-| 📱 **Phone** | +*** |
-| 💼 **LinkedIn** | [Jerzy Cinense](https://www.linkedin.com/in/j-b-c/) |
-
-</div>
-
-### Report a Bug
-
-Found an issue? Please include:
-1. Chrome version
-2. Steps to reproduce
-3. Console errors (F12 → Console tab)
-4. Screenshot (if applicable)
-
-### Feature Request
-
-Have an idea for a new tool? Let me know! I'm always looking to add genuinely useful SEO tools to the suite.
+<p align="center">
+  <strong>Developer:</strong> Jonathan Harris<br>
+  <strong>Version:</strong> 4.0.0<br>
+  <strong>License:</strong> Personal & Professional Use
+</p>
 
 ---
 
-<div align="center">
-
-**Made by [SearchWorks.ph](https://searchworks.ph)**
-
-*"Empowering SEO professionals with the right tools, right in their browser."*
-
----
-
-⭐ **If you find this extension useful, please share it with your network!** ⭐
-
-</div>
+<p align="center">
+  Made by <a href="https://searchworks.ph">SearchWorks.ph</a>
+</p>
+```

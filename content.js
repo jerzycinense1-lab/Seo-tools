@@ -1,360 +1,169 @@
-// GDI SEO Tools Pro - Content Script (Enhanced)
+/**
+ * SEO Tools Pro - Content Script Router v4.0 (Complete)
+ * Routes all 55+ tool actions to their respective functions.
+ */
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  const action = request.action;
-  const settings = request.settings || {};
-  const templates = request.templates || {};
+  const { action, settings = {}, templates = {} } = request;
+  
+  const SEOTools = window.SEOTools;
+  
+  if (!SEOTools) {
+    sendResponse({ success: false, error: 'SEO Tools not loaded' });
+    return true;
+  }
   
   try {
-    switch(action) {
-      case 'urlslug':
-        generateUrlSlug();
-        sendResponse({ success: true, message: 'URL Slug generated!' });
+    switch (action) {
+      // Quick Utilities
+      case 'copy-url': SEOTools.toolCopyUrl(); sendResponse({ success: true, message: 'URL copied!' }); break;
+      case 'copy-domain': SEOTools.toolCopyDomain(); sendResponse({ success: true, message: 'Domain copied!' }); break;
+      case 'scroll': SEOTools.toolScrollToBottom(); sendResponse({ success: true, message: 'Scrolled!' }); break;
+      case 'nextpage': SEOTools.toolNextPage(); sendResponse({ success: true, message: 'Navigating...' }); break;
+      case 'full-page-capture': SEOTools.toolFullPageCapture(); sendResponse({ success: true, message: 'Capturing...' }); break;
+      
+      // Generators
+      case 'urlslug': case 'slug': SEOTools.toolUrlSlugGenerator(); sendResponse({ success: true, message: 'URL Slug opened!' }); break;
+      case 'whatsapp-link': SEOTools.toolWhatsappLinkGenerator(); sendResponse({ success: true, message: 'WhatsApp link opened!' }); break;
+      
+      // Extractors
+      case 'email-extract': SEOTools.toolEmailExtractor(); sendResponse({ success: true, message: 'Emails extracted!' }); break;
+      case 'social-extract': SEOTools.toolExtractSocial(); sendResponse({ success: true, message: 'Social links found!' }); break;
+      case 'linkextract': SEOTools.toolExtractLinks(); sendResponse({ success: true, message: 'Links extracted!' }); break;
+      case 'domainextract': SEOTools.toolExtractDomains(); sendResponse({ success: true, message: 'Domains extracted!' }); break;
+      case 'googledomain': case 'bulk-google-domains': SEOTools.toolExtractBulkGoogleDomains(); sendResponse({ success: true, message: 'Deep extraction started!' }); break;
+      
+      // Finders
+      case 'blogs': SEOTools.toolFindBlog(); sendResponse({ success: true, message: 'Searching blog...' }); break;
+      case 'guestpost': SEOTools.toolFindGuestPost(); sendResponse({ success: true, message: 'Searching guest post...' }); break;
+      
+      // SEO Analysis
+      case 'highlight-dofollow': SEOTools.toolHighlightDoFollow(); sendResponse({ success: true, message: 'Highlighted!' }); break;
+      case 'remove-highlights': SEOTools.toolRemoveHighlights(); sendResponse({ success: true, message: 'Removed!' }); break;
+      case 'analyze-headings': SEOTools.toolAnalyzeHeadings(); sendResponse({ success: true, message: 'Headings analyzed!' }); break;
+      case 'analyze-meta': SEOTools.toolAnalyzeMeta(); sendResponse({ success: true, message: 'Meta analyzed!' }); break;
+      case 'analyze-images': SEOTools.toolAnalyzeImages(); sendResponse({ success: true, message: 'Images analyzed!' }); break;
+      case 'analyze-content': case 'keyword-density': SEOTools.toolAnalyzeKeywordDensity(); sendResponse({ success: true, message: 'Density analyzed!' }); break;
+      case 'serp-preview': SEOTools.toolShowSerpPreview(); sendResponse({ success: true, message: 'SERP preview opened!' }); break;
+      case 'broken-links': case 'analyze-links': SEOTools.toolCheckBrokenLinks(); sendResponse({ success: true, message: 'Checking links...' }); break;
+      case 'pagespeed': SEOTools.toolCheckPageSpeed(); sendResponse({ success: true, message: 'Opening PageSpeed...' }); break;
+      case 'robots-txt': SEOTools.toolCheckRobotsTxt(); sendResponse({ success: true, message: 'Opening robots.txt...' }); break;
+      case 'sitemap': SEOTools.toolCheckSitemap(); sendResponse({ success: true, message: 'Checking sitemap...' }); break;
+      case 'metrics': SEOTools.toolShowMetrics(); sendResponse({ success: true, message: 'Metrics opened!' }); break;
+      
+      // Email Templates
+      case 'advance-payment': SEOTools.toolPaymentForm('advance', settings); sendResponse({ success: true, message: 'Advance payment form opened!' }); break;
+      case 'payment-paypal': SEOTools.toolPaymentForm('paypal', settings); sendResponse({ success: true, message: 'PayPal form opened!' }); break;
+      case 'payment-gcash': SEOTools.toolPaymentForm('gcash', settings); sendResponse({ success: true, message: 'GCash form opened!' }); break;
+      case 'send-article': SEOTools.toolArticleForm('full', settings); sendResponse({ success: true, message: 'Article form opened!' }); break;
+      case 'send-quick-article': SEOTools.toolArticleForm('quick', settings); sendResponse({ success: true, message: 'Quick article form opened!' }); break;
+      case 'article-followup': SEOTools.toolFollowupForm(1, settings); sendResponse({ success: true, message: 'Follow-up opened!' }); break;
+      case 'second-followup': SEOTools.toolFollowupForm(2, settings); sendResponse({ success: true, message: '2nd follow-up opened!' }); break;
+      case 'final-notice': SEOTools.toolFollowupForm('final', settings); sendResponse({ success: true, message: 'Final notice opened!' }); break;
+      case 'cancel': SEOTools.toolCancelForm(settings); sendResponse({ success: true, message: 'Cancel form opened!' }); break;
+      case 'declined': SEOTools.toolDeclinedResponse(); sendResponse({ success: true, message: 'Declined template copied!' }); break;
+      case 'send-invoice': SEOTools.toolInvoiceForm(settings); sendResponse({ success: true, message: 'Invoice form opened!' }); break;
+      case 'email-outreach': case 'nego': SEOTools.toolOutreachTemplates(); sendResponse({ success: true, message: 'Templates loaded!' }); break;
+      case 'contact-form': SEOTools.toolFillContactForm(settings); sendResponse({ success: true, message: 'Form filler opened!' }); break;
+      
+      // Search & Discovery
+      case 'searchoperators': SEOTools.toolSearchOperators(); sendResponse({ success: true, message: 'Search operators opened!' }); break;
+      case 'bulk-url': SEOTools.toolBulkUrlOpener(); sendResponse({ success: true, message: 'Bulk URL opened!' }); break;
+      
+      // NEW TOOLS (Batch 8)
+      case 'currency-copier': SEOTools.toolCurrencyCopier(); sendResponse({ success: true, message: 'Currency copier opened!' }); break;
+      case 'url-optimizer': SEOTools.toolOptimizeUrl(); sendResponse({ success: true, message: 'URL optimized!' }); break;
+      case 'title-generator': SEOTools.toolGenerateTitles(); sendResponse({ success: true, message: 'Titles generated!' }); break;
+      case 'pubdate-checker': SEOTools.toolCheckPublicationDate(); sendResponse({ success: true, message: 'Date checked!' }); break;
+      case 'mobile-usability': SEOTools.toolTestMobileUsability(); sendResponse({ success: true, message: 'Mobile test complete!' }); break;
+      case 'ai-meta-generator': SEOTools.toolGenerateAIMeta(); sendResponse({ success: true, message: 'AI meta generated!' }); break;
+      case 'alt-generator': SEOTools.toolGenerateAltText(); sendResponse({ success: true, message: 'Alt text generated!' }); break;
+      case 'ai-topic-generator': SEOTools.toolGenerateAITopics(); sendResponse({ success: true, message: 'AI topics generated!' }); break;
+      case 'link-prospects': SEOTools.toolFindLinkProspects(); sendResponse({ success: true, message: 'Prospects found!' }); break;
+      case 'resource-pages': SEOTools.toolFindResourcePages(); sendResponse({ success: true, message: 'Resource pages found!' }); break;
+      case 'local-keyword-finder': SEOTools.toolFindLocalKeywords(); sendResponse({ success: true, message: 'Local keywords found!' }); break;
+      case 'hreflang-generator': SEOTools.toolGenerateHreflang(); sendResponse({ success: true, message: 'Hreflang generated!' }); break;
+      case 'duplicate-content': SEOTools.toolFindDuplicateContent(); sendResponse({ success: true, message: 'Duplicate check complete!' }); break;
+      case 'content-analyzer': SEOTools.toolContentAnalyzer(); sendResponse({ success: true, message: 'Content analyzed!' }); break;
+      case 'seo-audit-checklist': SEOTools.toolSEOAuditChecklist(); sendResponse({ success: true, message: 'Audit complete!' }); break;
+      case 'audit-checklist': SEOTools.toolAuditChecklist(); sendResponse({ success: true, message: 'Checklist opened!' }); break;
+      case 'seo-dashboard': SEOTools.toolSEODashboard(); sendResponse({ success: true, message: 'Dashboard opened!' }); break;
+      case 'citation-finder': SEOTools.toolFindLocalCitations(); sendResponse({ success: true, message: 'Citations found!' }); break;
+      
+      // Legacy support for original tool names (if original seo-tools.js is also loaded)
+      case 'structured-data': SEOTools.toolShowMetrics ? SEOTools.toolShowMetrics() : null; sendResponse({ success: true, message: 'Opened!' }); break;
+      case 'export-seo-data': SEOTools.toolSEODashboard ? SEOTools.toolSEODashboard() : null; sendResponse({ success: true, message: 'Dashboard opened!' }); break;
+    // ==================== EXTERNAL LINK WIRING ====================
+      case 'advsearch':
+        chrome.runtime.sendMessage({ action: 'openUrl', url: 'https://www.google.com/advanced_search' });
+        sendResponse({ success: true, message: 'Opening Advanced Search...' });
+        break;  
+       
+        // ==================== DESIGN TOOLS WIRING ====================
+      case 'extract-fonts': 
+        SEOTools.toolExtractTypography(); 
+        sendResponse({ success: true, message: 'Typography extracted!' }); 
+        break;
+          case 'extract-colors': 
+        SEOTools.toolExtractColorTheme(); 
+        sendResponse({ success: true, message: 'Color theme extracted!' }); 
         break;
       
-      case 'whatsapp-link':
-        generateWhatsappLink();
-        sendResponse({ success: true, message: 'WhatsApp link generated!' });
+      // ==================== ADVANCED TOOLS WIRING ====================
+      case 'advanced-text-compare':
+        SEOTools.advancedSEOCompare();
+        sendResponse({ success: true, message: 'Advanced Text Compare opened!' });
         break;
-      
-      case 'scroll':
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        sendResponse({ success: true, message: 'Scrolled to bottom!' });
+        
+      case 'image-toolkit':
+        SEOTools.advancedImageToolkit();
+        sendResponse({ success: true, message: 'Image Toolkit opened!' });
         break;
-      
-      case 'copy-url':
-        copyToClipboard(window.location.href);
-        sendResponse({ success: true, message: 'URL copied!' });
+        
+      case 'maps-scraper':
+        SEOTools.scrapeGoogleMaps();
+        sendResponse({ success: true, message: 'Google Maps Scraper opened!' });
         break;
-      
-      case 'copy-domain':
-        const domain = window.location.hostname.replace(/^www\./, '');
-        copyToClipboard(domain);
-        sendResponse({ success: true, message: 'Domain copied!' });
+        
+      case 'keyword-rank-tracker':
+        SEOTools.keywordRankTracker();
+        sendResponse({ success: true, message: 'Keyword Rank Tracker opened!' });
         break;
-      
-      case 'email-extract':
-        extractEmails();
-        sendResponse({ success: true, message: 'Emails extracted!' });
+        case 'site-structure':
+        SEOTools.visualizeSiteStructure();
+        sendResponse({ success: true, message: 'Site Structure Visualizer opened!' });
         break;
-      
-      case 'social-extract':
-        extractSocialLinks();
-        sendResponse({ success: true, message: 'Social links extracted!' });
+        case 'social-preview': 
+        SEOTools.toolSocialCardPreview(); 
+        sendResponse({ success: true, message: 'Social preview generated!' }); 
         break;
-      
-      case 'linkextract':
-        extractLinks();
-        sendResponse({ success: true, message: 'Links extracted!' });
+      case 'image-downloader': 
+        SEOTools.toolImageDownloader(); 
+        sendResponse({ success: true, message: 'Image downloader opened!' }); 
         break;
-      
-      case 'domainextract':
-        extractDomains();
-        sendResponse({ success: true, message: 'Domains extracted!' });
+      case 'clear-site-data': 
+        SEOTools.toolClearSiteData(); 
+        sendResponse({ success: true, message: 'Clearing site data...' }); 
         break;
-      
-      case 'googledomain':
-        extractGoogleDomains();
-        sendResponse({ success: true, message: 'Google domains extracted!' });
+        case 'multi-device': 
+        SEOTools.toolMultiDeviceTester(); 
+        sendResponse({ success: true, message: 'Opening device emulators...' }); 
         break;
-      
-      case 'blogs':
-        findBlogPage();
-        sendResponse({ success: true, message: 'Searching for blog page...' });
+        case 'generate-topics': 
+        SEOTools.toolGenerateAITopics(); 
+        sendResponse({ success: true, message: 'Opening AI Topic Generator...' }); 
         break;
-      
-      case 'guestpost':
-        findGuestPostPages();
-        sendResponse({ success: true, message: 'Searching for guest post pages...' });
-        break;
-      
-      case 'contact-form':
-        fillContactForm(settings);
-        sendResponse({ success: true, message: 'Contact form filled!' });
-        break;
-      
-      case 'searchoperators':
-        showSearchOperators();
-        sendResponse({ success: true, message: 'Search operators opened!' });
-        break;
-      
-      case 'nextpage':
-        goToNextPage();
-        sendResponse({ success: true, message: 'Navigating to next page...' });
-        break;
-      
-      case 'advance-payment':
-        showPaymentForm('advance', settings, templates);
-        sendResponse({ success: true, message: 'Payment form opened!' });
-        break;
-      
-      case 'payment-paypal':
-        showPaymentForm('paypal', settings, templates);
-        sendResponse({ success: true, message: 'Payment form opened!' });
-        break;
-      
-      case 'payment-gcash':
-        showPaymentForm('gcash', settings, templates);
-        sendResponse({ success: true, message: 'Payment form opened!' });
-        break;
-      
-      case 'send-article':
-        showArticleForm('full', settings, templates);
-        sendResponse({ success: true, message: 'Article form opened!' });
-        break;
-      
-      case 'send-quick-article':
-        showArticleForm('quick', settings, templates);
-        sendResponse({ success: true, message: 'Quick article form opened!' });
-        break;
-      
-      case 'article-followup':
-        showFollowupForm(1, settings, templates);
-        sendResponse({ success: true, message: 'Follow-up form opened!' });
-        break;
-      
-      case 'second-followup':
-        showFollowupForm(2, settings, templates);
-        sendResponse({ success: true, message: '2nd follow-up opened!' });
-        break;
-      
-      case 'final-notice':
-        showFollowupForm('final', settings, templates);
-        sendResponse({ success: true, message: 'Final notice opened!' });
-        break;
-      
-      case 'cancel':
-        showCancelForm(settings, templates);
-        sendResponse({ success: true, message: 'Cancellation form opened!' });
-        break;
-      
-      case 'declined':
-        copyDeclinedTemplate(settings, templates);
-        sendResponse({ success: true, message: 'Declined template copied!' });
-        break;
-      
-      case 'send-invoice':
-        showInvoiceForm(settings, templates);
-        sendResponse({ success: true, message: 'Invoice form opened!' });
-        break;
-      
-      case 'email-outreach':
-        showOutreachTemplates(settings, templates);
-        sendResponse({ success: true, message: 'Outreach templates loaded!' });
-        break;
-      
-      case 'nego':
-        showNegoTemplates(settings, templates);
-        sendResponse({ success: true, message: 'Negotiation templates loaded!' });
-        break;
-      
-      case 'highlight-dofollow':
-  highlightDoFollowLinks();
-  sendResponse({ success: true, message: 'Do-follow links highlighted in green!' });
-  break;
-
-case 'remove-highlights':
-  removeHighlights();
-  sendResponse({ success: true, message: 'Highlights removed!' });
-  break;
-
-case 'analyze-headings':
-  analyzeHeadings();
-  sendResponse({ success: true, message: 'Heading analysis opened!' });
-  break;
-
-case 'analyze-meta':
-  analyzeMetaTags();
-  sendResponse({ success: true, message: 'Meta tags analysis opened!' });
-  break;
-
-case 'analyze-images':
-  analyzeImages();
-  sendResponse({ success: true, message: 'Images analysis opened!' });
-  break;
-
-case 'analyze-links':
-  analyzeLinks();
-  sendResponse({ success: true, message: 'Links analysis opened!' });
-  break;
-
-case 'pagespeed':
-  checkPageSpeed();
-  sendResponse({ success: true, message: 'Opening PageSpeed Insights...' });
-  break;
-
-case 'mobile-friendly':
-  checkMobileFriendly();
-  sendResponse({ success: true, message: 'Opening Mobile-Friendly Test...' });
-  break;
-
-case 'structured-data':
-  checkStructuredData();
-  sendResponse({ success: true, message: 'Structured data analysis opened!' });
-  break;
-
-case 'robots-txt':
-  checkRobotsTxt();
-  sendResponse({ success: true, message: 'Opening robots.txt...' });
-  break;
-
-case 'sitemap':
-  checkSitemap();
-  sendResponse({ success: true, message: 'Checking sitemap...' });
-  break;
-
-case 'analyze-content':
-  analyzeContent();
-  sendResponse({ success: true, message: 'Content analysis opened!' });
-  break;
-
-case 'export-seo-data':
-  exportSEOData();
-  sendResponse({ success: true, message: 'SEO data exported!' });
-  break;
-case 'keyword-rank-tracker':
-  keywordRankTracker();
-  sendResponse({ success: true, message: 'Keyword rank tracker started!' });
-  break;
-  case 'advanced-text-compare':
-  advancedSEOCompare();
-  sendResponse({ success: true, message: 'Advanced SEO text compare opened!' });
-  break;
-  case 'image-toolkit':
-  advancedImageToolkit();
-  sendResponse({ success: true, message: 'Advanced Image Toolkit opened!' });
-  break;
-
-case 'alt-generator':
-  generateAltText();
-  sendResponse({ success: true, message: 'Alt text suggestions ready!' });
-  break;
-  case 'ai-meta-generator':
-  generateAIMetaTags();
-  sendResponse({ success: true, message: 'AI Meta tags generated!' });
-  break;
-
-case 'url-optimizer':
-  optimizeUrl();
-  sendResponse({ success: true, message: 'URL optimization complete!' });
-  break;
-
-case 'title-generator':
-  generateSEOTitles();
-  sendResponse({ success: true, message: 'SEO titles generated!' });
-  break;
-case 'alt-generator':
-  generateAltText();
-  sendResponse({ success: true, message: 'Alt text suggestions ready!' });
-  break;
-  case 'link-prospects':
-  findLinkProspects();
-  sendResponse({ success: true, message: 'Link prospect search ready!' });
-  break;
-
-case 'resource-pages':
-  findResourcePages();
-  sendResponse({ success: true, message: 'Resource page search ready!' });
-  break;
-
-case 'seo-audit-checklist':
-  showSEOAuditChecklist();
-  sendResponse({ success: true, message: 'SEO Audit Checklist opened!' });
-  break;
-case 'audit-checklist':
-  showAuditChecklist();
-  sendResponse({ success: true, message: 'SEO audit checklist opened!' });
-  break;
-case 'ai-topic-generator':
-  generateAITopics();
-  sendResponse({ success: true, message: 'AI topics generated!' });
-  break;
-
-case 'local-keyword-finder':
-  findLocalKeywords();
-  sendResponse({ success: true, message: 'Local keywords found!' });
-  break;
-
-case 'hreflang-generator':
-  generateHreflang();
-  sendResponse({ success: true, message: 'Hreflang tags generated!' });
-  break;
-  case 'pubdate-checker':
-  checkPublicationDate();
-  sendResponse({ success: true, message: 'Publication date analysis complete!' });
-  break;
-
-case 'mobile-usability':
-  testMobileUsability();
-  sendResponse({ success: true, message: 'Mobile usability test complete!' });
-  break;
-
-case 'duplicate-content':
-  findDuplicateContent();
-  sendResponse({ success: true, message: 'Duplicate content analysis complete!' });
-  break;
-
-case 'site-structure':
-  visualizeSiteStructure();
-  sendResponse({ success: true, message: 'Site structure generated!' });
-  break;
-
-case 'maps-scraper':
-  scrapeGoogleMaps();
-  sendResponse({ success: true, message: 'Google Maps scraper ready!' });
-  break;
-
-case 'citation-finder':
-  findLocalCitations();
-  sendResponse({ success: true, message: 'Citation opportunities found!' });
-  break;
-
-case 'seo-dashboard':
-  showSEODashboard();
-  sendResponse({ success: true, message: 'SEO Dashboard opened!' });
-  break;
-      // --- NEW FEATURES ADDED HERE ---
-      case 'keyword-density':
-        analyzeKeywordDensity();
-        sendResponse({ success: true, message: 'Keyword density analysis opened!' });
-        break;
-      
-      case 'serp-preview':
-        showSerpPreview();
-        sendResponse({ success: true, message: 'SERP Preview opened!' });
-        break;
-      case 'currency-copier':
-        showCurrencyCopier();
-        sendResponse({ success: true, message: 'Currency copier opened!' });
-        break;
-      case 'broken-links':
-        checkBrokenLinks();
-        sendResponse({ success: true, message: 'Checking broken links... This may take a moment.' });
-        break;
-        // Add this inside your switch(action) block
-      case 'full-page-capture':
-        captureFullPage();
-        sendResponse({ success: true, message: 'Starting full page capture...' });
-        break;
-      case 'bulk-google-domains':
-        extractBulkGoogleDomains();
-        sendResponse({ success: true, message: 'Starting Deep Google Domain Extraction...' });
-        break;
-      // -------------------------------
-      case 'metrics':
-        showMetricsModal();
-        sendResponse({ success: true, message: 'Metrics tools opened!' });
-        break;
-      
       default:
-        sendResponse({ success: false, message: 'Unknown action' });
+        console.warn('Unknown action:', action);
+        sendResponse({ success: false, message: 'Unknown action: ' + action });
     }
   } catch (error) {
-    console.error('Content script error:', error);
+    console.error('Tool error:', error);
     sendResponse({ success: false, message: error.message });
   }
   
   return true;
 });
 
-
+console.log('🚀 SEO Tools Pro v4.0 - Content Script Ready');
+console.log('📦 Tools loaded:', Object.keys(window.SEOTools || {}).length);

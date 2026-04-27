@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SEO Tools Pro",
-  "version": "2.4.0",
-  "description": "Complete SEO toolkit with customizable email templates, link extractors, website analysis tools, and productivity utilities. Created by SearchWorks.ph",
+  "version": "4.0.0",
+  "description": "Complete SEO toolkit with 50+ tools, AI features, email templates, and advanced website analysis. Created by SearchWorks.ph",
   "homepage_url": "https://searchworks.ph",
   
   "permissions": [
