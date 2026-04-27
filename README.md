@@ -299,4 +299,3 @@ All UI components use the **GDI (Graphical Design Interface)** library defined i
 <p align="center">
   Made by <a href="https://searchworks.ph">SearchWorks.ph</a>
 </p>
-```
