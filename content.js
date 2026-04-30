@@ -114,7 +114,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         SEOTools.advancedSEOCompare();
         sendResponse({ success: true, message: 'Advanced Text Compare opened!' });
         break;
-        
+        case 'bulk-currency': SEOTools.toolBulkCurrencyConverter(); sendResponse({ success: true, message: 'Currency converter opened!' }); break;
       case 'image-toolkit':
         SEOTools.advancedImageToolkit();
         sendResponse({ success: true, message: 'Image Toolkit opened!' });
@@ -153,6 +153,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         SEOTools.toolGenerateAITopics(); 
         sendResponse({ success: true, message: 'Opening AI Topic Generator...' }); 
         break;
+        case 'image-ocr': SEOTools.toolImageOCR(); sendResponse({ success: true, message: 'OCR Tool opened!' }); break;
       default:
         console.warn('Unknown action:', action);
         sendResponse({ success: false, message: 'Unknown action: ' + action });

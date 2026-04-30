@@ -12,12 +12,12 @@ chrome.runtime.onInstalled.addListener((details) => {
   
   if (details.reason === 'install') {
     chrome.storage.sync.set({
-      userName: 'Jonathan Harris',
-      userEmail: 'jonathn.p.harris@gmail.com',
-      userPhone: '9928524796',
-      userLinkedin: 'https://linkedin.com/in/jonathan-harris',
-      defaultCurrency: 'USD',
-      defaultAmount: '50',
+      userName: '',
+      userEmail: '',
+      userPhone: '',
+      userLinkedin: '',
+      defaultCurrency: '',
+      defaultAmount: '',
       darkMode: false,
       favorites: [],
       customTemplates: {}
@@ -340,6 +340,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true;
   }
+
+  // >>> ADD THIS NEW BLOCK FOR OCR <<<
+  if (request.action === 'performOCR') {
+    const formData = new FormData();
+    formData.append('base64Image', request.base64Image);
+    formData.append('language', 'eng');
+
+    fetch('https://api.ocr.space/parse/image', {
+      method: 'POST',
+      headers: { 'apikey': 'helloworld' }, // Free API key
+      body: formData
+    })
+      .then(response => response.json())
+      .then(data => sendResponse({ success: true, data: data }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+      
+    return true; // Keep message channel open for async fetch
+  }
+  // >>> END NEW BLOCK <<<
   
   return true;
 });

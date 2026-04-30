@@ -1,7 +1,7 @@
 /**
  * SEO Tools Pro - Unified Utility Library v4.0
  * 🎨 Design System: Glassmorphism + Modern Minimal + Dark Mode
- * 🛡️ Security: XSS-safe DOM construction, CSP-friendly
+ * 🛡️ Security: Shadow DOM Isolation, XSS-safe DOM construction, CSP-friendly
  * ♿ Accessibility: WCAG 2.1 AA, ARIA live regions, focus trapping
  * ⚡ Performance: Virtual scrolling, Intersection Observer, event delegation
  */
@@ -19,7 +19,6 @@
 
   const DESIGN_TOKENS = {
     colors: {
-      // Light mode
       primary: '#2563EB', primaryLight: '#3B82F6', primaryDark: '#1D4ED8',
       primaryGradient: 'linear-gradient(135deg, #1B2A4A 0%, #2563EB 100%)',
       success: '#10B981', successLight: '#D1FAE5', successGradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
@@ -29,7 +28,6 @@
       surface: '#FFFFFF', surfaceSecondary: '#F8FAFC', surfaceTertiary: '#F1F5F9',
       textPrimary: '#111827', textSecondary: '#475569', textMuted: '#9CA3AF',
       border: '#E2E8F0', borderLight: '#F1F5F9', overlay: 'rgba(15, 23, 42, 0.65)',
-      // Dark mode
       dark: {
         primary: '#3B82F6', primaryLight: '#60A5FA', primaryDark: '#2563EB',
         primaryGradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
@@ -113,14 +111,44 @@
     }
   };
 
+  // ==================== SHADOW DOM ENGINE ====================
+
+  const ShadowEngine = {
+    _root: null,
+    get root() {
+      if (this._root) return this._root;
+      
+      let host = document.getElementById('gdi-seo-tools-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'gdi-seo-tools-host';
+        host.style.cssText = 'position: fixed; z-index: 2147483647; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none;';
+        document.documentElement.appendChild(host);
+      }
+      
+      if (!host.shadowRoot) {
+        this._root = host.attachShadow({ mode: 'open' });
+      } else {
+        this._root = host.shadowRoot;
+      }
+      
+      return this._root;
+    }
+  };
+
   // ==================== CSS INJECTION ====================
 
   (function injectDesignSystem() {
-    if (document.getElementById('gdi-design-system')) return;
+    if (ShadowEngine.root.getElementById('gdi-design-system')) return;
     
     const style = document.createElement('style');
     style.id = 'gdi-design-system';
     style.textContent = `
+      /* CSS Resets for Shadow DOM */
+      :host { all: initial; pointer-events: none; }
+      * { box-sizing: border-box; font-family: ${DESIGN_TOKENS.typography.fontFamily}; }
+      .gdi-modal-overlay, [data-notif-id], .gdi-pointer-auto { pointer-events: auto; }
+      
       :root {
         --gdi-primary: ${DESIGN_TOKENS.colors.primary};
         --gdi-primary-light: ${DESIGN_TOKENS.colors.primaryLight};
@@ -177,7 +205,7 @@
       .gdi-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
     `;
     
-    document.head.appendChild(style);
+    ShadowEngine.root.appendChild(style);
     ThemeEngine.init();
   })();
 
@@ -339,13 +367,13 @@
     const position = options.position || 'bottom-right';
     const posStyles = notificationState.positions[position] || notificationState.positions['bottom-right'];
     
-    let container = $(`[data-gdi-notif-container="${position}"]`);
+    let container = ShadowEngine.root.querySelector(`[data-gdi-notif-container="${position}"]`);
     if (!container) {
       container = createElement('div', {
         attrs: { 'data-gdi-notif-container': position, 'aria-live': 'polite', 'aria-atomic': 'true' },
         styles: { position: 'fixed', zIndex: '100000', pointerEvents: 'none', ...posStyles }
       });
-      document.body.appendChild(container);
+      ShadowEngine.root.appendChild(container);
     }
     
     if (notificationState.queue.length >= notificationState.maxVisible) {
@@ -571,7 +599,7 @@
     modal.appendChild(header);
     modal.appendChild(body);
     overlay.appendChild(modal);
-    document.body.appendChild(overlay);
+    ShadowEngine.root.appendChild(overlay);
     
     function getFocusable() {
       return Array.from(modal.querySelectorAll(
@@ -1047,9 +1075,7 @@
     text.appendChild(label);
     container.appendChild(text);
     
-    // 🔥 CRITICAL FIX: Attach setScore directly to the DOM node
-    // This allows `seo-tools.js` to blindly do: `appendChild(createScoreRing(...))`
-    // without triggering a "parameter 1 is not of type 'Node'" error.
+    // Attach setScore directly to the DOM node
     container.setScore = (s) => {
       const newColor = s >= 80 ? ThemeEngine.token('colors.success') : s >= 60 ? ThemeEngine.token('colors.warning') : ThemeEngine.token('colors.error');
       const newOffset = circumference - (Math.min(Math.max(s, 0), 100) / 100) * circumference;
@@ -1178,7 +1204,6 @@
     
     const tbody = createElement('tbody');
     
-    // Performance upgrade: Event delegation instead of binding to 1,000s of TRs
     tbody.addEventListener('mouseover', (e) => {
       const row = e.target.closest('tr');
       if (row) row.style.background = ThemeEngine.token('colors.surfaceSecondary');
@@ -1215,7 +1240,6 @@
       });
       tbody.appendChild(fragment);
     } else {
-      // Virtual scrolling for large datasets
       const totalHeight = rows.length * rowHeight;
       const spacer = createElement('div', { styles: { height: `${totalHeight}px`, position: 'relative' } });
       
@@ -1267,8 +1291,6 @@
     table.appendChild(tbody);
     container.appendChild(table);
     
-    // 🔥 CRITICAL FIX: Attach methods directly to the DOM node
-    // This maintains backward compatibility so tools can append the return value safely
     container.updateRows = (newRows) => {
       rows.length = 0;
       rows.push(...newRows);
@@ -1293,7 +1315,6 @@
       }
     };
     
-    // Expose internal elements just in case advanced tools need them
     container.tableElement = table;
     container.tbodyElement = tbody;
 
@@ -1453,6 +1474,7 @@
     // Core
     DESIGN_TOKENS,
     ThemeEngine,
+    get ShadowRoot() { return ShadowEngine.root; },
     createElement, $, $$, escapeHtml, cleanText,
     debounce, throttle, formatFileSize, hashString, generateId,
     

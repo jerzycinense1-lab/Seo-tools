@@ -5162,7 +5162,8 @@ async function toolCheckBrokenLinks() {
     <button id="bl-close" style="margin-top: 12px; padding: 6px 12px; background: ${DT.colors.surfaceTertiary}; border: 1px solid ${DT.colors.border}; border-radius: 6px; cursor: pointer; font-size: 12px; color: ${DT.colors.textSecondary};">Close</button>
   `;
   
-  document.body.appendChild(statusDiv);
+  statusDiv.classList.add('gdi-pointer-auto'); // Ensures it remains clickable
+  GDI.ShadowRoot.appendChild(statusDiv);
   
   const updateStatus = (checked, total, broken) => {
     const progress = Math.round((checked / total) * 100);
@@ -5275,21 +5276,25 @@ async function toolCheckBrokenLinks() {
 
 // ==================== TOOL: DEEP GOOGLE DOMAIN EXTRACTOR ====================
 
+
 function toolExtractBulkGoogleDomains() {
   const urlParams = new URLSearchParams(window.location.search);
   const originalQuery = urlParams.get('q');
   
   if (!originalQuery || !window.location.hostname.includes('google.')) {
-    showNotification('Please run this on a Google search results page', 'error');
+    GDI.showNotification('Please run this on a Google search results page', 'error');
     return;
   }
   
-  const allDomains = new Set();
+  // Track BOTH domains and exact URLs
+  const extractedDomains = new Set();
+  const extractedUrls = new Set();
+  
   const excludedExtensions = ['.edu', '.gov', '.edu.ph', '.gov.ph', '.wordpress.com', '.blogspot.com'];
   const excludedKeywords = [
     'google.com', 'youtube.com', 'facebook.com', 'twitter.com', 'instagram.com',
     'linkedin.com', 'pinterest.com', 'reddit.com', 'quora.com', 'medium.com',
-    'wikipedia.org', 'amazon.com', 'ebay.com', 'apple.com', 'microsoft.com',
+    'wikipedia.org', 'amazon.com', 'ebay.com', 'yep.com', 'apple.com', 'microsoft.com',
     'github.com', 'stackoverflow.com',
   ];
   
@@ -5298,66 +5303,70 @@ function toolExtractBulkGoogleDomains() {
   let extractionCancelled = false;
   
   // Status overlay
-  const statusDiv = createElement('div', {
+  const statusDiv = GDI.createElement('div', {
     styles: {
       position: 'fixed',
       top: '20px',
       right: '20px',
       zIndex: '100000',
-      background: DT.colors.surface,
-      border: `1px solid ${DT.colors.border}`,
-      borderRadius: DT.radii.lg,
+      background: GDI.ThemeEngine.token('colors.surface'),
+      border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+      borderRadius: GDI.DESIGN_TOKENS.radii.lg,
       padding: '20px',
       minWidth: '320px',
-      boxShadow: DT.shadows['2xl'],
-      fontFamily: DT.typography.fontFamily,
-      borderLeft: `4px solid ${DT.colors.primary}`,
+      boxShadow: GDI.ThemeEngine.isDark() ? GDI.DESIGN_TOKENS.shadows.dark['2xl'] : GDI.DESIGN_TOKENS.shadows['2xl'],
+      fontFamily: GDI.DESIGN_TOKENS.typography.fontFamily,
+      borderLeft: `4px solid ${GDI.ThemeEngine.token('colors.primary')}`,
     },
   });
   
   statusDiv.innerHTML = `
-    <div style="font-weight: ${DT.typography.weights.bold}; margin-bottom: 8px; font-size: ${DT.typography.sizes.md}; color: ${DT.colors.textPrimary};">
-      🌐 Deep Domain Extractor
+    <div style="font-weight: ${GDI.DESIGN_TOKENS.typography.weights.bold}; margin-bottom: 8px; font-size: ${GDI.DESIGN_TOKENS.typography.sizes.md}; color: ${GDI.ThemeEngine.token('colors.textPrimary')};">
+      🌐 Deep Domain & URL Extractor
     </div>
-    <div id="dde-status" style="font-size: ${DT.typography.sizes.base}; color: ${DT.colors.textSecondary}; margin-bottom: 12px;">
+    <div id="dde-status" style="font-size: ${GDI.DESIGN_TOKENS.typography.sizes.base}; color: ${GDI.ThemeEngine.token('colors.textSecondary')}; margin-bottom: 12px;">
       Starting extraction...
     </div>
-    <div style="background: ${DT.colors.surfaceTertiary}; border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 8px;">
-      <div id="dde-progress" style="height: 100%; width: 0%; background: ${DT.colors.primaryGradient}; border-radius: 4px; transition: width 0.3s;"></div>
+    <div style="background: ${GDI.ThemeEngine.token('colors.surfaceTertiary')}; border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 8px;">
+      <div id="dde-progress" style="height: 100%; width: 0%; background: ${GDI.ThemeEngine.token('colors.primaryGradient')}; border-radius: 4px; transition: width 0.3s;"></div>
     </div>
-    <div style="display: flex; justify-content: space-between; font-size: ${DT.typography.sizes.sm}; color: ${DT.colors.textMuted}; margin-bottom: 12px;">
+    <div style="display: flex; justify-content: space-between; font-size: ${GDI.DESIGN_TOKENS.typography.sizes.sm}; color: ${GDI.ThemeEngine.token('colors.textMuted')}; margin-bottom: 12px;">
       <span>Domains: <strong id="dde-count">0</strong></span>
+      <span>URLs: <strong id="dde-url-count">0</strong></span>
       <span>Pages: <strong id="dde-pages">0</strong></span>
     </div>
-    <button id="dde-cancel" style="width: 100%; padding: 8px; background: ${DT.colors.error}; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: ${DT.typography.weights.bold}; font-size: ${DT.typography.sizes.sm};">Cancel Extraction</button>
+    <button id="dde-cancel" style="width: 100%; padding: 8px; background: ${GDI.ThemeEngine.token('colors.error')}; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: ${GDI.DESIGN_TOKENS.typography.weights.bold}; font-size: ${GDI.DESIGN_TOKENS.typography.sizes.sm};">Cancel Extraction</button>
   `;
   
-  document.body.appendChild(statusDiv);
+  statusDiv.classList.add('gdi-pointer-auto');
+  GDI.ShadowRoot.appendChild(statusDiv);
   
-  function updateStatus(message, progress, domains, pages) {
-    const status = $('#dde-status');
-    const progressBar = $('#dde-progress');
-    const count = $('#dde-count');
-    const pageCount = $('#dde-pages');
+  function updateStatus(message, progress, domains, urls, pages) {
+    const status = statusDiv.querySelector('#dde-status');
+    const progressBar = statusDiv.querySelector('#dde-progress');
+    const count = statusDiv.querySelector('#dde-count');
+    const urlCount = statusDiv.querySelector('#dde-url-count');
+    const pageCount = statusDiv.querySelector('#dde-pages');
     
     if (status) status.textContent = message;
     if (progressBar) progressBar.style.width = `${Math.min(progress, 100)}%`;
     if (count) count.textContent = String(domains);
+    if (urlCount) urlCount.textContent = String(urls);
     if (pageCount) pageCount.textContent = String(pages);
   }
   
-  $('#dde-cancel').addEventListener('click', () => {
+  statusDiv.querySelector('#dde-cancel').addEventListener('click', () => {
     extractionCancelled = true;
     statusDiv.remove();
-    showNotification('Extraction cancelled.', 'warning');
-    if (allDomains.size > 0) showResults();
+    GDI.showNotification('Extraction cancelled.', 'warning');
+    if (extractedUrls.size > 0) showResults();
   });
   
   function extractDomainsFromHtml(html, pageNum) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     const anchors = tempDiv.querySelectorAll('a[href]');
-    let newDomains = 0;
+    let newItemsFound = 0;
     
     anchors.forEach(anchor => {
       const href = anchor.getAttribute('href');
@@ -5367,7 +5376,7 @@ function toolExtractBulkGoogleDomains() {
           if (href.startsWith('/url?')) {
             const params = new URLSearchParams(href.substring(5));
             finalUrl = params.get('q') || params.get('url');
-          } else if (href.startsWith('http') && !href.includes('google.com/search')) {
+          } else if (href.startsWith('http') && !href.includes('google.com/search') && !href.includes('googleusercontent.com')) {
             finalUrl = href;
           }
           
@@ -5380,9 +5389,15 @@ function toolExtractBulkGoogleDomains() {
             if (excludedKeywords.some(kw => domain.includes(kw))) isExcluded = true;
             
             if (!isExcluded && domain && domain.includes('.')) {
-              if (!allDomains.has(domain)) {
-                allDomains.add(domain);
-                newDomains++;
+              if (!extractedDomains.has(domain)) {
+                extractedDomains.add(domain);
+              }
+              
+              // Clean tracking hashes out of the URL
+              const cleanUrl = finalUrl.split('#')[0];
+              if (!extractedUrls.has(cleanUrl)) {
+                extractedUrls.add(cleanUrl);
+                newItemsFound++;
               }
             }
           }
@@ -5390,7 +5405,7 @@ function toolExtractBulkGoogleDomains() {
       }
     });
     
-    return newDomains;
+    return newItemsFound;
   }
   
   async function fetchPage(pageNum) {
@@ -5400,7 +5415,7 @@ function toolExtractBulkGoogleDomains() {
     const url = baseUrl + '&start=' + startNum;
     
     updateStatus(`Fetching page ${pageNum + 1}/${maxPages}...`, 
-      Math.round((pageNum / maxPages) * 100), allDomains.size, pageNum + 1);
+      Math.round((pageNum / maxPages) * 100), extractedDomains.size, extractedUrls.size, pageNum + 1);
     
     try {
       const response = await fetch(url, {
@@ -5410,16 +5425,15 @@ function toolExtractBulkGoogleDomains() {
       if (!response.ok) throw new Error('HTTP ' + response.status);
       
       const html = await response.text();
-      const newDomains = extractDomainsFromHtml(html, pageNum);
+      extractDomainsFromHtml(html, pageNum);
       
-      const hasNext = html.includes('Next</span>') || 
-                       html.includes('id="pnnext"');
+      const hasNext = html.includes('Next</span>') || html.includes('id="pnnext"');
       const hasResults = !html.includes('did not match any documents');
       
       if (hasNext && hasResults && pageNum < maxPages - 1) {
         setTimeout(() => fetchPage(pageNum + 1), Math.random() * 800 + 400);
       } else {
-        updateStatus('Complete!', 100, allDomains.size, pageNum + 1);
+        updateStatus('Complete!', 100, extractedDomains.size, extractedUrls.size, pageNum + 1);
         setTimeout(() => {
           statusDiv.remove();
           showResults();
@@ -5438,129 +5452,106 @@ function toolExtractBulkGoogleDomains() {
   }
   
   function showResults() {
-    if (allDomains.size === 0) {
-      showNotification('No unique domains found.', 'error');
+    if (extractedUrls.size === 0) {
+      GDI.showNotification('No unique domains or URLs found.', 'error');
       return;
     }
     
-    const sortedDomains = Array.from(allDomains).sort();
+    const sortedDomains = Array.from(extractedDomains).sort();
+    const sortedUrls = Array.from(extractedUrls).sort();
+    let viewMode = 'urls'; // Default to URLs since it's more useful!
     
-    const outputWindow = window.open('', '_blank', 'width=900,height=700');
-    if (!outputWindow) {
-      showNotification('Pop-up blocked! Please allow pop-ups.', 'error');
-      return;
-    }
-    
-    const htmlContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Deep Extraction - ${sortedDomains.length} Domains</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      padding: 24px;
-      background: #F9FAFB;
-      color: #111827;
-      margin: 0;
-    }
-    .header {
-      background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-      color: white;
-      padding: 24px;
-      border-radius: 16px;
-      margin-bottom: 24px;
-      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
-    }
-    .header h1 { margin: 0 0 8px; font-size: 24px; }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
-    .stat { background: white; padding: 16px; border-radius: 12px; border: 1px solid #E5E7EB; text-align: center; }
-    .stat-value { font-size: 24px; font-weight: 800; color: #6366F1; }
-    .stat-label { font-size: 12px; color: #6B7280; text-transform: uppercase; margin-top: 4px; }
-    button {
-      padding: 12px 24px;
-      background: #6366F1;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 14px;
-      margin-bottom: 20px;
-      transition: all 0.2s;
-    }
-    button:hover { background: #4F46E5; transform: translateY(-2px); }
-    button.copied { background: #10B981; }
-    .domain-list {
-      background: white;
-      border-radius: 12px;
-      border: 1px solid #E5E7EB;
-      padding: 20px;
-      font-family: 'SF Mono', Monaco, monospace;
-      font-size: 13px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      max-height: 60vh;
-      overflow-y: auto;
-      line-height: 1.8;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>🌐 Deep Google Domain Extraction</h1>
-    <p style="margin: 0; opacity: 0.9;">Successfully extracted ${sortedDomains.length} unique domains</p>
-  </div>
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-value">${sortedDomains.length}</div>
-      <div class="stat-label">Unique Domains</div>
-    </div>
-  </div>
-  <button id="copyAllBtn">📋 Copy All Domains</button>
-  <button id="exportCsvBtn" style="background:#10B981; margin-left: 8px;">📊 Export CSV</button>
-  <div class="domain-list">${sortedDomains.join('\n')}</div>
-  <script>
-    const domains = ${JSON.stringify(sortedDomains.join('\n'))};
-    
-    document.getElementById('copyAllBtn').addEventListener('click', function() {
-      navigator.clipboard.writeText(domains).then(() => {
-        this.textContent = '✅ Copied!';
-        this.classList.add('copied');
-        setTimeout(() => {
-          this.textContent = '📋 Copy All Domains';
-          this.classList.remove('copied');
-        }, 2000);
-      }).catch(() => {
-        const textarea = document.createElement('textarea');
-        textarea.value = domains;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        this.textContent = '✅ Copied!';
-        setTimeout(() => this.textContent = '📋 Copy All Domains', 2000);
-      });
+    // Create the container for the modal
+    const content = GDI.createElement('div', {
+      styles: { display: 'flex', flexDirection: 'column', height: '75vh' }
+    });
+
+    // Add Header
+    content.appendChild(createToolHeader(
+      '🌐 Deep Google Extraction',
+      `Successfully extracted ${sortedUrls.length} URLs across ${sortedDomains.length} domains`,
+      'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)'
+    ));
+
+    // View Toggles
+    const viewToggle = GDI.createElement('div', {
+      styles: { display: 'flex', gap: '8px', marginBottom: '16px' }
     });
     
-    document.getElementById('exportCsvBtn').addEventListener('click', function() {
-      const csv = 'Domain\\n' + domains.split('\\n').map(d => '"' + d + '"').join('\\n');
-      const blob = new Blob(['\\ufeff' + csv], { type: 'text/csv' });
+    const btnUrls = GDI.createButton(`Full URLs (${sortedUrls.length})`, () => switchView('urls'), { variant: 'primary', fullWidth: false });
+    const btnDomains = GDI.createButton(`Domains Only (${sortedDomains.length})`, () => switchView('domains'), { variant: 'secondary', fullWidth: false });
+    
+    viewToggle.appendChild(btnUrls);
+    viewToggle.appendChild(btnDomains);
+    content.appendChild(viewToggle);
+
+    // Action Buttons Row
+    const actionRow = GDI.createElement('div', { 
+      styles: { display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' } 
+    });
+
+    const copyBtn = GDI.createButton('📋 Copy List', () => {
+      const listToCopy = viewMode === 'urls' ? sortedUrls : sortedDomains;
+      GDI.copyToClipboard(listToCopy.join('\n')).then(() => {
+        GDI.showNotification('✅ Copied!', 'success');
+      });
+    }, { variant: 'secondary', fullWidth: false });
+
+    const exportBtn = GDI.createButton('📊 Export CSV', () => {
+      const listToExport = viewMode === 'urls' ? sortedUrls : sortedDomains;
+      const headerText = viewMode === 'urls' ? 'URL' : 'Domain';
+      
+      const csv = headerText + '\n' + listToExport.map(d => `"${d}"`).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'deep-domains-${new Date().toISOString().slice(0, 10)}.csv';
+      a.download = `google-${viewMode}-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
+      GDI.showNotification('✅ CSV exported!', 'success');
+    }, { variant: 'success', fullWidth: false });
+
+    actionRow.appendChild(copyBtn);
+    actionRow.appendChild(exportBtn);
+    content.appendChild(actionRow);
+
+    // Textarea to display the data
+    const resultList = GDI.createElement('textarea', {
+      attrs: { readonly: true, wrap: 'off' }, // wrap: 'off' is great for keeping URLs on one line
+      styles: {
+        flex: '1', width: '100%', padding: '16px',
+        borderRadius: GDI.DESIGN_TOKENS.radii.md,
+        border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+        fontFamily: GDI.DESIGN_TOKENS.typography.fontMono,
+        fontSize: '12px', resize: 'none', outline: 'none',
+        background: GDI.ThemeEngine.token('colors.surfaceSecondary'),
+        color: GDI.ThemeEngine.token('colors.textPrimary'),
+        whiteSpace: 'pre'
+      },
+      text: sortedUrls.join('\n')
     });
-  <\/script>
-</body>
-</html>`;
     
-    outputWindow.document.write(htmlContent);
-    outputWindow.document.close();
-    
-    showNotification(`✅ ${sortedDomains.length} domains extracted!`, 'success');
+    content.appendChild(resultList);
+
+    // Toggle Logic
+    function switchView(mode) {
+      viewMode = mode;
+      
+      btnUrls.style.background = mode === 'urls' ? GDI.ThemeEngine.token('colors.primaryGradient') : GDI.ThemeEngine.token('colors.surfaceTertiary');
+      btnUrls.style.color = mode === 'urls' ? '#FFFFFF' : GDI.ThemeEngine.token('colors.textPrimary');
+      btnUrls.style.border = mode === 'urls' ? 'none' : `1px solid ${GDI.ThemeEngine.token('colors.border')}`;
+
+      btnDomains.style.background = mode === 'domains' ? GDI.ThemeEngine.token('colors.primaryGradient') : GDI.ThemeEngine.token('colors.surfaceTertiary');
+      btnDomains.style.color = mode === 'domains' ? '#FFFFFF' : GDI.ThemeEngine.token('colors.textPrimary');
+      btnDomains.style.border = mode === 'domains' ? 'none' : `1px solid ${GDI.ThemeEngine.token('colors.border')}`;
+      
+      resultList.value = (mode === 'urls' ? sortedUrls : sortedDomains).join('\n');
+    }
+
+    // Display it using the built-in modal system
+    GDI.createModal('Extraction Results', content, { width: '850px', maxWidth: '95vw' });
+    GDI.showNotification(`✅ Extraction complete!`, 'success');
   }
   
   // Start extraction
@@ -8387,6 +8378,9 @@ function toolSEOAuditChecklist() {
 function toolAuditChecklist() {
   const content = createElement('div');
   
+  // Define domain so the export function doesn't crash
+  const domain = window.location.hostname.replace(/^www\./, '');
+  
   const checklist = [
     { category: 'Technical SEO', items: [
       'XML Sitemap exists and is submitted',
@@ -8440,7 +8434,7 @@ function toolAuditChecklist() {
     styles: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: DT.typography.sizes.base },
     children: [
       createElement('span', { styles: { fontWeight: DT.typography.weights.semibold, color: DT.colors.textPrimary }, text: 'Overall Progress' }),
-      createElement('span', { id: 'audit-progress-text', styles: { fontWeight: DT.typography.weights.bold, color: DT.colors.primary }, text: '0% Complete' }),
+      createElement('span', { attrs: { id: 'audit-progress-text' }, styles: { fontWeight: DT.typography.weights.bold, color: DT.colors.primary }, text: '0% Complete' }),
     ],
   });
   
@@ -8497,8 +8491,7 @@ function toolAuditChecklist() {
             label.appendChild(textSpan);
             
             label.addEventListener('change', () => {
-              // Update saved state
-              const allCheckboxes = document.querySelectorAll('.audit-checkbox');
+              const allCheckboxes = content.querySelectorAll('input[type="checkbox"]');
               const state = {};
               let totalChecked = 0;
               
@@ -8511,9 +8504,10 @@ function toolAuditChecklist() {
               
               // Update progress
               const total = allCheckboxes.length;
-              const percent = Math.round((totalChecked / total) * 100);
+              const percent = total > 0 ? Math.round((totalChecked / total) * 100) : 0;
               progressFill.style.width = `${percent}%`;
-              document.getElementById('audit-progress-text').textContent = `${totalChecked}/${total} items (${percent}%)`;
+              const progressText = content.querySelector('#audit-progress-text');
+              if (progressText) progressText.textContent = `${totalChecked}/${total} items (${percent}%)`;
               
               // Update label styles
               if (checkbox.checked) {
@@ -8539,36 +8533,26 @@ function toolAuditChecklist() {
     
     content.appendChild(checklistContainer);
     
-    // Initial progress
-    const allCheckboxes = document.querySelectorAll('.audit-checkbox, input[type="checkbox"]');
+    // Initial progress setup
+    const allCheckboxes = content.querySelectorAll('input[type="checkbox"]');
     let totalChecked = 0;
     allCheckboxes.forEach(cb => {
       if (cb.checked) totalChecked++;
     });
     const percent = allCheckboxes.length > 0 ? Math.round((totalChecked / allCheckboxes.length) * 100) : 0;
     progressFill.style.width = `${percent}%`;
-    document.getElementById('audit-progress-text').textContent = `${totalChecked}/${allCheckboxes.length} items (${percent}%)`;
+    const initProgressText = content.querySelector('#audit-progress-text');
+    if (initProgressText) initProgressText.textContent = `${totalChecked}/${allCheckboxes.length} items (${percent}%)`;
     
     // Action buttons
     const btnRow = createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
     
-    btnRow.appendChild(createButton('💾 Save Progress', () => {
-      const state = {};
-      let checked = 0;
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        state[cb.dataset.key] = cb.checked;
-        if (cb.checked) checked++;
-      });
-      chrome.storage.local.set({ seoAuditChecklist: state }, () => {
-        showNotification(`✅ Progress saved! (${checked} items complete)`, 'success');
-      });
-    }, { variant: 'primary' }));
-    
     btnRow.appendChild(createButton('🔄 Reset All', () => {
       if (confirm('Reset all checklist items?')) {
-        document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        content.querySelectorAll('input[type="checkbox"]').forEach(cb => {
           cb.checked = false;
-          cb.dispatchEvent(new Event('change'));
+          // Event bubbles up to the label to trigger the UI update correctly
+          cb.dispatchEvent(new Event('change', { bubbles: true }));
         });
         chrome.storage.local.remove('seoAuditChecklist');
         showNotification('✅ Checklist reset!', 'success');
@@ -8579,15 +8563,15 @@ function toolAuditChecklist() {
       const state = {};
       let checkedNum = 0;
       let totalNum = 0;
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      content.querySelectorAll('input[type="checkbox"]').forEach(cb => {
         state[cb.dataset.key] = cb.checked;
         totalNum++;
         if (cb.checked) checkedNum++;
       });
       
       const report = `SEO Audit Checklist Report\n${'='.repeat(30)}\nDate: ${new Date().toLocaleDateString()}\nDomain: ${domain}\nProgress: ${checkedNum}/${totalNum} (${Math.round(checkedNum/totalNum*100)}%)\n\n` +
-        checklist.map(cat =>
-          `${cat.category}\n${'-'.repeat(20)}\n${cat.items.map(item => `[ ] ${item}`).join('\n')}`
+        checklist.map((cat, catIdx) =>
+          `${cat.category}\n${'-'.repeat(20)}\n${cat.items.map((item, itemIdx) => `[${state[`${catIdx}-${itemIdx}`] ? 'x' : ' '}] ${item}`).join('\n')}`
         ).join('\n\n');
       
       const blob = new Blob([report], { type: 'text/plain' });
@@ -9021,6 +9005,8 @@ function toolFindLocalCitations() {
   const { close } = createModal('Local Citation Finder', content, { width: '700px' });
 }
 
+// ==================== TOOL: KEYWORD RANK TRACKER ====================
+
 function keywordRankTracker() {
   const CONFIG = {
     MAX_RESULTS: 100,
@@ -9030,7 +9016,7 @@ function keywordRankTracker() {
   };
 
   if (!window.location.hostname.includes('google.')) {
-    showNotification('This keyword ranking tool only works on Google search result pages', 'error');
+    GDI.showNotification('This keyword ranking tool only works on Google search result pages', 'error');
     return;
   }
 
@@ -9152,40 +9138,46 @@ function keywordRankTracker() {
   }
 
   function createStatusDiv() {
-    const statusDiv = document.createElement('div');
-    statusDiv.id = 'ranking-status';
-    statusDiv.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #1a1a1a;
-      color: #fff;
-      padding: 16px 20px;
-      border-radius: 8px;
-      z-index: 10000;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      min-width: 320px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-      border-left: 4px solid #4CAF50;
-    `;
+    const statusDiv = GDI.createElement('div', {
+        attrs: { id: 'ranking-status' },
+        styles: {
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: GDI.ThemeEngine.token('colors.surface'),
+            color: GDI.ThemeEngine.token('colors.textPrimary'),
+            padding: '16px 20px',
+            borderRadius: GDI.DESIGN_TOKENS.radii.lg,
+            zIndex: '100000',
+            fontFamily: GDI.DESIGN_TOKENS.typography.fontFamily,
+            fontSize: GDI.DESIGN_TOKENS.typography.sizes.md,
+            minWidth: '320px',
+            boxShadow: GDI.ThemeEngine.isDark() ? GDI.DESIGN_TOKENS.shadows.dark.xl : GDI.DESIGN_TOKENS.shadows.xl,
+            borderLeft: `4px solid ${GDI.ThemeEngine.token('colors.success')}`,
+            border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`
+        }
+    });
     
     statusDiv.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <strong style="font-size: 16px;">📊 Keyword Rank Tracker</strong>
-        <span style="color: #888;">v2.0</span>
       </div>
-      <div id="status-message">Starting ranking analysis...</div>
-      <div style="margin-top: 12px; height: 4px; background: #333; border-radius: 2px; overflow: hidden;">
-        <div id="status-progress-bar" style="height: 100%; background: #4CAF50; width: 0%; transition: width 0.3s;"></div>
+      <div id="status-message" style="color: ${GDI.ThemeEngine.token('colors.textSecondary')}">Starting ranking analysis...</div>
+      <div style="margin-top: 12px; height: 6px; background: ${GDI.ThemeEngine.token('colors.surfaceTertiary')}; border-radius: 4px; overflow: hidden;">
+        <div id="status-progress-bar" style="height: 100%; background: ${GDI.ThemeEngine.token('colors.success')}; width: 0%; transition: width 0.3s;"></div>
       </div>
-      <button onclick="document.getElementById('ranking-status')?.remove()" 
-           style="margin-top: 12px; padding: 6px 12px; background: #424242; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-        Cancel
-      </button>
     `;
+
+    const cancelBtn = GDI.createButton('Cancel', () => {
+        extractionCancelled = true;
+        statusDiv.remove();
+    }, { variant: 'danger', size: 'sm', fullWidth: true });
     
-    document.body.appendChild(statusDiv);
+    cancelBtn.style.marginTop = '12px';
+    statusDiv.appendChild(cancelBtn);
+    
+    statusDiv.classList.add('gdi-pointer-auto'); // Ensures it remains clickable
+  GDI.ShadowRoot.appendChild(statusDiv);
     return statusDiv;
   }
 
@@ -9203,70 +9195,52 @@ function keywordRankTracker() {
 
   function promptForTargetDomain() {
     return new Promise((resolve) => {
-      const overlay = document.createElement('div');
-      overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        z-index: 10001;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      `;
-      
-      const modal = document.createElement('div');
-      modal.style.cssText = `
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        width: 400px;
-        text-align: center;
-        box-shadow: 0 16px 48px rgba(0,0,0,0.3);
-      `;
-      
-      modal.innerHTML = `
-        <h3 style="margin: 0 0 15px; color: #333;">🎯 Track Keyword Rankings</h3>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-          Enter domain to highlight its ranking position (optional)
-        </p>
-        <input type="text" id="targetDomainInput" 
-             placeholder="e.g., example.com or amazon.com"
-             style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; margin-bottom: 20px; font-size: 14px; box-sizing: border-box;">
-        <div style="display: flex; gap: 10px; justify-content: center;">
-          <button id="skipBtn" style="background: #9e9e9e; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: 600;">Skip</button>
-          <button id="trackBtn" style="background: #4CAF50; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: 600;">Track Rankings</button>
-        </div>
-      `;
-      
-      overlay.appendChild(modal);
-      document.body.appendChild(overlay);
-      
-      document.getElementById('trackBtn').onclick = () => {
-        targetDomain = document.getElementById('targetDomainInput').value.trim();
-        document.body.removeChild(overlay);
-        resolve();
-      };
-      
-      document.getElementById('skipBtn').onclick = () => {
-        document.body.removeChild(overlay);
-        resolve();
-      };
-      
-      document.getElementById('targetDomainInput').onkeydown = (e) => {
-        if (e.key === 'Enter') {
-          targetDomain = e.target.value.trim();
-          document.body.removeChild(overlay);
-          resolve();
-        }
-      };
+        const content = GDI.createElement('div', {
+            styles: { padding: '20px', textAlign: 'center' }
+        });
+
+        const { wrapper, input } = GDI.createInputField({
+            label: 'Enter domain to highlight its ranking position (optional)',
+            id: 'targetDomainInput',
+            placeholder: 'e.g., example.com or amazon.com'
+        });
+
+        content.appendChild(wrapper);
+
+        const btnRow = GDI.createElement('div', {
+            styles: { display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }
+        });
+
+        btnRow.appendChild(GDI.createButton('Skip', () => {
+            closeModal();
+            resolve();
+        }, { variant: 'secondary', fullWidth: false }));
+
+        btnRow.appendChild(GDI.createButton('Track Rankings', () => {
+            targetDomain = input.value.trim();
+            closeModal();
+            resolve();
+        }, { variant: 'success', fullWidth: false }));
+
+        content.appendChild(btnRow);
+
+        const { close: closeModal } = GDI.createModal('🎯 Track Keyword Rankings', content, { width: '400px' });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                targetDomain = input.value.trim();
+                closeModal();
+                resolve();
+            }
+        });
+        
+        setTimeout(() => input.focus(), 100);
     });
   }
 
   async function extractRankingsFromPages() {
     await promptForTargetDomain();
+    if(extractionCancelled) return;
     
     const statusDiv = createStatusDiv();
     const urlParams = new URLSearchParams(window.location.search);
@@ -9335,247 +9309,177 @@ function keywordRankTracker() {
     
     setTimeout(() => {
       statusDiv.remove();
-      showRankingReport();
+      if(!extractionCancelled) showRankingReport();
     }, 2000);
   }
 
   function showRankingReport() {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(4px);
-      z-index: 10000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    `;
-    
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      max-width: 95%;
-      width: 1000px;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-    `;
-    
-    const targetResults = allResults.filter(r => r.isTarget);
-    const uniqueDomains = new Set(allResults.map(r => r.domain)).size;
-    const urlParams = new URLSearchParams(window.location.search);
-    const query = urlParams.get('q');
-    
-    const header = document.createElement('div');
-    header.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
-          <h2 style="margin:0; font-size: 24px; color: #1a1a1a;">📈 Keyword Ranking Report</h2>
-          <p style="margin: 5px 0 0; color: #666; font-size: 14px;">
-            ${query || 'No search query'}
-          </p>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <span style="background: #e3f2fd; padding: 4px 12px; border-radius: 20px; font-size: 13px;">
-            ${allResults.length} Results
-          </span>
-          <span style="background: #f3e5f5; padding: 4px 12px; border-radius: 20px; font-size: 13px;">
-            ${uniqueDomains} Domains
-          </span>
-        </div>
-      </div>
-      ${targetDomain && targetResults.length > 0 ? `
-        <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <strong style="color: #2e7d32; font-size: 16px;">🎯 ${targetDomain}</strong>
-            <span style="color: #666; margin-left: 10px;">found at position${targetResults.length > 1 ? 's' : ''}:</span>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            ${targetResults.map(r => `
-              <span style="background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold;">
-                #${r.rank}
-              </span>
-            `).join('')}
-          </div>
-        </div>
-      ` : targetDomain ? `
-        <div style="background: #ffebee; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #c62828;">
-          ❌ ${targetDomain} not found in top ${allResults.length} results
-        </div>
-      ` : ''}
-    `;
-    
-    const actions = document.createElement('div');
-    actions.style.cssText = `
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    `;
-    
-    const buttons = [
-      { id: 'exportCSV', text: '📥 Export Rankings CSV', color: '#4CAF50' },
-      { id: 'exportTXT', text: '📄 Export Rank List', color: '#795548' },
-      { id: 'copyDomains', text: '📋 Copy All Domains', color: '#2196F3' },
-      { id: 'copyRankings', text: '🔢 Copy Ranked List', color: '#FF9800' },
-      { id: 'closeReport', text: '✕ Close', color: '#f44336' }
-    ];
-    
-    buttons.forEach(btn => {
-      const button = document.createElement('button');
-      button.id = btn.id;
-      button.textContent = btn.text;
-      button.style.cssText = `
-        background: ${btn.color};
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 13px;
-      `;
-      actions.appendChild(button);
-    });
-    
-    const searchBox = document.createElement('input');
-    searchBox.type = 'text';
-    searchBox.placeholder = '🔍 Filter domains or titles...';
-    searchBox.style.cssText = `
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 14px;
-      box-sizing: border-box;
-    `;
-    
-    const resultsContainer = document.createElement('div');
-    resultsContainer.style.cssText = `
-      flex: 1;
-      overflow-y: auto;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-    `;
-    
-    function renderResults(filterText = '') {
-      resultsContainer.innerHTML = '';
-      const filter = filterText.toLowerCase();
+      const content = GDI.createElement('div', {
+          styles: { display: 'flex', flexDirection: 'column', height: '80vh' }
+      });
       
-      allResults.forEach(result => {
-        if (filter && !result.domain.includes(filter) && !result.title.toLowerCase().includes(filter)) {
-          return;
-        }
-        
-        const resultDiv = document.createElement('div');
-        resultDiv.style.cssText = `
-          padding: 12px 16px;
-          border-bottom: 1px solid #e0e0e0;
-          display: flex;
-          gap: 16px;
-          ${result.isTarget ? 'background: #f1f8e9;' : ''}
-        `;
-        
-        const rankSpan = document.createElement('span');
-        rankSpan.style.cssText = `
-          background: ${result.isTarget ? '#4CAF50' : '#2196F3'};
-          color: white;
-          padding: 4px 12px;
-          border-radius: 20px;
-          font-size: 14px;
-          font-weight: bold;
-          min-width: 45px;
-          text-align: center;
-          height: fit-content;
-        `;
-        rankSpan.textContent = `#${result.rank}`;
-        
-        const contentDiv = document.createElement('div');
-        contentDiv.style.cssText = 'flex: 1;';
-        
-        const domainDiv = document.createElement('div');
-        domainDiv.style.cssText = `
-          font-weight: bold;
-          color: ${result.isTarget ? '#2e7d32' : '#1976D2'};
-          font-size: 16px;
-          margin-bottom: 4px;
-        `;
-        domainDiv.textContent = result.domain;
-        
-        const metaDiv = document.createElement('div');
-        metaDiv.style.cssText = 'font-size: 12px; color: #757575; margin-bottom: 4px;';
-        metaDiv.textContent = `Page ${result.page}`;
-        
-        const titleDiv = document.createElement('div');
-        titleDiv.style.cssText = 'color: #333; font-size: 13px; margin-bottom: 4px;';
-        titleDiv.textContent = result.title;
-        
-        const urlDiv = document.createElement('div');
-        urlDiv.style.cssText = 'color: #757575; font-size: 11px; word-break: break-all;';
-        urlDiv.textContent = result.url;
-        
-        contentDiv.appendChild(domainDiv);
-        contentDiv.appendChild(metaDiv);
-        contentDiv.appendChild(titleDiv);
-        contentDiv.appendChild(urlDiv);
-        resultDiv.appendChild(rankSpan);
-        resultDiv.appendChild(contentDiv);
-        resultsContainer.appendChild(resultDiv);
+      const targetResults = allResults.filter(r => r.isTarget);
+      const uniqueDomains = new Set(allResults.map(r => r.domain)).size;
+      const urlParams = new URLSearchParams(window.location.search);
+      const query = urlParams.get('q');
+
+      // Header Section
+      const headerSection = GDI.createElement('div', {
+          styles: { marginBottom: '20px' }
       });
-    }
-    
-    renderResults();
-    
-    searchBox.addEventListener('input', (e) => {
-      renderResults(e.target.value);
-    });
-    
-    modal.appendChild(header);
-    modal.appendChild(actions);
-    modal.appendChild(searchBox);
-    modal.appendChild(resultsContainer);
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    
-    document.getElementById('exportCSV').onclick = () => {
-      const csv = 'Rank,Domain,URL,Title,Page,Target\n' + allResults.map(r => 
-        `${r.rank},"${r.domain}","${r.url}","${r.title.replace(/"/g, '""')}",${r.page},${r.isTarget ? 'Yes' : 'No'}`
-      ).join('\n');
-      downloadFile(csv, 'keyword-rankings.csv', 'text/csv');
-      showNotification('CSV exported!', 'success');
-    };
-    
-    document.getElementById('exportTXT').onclick = () => {
-      const txt = allResults.map(r => 
-        `${r.isTarget ? '🎯 ' : ''}#${r.rank} ${r.domain}`
-      ).join('\n');
-      downloadFile(txt, 'ranked-domains.txt', 'text/plain');
-      showNotification('Rank list exported!', 'success');
-    };
-    
-    document.getElementById('copyDomains').onclick = () => {
-      const domains = [...new Set(allResults.map(r => r.domain))].join('\n');
-      copyToClipboard(domains).then(() => {
-        showNotification(`Copied ${domains.split('\n').length} domains to clipboard!`, 'success');
+
+      const titleRow = GDI.createElement('div', {
+          styles: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
+          children: [
+              GDI.createElement('div', {
+                  children: [
+                      GDI.createElement('div', { styles: { fontSize: '14px', color: GDI.ThemeEngine.token('colors.textSecondary'), marginBottom: '4px' }, text: 'Search Query:' }),
+                      GDI.createElement('div', { styles: { fontSize: '18px', fontWeight: 'bold', color: GDI.ThemeEngine.token('colors.primary') }, text: query || 'No search query' })
+                  ]
+              }),
+              GDI.createElement('div', {
+                  styles: { display: 'flex', gap: '8px' },
+                  children: [
+                      GDI.createBadge(`${allResults.length} Results`, 'primary'),
+                      GDI.createBadge(`${uniqueDomains} Domains`, 'info')
+                  ]
+              })
+          ]
       });
-    };
-    
-    document.getElementById('copyRankings').onclick = () => {
-      const rankings = allResults.map(r => `#${r.rank} ${r.domain}`).join('\n');
-      copyToClipboard(rankings).then(() => {
-        showNotification(`Copied ${allResults.length} rankings to clipboard!`, 'success');
+      headerSection.appendChild(titleRow);
+
+      if (targetDomain) {
+          const targetStatus = GDI.createElement('div', {
+              styles: {
+                  padding: '16px',
+                  borderRadius: GDI.DESIGN_TOKENS.radii.md,
+                  background: targetResults.length > 0 ? GDI.ThemeEngine.token('colors.successLight') : GDI.ThemeEngine.token('colors.errorLight'),
+                  border: `1px solid ${targetResults.length > 0 ? GDI.ThemeEngine.token('colors.success') : GDI.ThemeEngine.token('colors.error')}`,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }
+          });
+
+          if (targetResults.length > 0) {
+              const ranksHTML = targetResults.map(r => `<span style="background: ${GDI.ThemeEngine.token('colors.success')}; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; margin-left: 8px;">#${r.rank}</span>`).join('');
+              targetStatus.innerHTML = `
+                  <div>
+                      <strong style="color: ${GDI.ThemeEngine.token('colors.success')}; font-size: 16px;">🎯 ${targetDomain}</strong>
+                      <span style="color: ${GDI.ThemeEngine.token('colors.textSecondary')}; margin-left: 10px;">found at position${targetResults.length > 1 ? 's' : ''}:</span>
+                  </div>
+                  <div>${ranksHTML}</div>
+              `;
+          } else {
+              targetStatus.innerHTML = `
+                  <div style="color: ${GDI.ThemeEngine.token('colors.error')}; font-weight: bold;">
+                      ❌ ${targetDomain} not found in top ${allResults.length} results
+                  </div>
+              `;
+          }
+          headerSection.appendChild(targetStatus);
+      }
+      content.appendChild(headerSection);
+
+      // Search & Actions
+      const actionRow = GDI.createElement('div', {
+          styles: { display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }
       });
-    };
-    
-    document.getElementById('closeReport').onclick = () => overlay.remove();
-    overlay.onclick = (e) => e.target === overlay && overlay.remove();
+      
+      const { wrapper: searchWrap, input: searchInput } = GDI.createInputField({
+          id: 'rankings-search',
+          placeholder: '🔍 Filter domains or titles...',
+      });
+      searchWrap.style.flex = '1';
+      searchWrap.style.marginBottom = '0';
+      actionRow.appendChild(searchWrap);
+
+      const btnGroup = GDI.createElement('div', { styles: { display: 'flex', gap: '8px', alignItems: 'center' }});
+      
+      btnGroup.appendChild(GDI.createButton('📥 CSV', () => {
+          const csv = 'Rank,Domain,URL,Title,Page,Target\n' + allResults.map(r => 
+              `${r.rank},"${r.domain}","${r.url}","${r.title.replace(/"/g, '""')}",${r.page},${r.isTarget ? 'Yes' : 'No'}`
+          ).join('\n');
+          downloadFile(csv, 'keyword-rankings.csv', 'text/csv');
+          GDI.showNotification('CSV exported!', 'success');
+      }, { variant: 'success', size: 'sm', fullWidth: false }));
+
+      btnGroup.appendChild(GDI.createButton('📄 TXT', () => {
+          const txt = allResults.map(r => `${r.isTarget ? '🎯 ' : ''}#${r.rank} ${r.domain}`).join('\n');
+          downloadFile(txt, 'ranked-domains.txt', 'text/plain');
+          GDI.showNotification('Rank list exported!', 'success');
+      }, { variant: 'secondary', size: 'sm', fullWidth: false }));
+
+      btnGroup.appendChild(GDI.createButton('📋 Copy Domains', () => {
+          const domains = [...new Set(allResults.map(r => r.domain))].join('\n');
+          GDI.copyToClipboard(domains).then(() => GDI.showNotification(`Copied ${domains.split('\n').length} domains!`, 'success'));
+      }, { variant: 'primary', size: 'sm', fullWidth: false }));
+
+      actionRow.appendChild(btnGroup);
+      content.appendChild(actionRow);
+
+      // Results Table
+      const tableContainer = GDI.createElement('div', {
+          styles: { flex: '1', overflowY: 'auto', border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`, borderRadius: GDI.DESIGN_TOKENS.radii.md }
+      });
+
+      function renderResults(filterText = '') {
+          tableContainer.innerHTML = '';
+          const filter = filterText.toLowerCase();
+          
+          allResults.forEach(result => {
+              if (filter && !result.domain.includes(filter) && !result.title.toLowerCase().includes(filter)) return;
+              
+              const row = GDI.createElement('div', {
+                  styles: {
+                      padding: '12px 16px',
+                      borderBottom: `1px solid ${GDI.ThemeEngine.token('colors.borderLight')}`,
+                      display: 'flex', gap: '16px',
+                      background: result.isTarget ? GDI.ThemeEngine.token('colors.successLight') : GDI.ThemeEngine.token('colors.surface')
+                  }
+              });
+
+              const rankBadge = GDI.createElement('div', {
+                  styles: {
+                      background: result.isTarget ? GDI.ThemeEngine.token('colors.success') : GDI.ThemeEngine.token('colors.primary'),
+                      color: 'white', padding: '4px 12px', borderRadius: '20px',
+                      fontSize: '14px', fontWeight: 'bold', minWidth: '45px', textAlign: 'center', height: 'fit-content'
+                  },
+                  text: `#${result.rank}`
+              });
+
+              const infoCol = GDI.createElement('div', { styles: { flex: '1', minWidth: '0' }});
+              
+              infoCol.appendChild(GDI.createElement('div', {
+                  styles: { fontWeight: 'bold', color: result.isTarget ? GDI.ThemeEngine.token('colors.success') : GDI.ThemeEngine.token('colors.primary'), fontSize: '16px', marginBottom: '4px' },
+                  text: result.domain
+              }));
+
+              infoCol.appendChild(GDI.createElement('div', {
+                  styles: { fontSize: '12px', color: GDI.ThemeEngine.token('colors.textSecondary'), marginBottom: '4px' },
+                  text: `Page ${result.page}`
+              }));
+
+              infoCol.appendChild(GDI.createElement('div', {
+                  styles: { color: GDI.ThemeEngine.token('colors.textPrimary'), fontSize: '13px', marginBottom: '4px' },
+                  text: result.title
+              }));
+
+              infoCol.appendChild(GDI.createElement('div', {
+                  styles: { color: GDI.ThemeEngine.token('colors.textMuted'), fontSize: '11px', wordBreak: 'break-all' },
+                  text: result.url
+              }));
+
+              row.appendChild(rankBadge);
+              row.appendChild(infoCol);
+              tableContainer.appendChild(row);
+          });
+      }
+
+      renderResults();
+      searchInput.addEventListener('input', (e) => renderResults(e.target.value));
+
+      content.appendChild(tableContainer);
+
+      GDI.createModal('📈 Keyword Ranking Report', content, { width: '1000px', maxWidth: '95vw' });
   }
   
   function downloadFile(content, filename, type) {
@@ -9591,1511 +9495,1337 @@ function keywordRankTracker() {
   extractionCancelled = false;
   extractRankingsFromPages();
 }
-
 // ==================== ADVANCED SEO TEXT COMPARE TOOL ====================
 
 function advancedSEOCompare() {
-  // Create modal overlay
-  const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.95);
-    backdrop-filter: blur(8px);
-    z-index: 100000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  `;
+  const DEBOUNCE_MS = 400;
+  let debounceTimer;
 
-  const modal = document.createElement('div');
-  modal.style.cssText = `
-    background: #fff;
-    border-radius: 16px;
-    width: 95%;
-    max-width: 1400px;
-    height: 90vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-  `;
+  // Unified, comprehensive stop words list
+  const STOP_WORDS = new Set(['the','and','for','are','but','not','you','all','can','had','her','was','one','our','out','day','get','has','him','his','how','its','may','new','now','old','see','two','who','boy','did','she','use','way','many','oil','sit','set','run','eat','far','sea','eye','ago','off','too','any','say','man','try','ask','end','why','let','put','own','tell','very','when','much','would','there','their','what','said','each','which','will','about','could','other','after','first','never','these','think','where','being','every','great','might','shall','still','those','while','this','that','with','have','from','they','know','want','been','good','some','time','come','here','just','like','long','make','over','such','take','than','them','well','were','into','also']);
 
-  // Header
-  const header = document.createElement('div');
-  header.style.cssText = `
-    padding: 20px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  `;
-  header.innerHTML = `
-    <div>
-      <h2 style="margin: 0; font-size: 20px; font-weight: 600;">🔍 Advanced SEO Text Compare</h2>
-      <p style="margin: 4px 0 0; opacity: 0.9; font-size: 12px;">Compare content, meta tags, titles, and more with advanced SEO metrics</p>
-    </div>
-    <button id="closeCompareBtn" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 20px;">×</button>
-  `;
+  const content = GDI.createElement('div', {
+    styles: { display: 'flex', flexDirection: 'column', height: '80vh', gap: '0' }
+  });
 
-  // Main content area
-  const mainContent = document.createElement('div');
-  mainContent.style.cssText = `
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-  `;
+  // ─── HEADER TOOLBAR ───
+  const headerToolbar = GDI.createElement('div', {
+    styles: { display: 'flex', gap: '8px', marginBottom: '12px', flexShrink: '0', flexWrap: 'wrap' }
+  });
 
-  // Left Panel
-  const leftPanel = document.createElement('div');
-  leftPanel.style.cssText = `
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid #e0e0e0;
-    overflow: hidden;
-  `;
-
-  // Right Panel
-  const rightPanel = document.createElement('div');
-  rightPanel.style.cssText = `
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  `;
-
-  // Toolbar for both panels
-  function createPanelToolbar(panelId, title) {
-    const toolbar = document.createElement('div');
-    toolbar.style.cssText = `
-      padding: 12px 16px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #e0e0e0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-    `;
-    
-    toolbar.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <strong style="font-size: 14px; color: #333;">${title}</strong>
-        <select id="${panelId}-source" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; background: white;">
-          <option value="paste">📝 Paste Text</option>
-          <option value="selection">📋 Current Selection</option>
-          <option value="page">🌐 Entire Page</option>
-          <option value="meta-title">🏷️ Meta Title</option>
-          <option value="meta-description">📄 Meta Description</option>
-          <option value="h1">📊 H1 Heading</option>
-          <option value="first-paragraph">📖 First Paragraph</option>
-        </select>
-        <button id="${panelId}-load" style="padding: 4px 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Load</button>
-      </div>
-      <div style="display: flex; gap: 8px;">
-        <button id="${panelId}-clear" style="padding: 4px 12px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Clear</button>
-        <button id="${panelId}-copy" style="padding: 4px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Copy</button>
-      </div>
-    `;
-    
-    return toolbar;
-  }
-
-  // Text area for content
-  function createTextArea(panelId) {
-    const container = document.createElement('div');
-    container.style.cssText = `
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    `;
-    
-    const textarea = document.createElement('textarea');
-    textarea.id = `${panelId}-textarea`;
-    textarea.style.cssText = `
-      flex: 1;
-      padding: 16px;
-      border: none;
-      resize: none;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 13px;
-      line-height: 1.6;
-      outline: none;
-      background: #fff;
-    `;
-    textarea.placeholder = `Enter or load ${panelId === 'left' ? 'original' : 'comparison'} text here...`;
-    
-    container.appendChild(textarea);
-    return container;
-  }
-
-  // Stats display
-  function createStatsPanel(panelId) {
-    const stats = document.createElement('div');
-    stats.id = `${panelId}-stats`;
-    stats.style.cssText = `
-      padding: 8px 16px;
-      background: #f8f9fa;
-      border-top: 1px solid #e0e0e0;
-      font-size: 11px;
-      color: #666;
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-    `;
-    stats.innerHTML = `
-      <span>📊 Characters: 0</span>
-      <span>📝 Words: 0</span>
-      <span>📏 Sentences: 0</span>
-      <span>🔤 Unique Words: 0</span>
-      <span>📖 Reading Time: 0 min</span>
-    `;
-    return stats;
-  }
-
-  // Create panels
-  const leftToolbar = createPanelToolbar('left', 'Original Text');
-  const leftTextArea = createTextArea('left');
-  const leftStats = createStatsPanel('left');
+  const swapBtn = GDI.createButton('⇄ Swap Panels', swapPanels, { variant: 'secondary', size: 'sm', fullWidth: false });
+  const syncScrollBtn = GDI.createToggle({ label: 'Sync Scroll', checked: true, onChange: (val) => syncScroll = val });
+  syncScrollBtn.wrapper.style.marginRight = 'auto'; // Pushes exports to the right
   
-  const rightToolbar = createPanelToolbar('right', 'Comparison Text');
-  const rightTextArea = createTextArea('right');
-  const rightStats = createStatsPanel('right');
+  const exportJsonBtn = GDI.createButton('⬇ Export JSON', () => exportResults('json'), { variant: 'secondary', size: 'sm', fullWidth: false });
+  const exportCsvBtn = GDI.createButton('⬇ Export CSV', () => exportResults('csv'), { variant: 'secondary', size: 'sm', fullWidth: false });
 
-  leftPanel.appendChild(leftToolbar);
-  leftPanel.appendChild(leftTextArea);
-  leftPanel.appendChild(leftStats);
-  
-  rightPanel.appendChild(rightToolbar);
-  rightPanel.appendChild(rightTextArea);
-  rightPanel.appendChild(rightStats);
+  headerToolbar.appendChild(swapBtn);
+  headerToolbar.appendChild(syncScrollBtn.wrapper);
+  headerToolbar.appendChild(exportJsonBtn);
+  headerToolbar.appendChild(exportCsvBtn);
 
-  // Comparison Results Panel
-  const resultsPanel = document.createElement('div');
-  resultsPanel.style.cssText = `
-    border-top: 1px solid #e0e0e0;
-    background: #f8f9fa;
-    max-height: 40%;
-    overflow-y: auto;
-  `;
-
-  const resultsHeader = document.createElement('div');
-  resultsHeader.style.cssText = `
-    padding: 12px 16px;
-    background: #fff;
-    border-bottom: 1px solid #e0e0e0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-  `;
-  resultsHeader.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <span id="resultsToggle" style="font-size: 18px;">▼</span>
-      <strong>📊 SEO Comparison Results</strong>
-      <span id="similarityScore" style="background: #667eea; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">0% Similar</span>
-    </div>
-    <button id="refreshComparison" style="padding: 4px 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Refresh Analysis</button>
-  `;
-
-  const resultsContent = document.createElement('div');
-  resultsContent.id = 'resultsContent';
-  resultsContent.style.cssText = `
-    padding: 16px;
-    display: block;
-  `;
-
-  resultsPanel.appendChild(resultsHeader);
-  resultsPanel.appendChild(resultsContent);
-  
-  // Toggle results panel
-  let resultsVisible = true;
-  resultsHeader.addEventListener('click', (e) => {
-    if (e.target.id !== 'refreshComparison') {
-      resultsVisible = !resultsVisible;
-      resultsContent.style.display = resultsVisible ? 'block' : 'none';
-      document.getElementById('resultsToggle').textContent = resultsVisible ? '▼' : '▶';
+  // ─── MAIN CONTENT ───
+  const mainArea = GDI.createElement('div', {
+    styles: {
+      flex: '1', display: 'flex', overflow: 'hidden',
+      border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+      borderRadius: GDI.DESIGN_TOKENS.radii.lg,
+      marginBottom: '16px'
     }
   });
 
-  mainContent.appendChild(leftPanel);
-  mainContent.appendChild(rightPanel);
-  
-  modal.appendChild(header);
-  modal.appendChild(mainContent);
-  modal.appendChild(resultsPanel);
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
+  const leftPanel = buildComparePanel('left', 'Original Text');
+  const rightPanel = buildComparePanel('right', 'Comparison Text');
 
-  // Helper functions
-  function updateStats(panelId, text) {
-    const chars = text.length;
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
-    const uniqueWords = new Set(text.toLowerCase().match(/\b\w+\b/g) || []).size;
-    const readingTime = Math.ceil(words / 200); // Average reading speed
-    
-    const statsDiv = document.getElementById(`${panelId}-stats`);
-    if (statsDiv) {
-      statsDiv.innerHTML = `
-        <span>📊 Characters: ${chars.toLocaleString()}</span>
-        <span>📝 Words: ${words.toLocaleString()}</span>
-        <span>📏 Sentences: ${sentences.toLocaleString()}</span>
-        <span>🔤 Unique Words: ${uniqueWords.toLocaleString()}</span>
-        <span>📖 Reading Time: ${readingTime} min</span>
-      `;
+  mainArea.appendChild(leftPanel);
+  mainArea.appendChild(rightPanel);
+
+  // ─── RESULTS PANEL ───
+  const resultsArea = GDI.createElement('div', {
+    styles: {
+      border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+      borderRadius: GDI.DESIGN_TOKENS.radii.lg,
+      background: GDI.ThemeEngine.token('colors.surfaceSecondary'),
+      maxHeight: '45%', overflowY: 'auto', padding: '0', flexShrink: '0',
+      display: 'flex', flexDirection: 'column'
     }
+  });
+
+  const resultsHeader = GDI.createElement('div', {
+    styles: {
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '12px 20px', borderBottom: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+      position: 'sticky', top: '0', background: GDI.ThemeEngine.token('colors.surfaceSecondary'), zIndex: '2'
+    }
+  });
+
+  const scoreBadge = GDI.createBadge('0% Similar', 'info');
+  const refreshBtn = GDI.createButton('Refresh Analysis', performComparison, { variant: 'secondary', size: 'sm', fullWidth: false });
+
+  resultsHeader.appendChild(GDI.createElement('strong', {
+    styles: { color: GDI.ThemeEngine.token('colors.textPrimary'), fontSize: '14px' },
+    text: '📊 SEO Comparison Results'
+  }));
+
+  const headerRight = GDI.createElement('div', { styles: { display: 'flex', gap: '12px', alignItems: 'center' } });
+  headerRight.appendChild(scoreBadge);
+  headerRight.appendChild(refreshBtn);
+  resultsHeader.appendChild(headerRight);
+
+  // Tab Navigation
+  const tabBar = GDI.createElement('div', {
+    styles: {
+      display: 'flex', gap: '4px', padding: '8px 20px 0',
+      borderBottom: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+      background: GDI.ThemeEngine.token('colors.surfaceSecondary')
+    }
+  });
+
+  const tabs = [
+    { id: 'overview', label: '📊 Overview' },
+    { id: 'diff', label: '📝 Diff View' },
+    { id: 'structure', label: '🏗️ Structure' },
+    { id: 'keywords', label: '🔑 Keywords' }
+  ];
+
+  let activeTab = 'overview';
+  const tabButtons = {};
+
+  tabs.forEach(tab => {
+    const btn = GDI.createElement('button', {
+      text: tab.label,
+      styles: {
+        padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer',
+        fontSize: '12px', fontWeight: '600', color: GDI.ThemeEngine.token('colors.textSecondary'),
+        borderBottom: '2px solid transparent', marginBottom: '-1px', transition: 'all 0.2s'
+      }
+    });
+    btn.addEventListener('click', () => switchTab(tab.id));
+    tabButtons[tab.id] = btn;
+    tabBar.appendChild(btn);
+  });
+
+  const resultsContent = GDI.createElement('div', {
+    attrs: { id: 'gdi-compare-results' },
+    styles: { padding: '16px 20px', flex: '1', overflowY: 'auto' }
+  });
+
+  resultsArea.appendChild(resultsHeader);
+  resultsArea.appendChild(tabBar);
+  resultsArea.appendChild(resultsContent);
+
+  content.appendChild(headerToolbar);
+  content.appendChild(mainArea);
+  content.appendChild(resultsArea);
+
+  GDI.createModal('Advanced SEO Compare', content, {
+    width: '95vw', maxWidth: '1400px', icon: '🔍',
+    subtitle: 'Compare content, meta tags, readability, and structure'
+  });
+
+  let syncScroll = true;
+  let lastResults = null;
+
+  // ─── PANEL BUILDER ───
+  function buildComparePanel(side, titleText) {
+    const panel = GDI.createElement('div', {
+      styles: {
+        flex: '1', display: 'flex', flexDirection: 'column',
+        borderRight: side === 'left' ? `1px solid ${GDI.ThemeEngine.token('colors.border')}` : 'none',
+        overflow: 'hidden', minWidth: '0'
+      }
+    });
+
+    const toolbar = GDI.createElement('div', {
+      styles: {
+        padding: '10px 14px', background: GDI.ThemeEngine.token('colors.surface'),
+        borderBottom: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px',
+        flexWrap: 'wrap', flexShrink: '0'
+      }
+    });
+
+    const select = GDI.createElement('select', {
+      styles: {
+        padding: '6px 10px', border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+        borderRadius: GDI.DESIGN_TOKENS.radii.md, fontSize: '12px', cursor: 'pointer',
+        background: GDI.ThemeEngine.token('colors.surface'), color: GDI.ThemeEngine.token('colors.textPrimary'),
+        maxWidth: '160px'
+      },
+      children: [
+        GDI.createElement('option', { attrs: { value: 'paste' }, text: '📝 Paste Text' }),
+        GDI.createElement('option', { attrs: { value: 'selection' }, text: '📋 Current Selection' }),
+        GDI.createElement('option', { attrs: { value: 'page' }, text: '🌐 Entire Page' }),
+        GDI.createElement('option', { attrs: { value: 'meta-title' }, text: '🏷️ Meta Title' }),
+        GDI.createElement('option', { attrs: { value: 'meta-description' }, text: '📄 Meta Description' }),
+        GDI.createElement('option', { attrs: { value: 'h1' }, text: '📊 H1 Heading' }),
+        GDI.createElement('option', { attrs: { value: 'first-paragraph' }, text: '📖 First Paragraph' }),
+        GDI.createElement('option', { attrs: { value: 'headings' }, text: '📑 All Headings' }),
+        GDI.createElement('option', { attrs: { value: 'links' }, text: '🔗 All Links' })
+      ]
+    });
+
+    const loadBtn = GDI.createButton('Load', null, { variant: 'primary', size: 'sm', fullWidth: false });
+    const clearBtn = GDI.createButton('Clear', null, { variant: 'danger', size: 'sm', fullWidth: false });
+    const copyBtn = GDI.createButton('Copy', null, { variant: 'secondary', size: 'sm', fullWidth: false });
+
+    const actionGroup = GDI.createElement('div', { styles: { display: 'flex', gap: '6px' } });
+    actionGroup.appendChild(clearBtn);
+    actionGroup.appendChild(copyBtn);
+
+    toolbar.appendChild(GDI.createElement('div', {
+      styles: { display: 'flex', alignItems: 'center', gap: '8px' },
+      children: [
+        GDI.createElement('strong', { text: titleText, styles: { fontSize: '13px', color: GDI.ThemeEngine.token('colors.textPrimary') } }),
+        select, loadBtn
+      ]
+    }));
+    toolbar.appendChild(actionGroup);
+
+    const textarea = GDI.createElement('textarea', {
+      attrs: { id: `${side}-textarea`, placeholder: `Enter or load ${side === 'left' ? 'original' : 'comparison'} text here...` },
+      styles: {
+        flex: '1', padding: '14px', border: 'none', resize: 'none',
+        fontFamily: GDI.DESIGN_TOKENS.typography.fontMono, fontSize: '13px',
+        lineHeight: '1.6', outline: 'none', color: GDI.ThemeEngine.token('colors.textPrimary'),
+        background: GDI.ThemeEngine.token('colors.surface')
+      }
+    });
+
+    const statsBar = GDI.createElement('div', {
+      attrs: { id: `${side}-stats` },
+      styles: {
+        padding: '8px 14px', background: GDI.ThemeEngine.token('colors.surfaceSecondary'),
+        borderTop: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+        fontSize: '11px', color: GDI.ThemeEngine.token('colors.textSecondary'),
+        display: 'flex', gap: '14px', flexWrap: 'wrap', flexShrink: '0'
+      }
+    });
+
+    // ─── EVENTS ───
+    loadBtn.addEventListener('click', () => {
+      let textContent = '';
+      switch (select.value) {
+        case 'selection': textContent = window.getSelection().toString().trim() || 'No text selected.'; break;
+        case 'page': textContent = document.body.innerText; break;
+        case 'meta-title': textContent = document.title; break;
+        case 'meta-description': textContent = document.querySelector('meta[name="description"]')?.getAttribute('content') || ''; break;
+        case 'h1': textContent = document.querySelector('h1')?.textContent || ''; break;
+        case 'first-paragraph': textContent = document.querySelector('p')?.textContent || ''; break;
+        case 'headings':
+          textContent = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6'))
+            .map(h => `[${h.tagName}] ${h.textContent.trim()}`).join('\n'); break;
+        case 'links':
+          textContent = Array.from(document.querySelectorAll('a[href]'))
+            .map(a => `${a.textContent.trim()} → ${a.href}`).join('\n'); break;
+        case 'paste': default: return;
+      }
+      textarea.value = textContent;
+      scheduleComparison();
+    });
+
+    clearBtn.addEventListener('click', () => { textarea.value = ''; scheduleComparison(); });
+    copyBtn.addEventListener('click', () => { GDI.copyToClipboard(textarea.value).then(() => GDI.showNotification('Copied!', 'success')); });
+
+    textarea.addEventListener('input', scheduleComparison);
+    textarea.addEventListener('scroll', () => {
+      if (!syncScroll) return;
+      const otherSide = side === 'left' ? 'right' : 'left';
+      const other = content.querySelector(`#${otherSide}-textarea`);
+      if (other) other.scrollTop = textarea.scrollTop;
+    });
+
+    panel.appendChild(toolbar);
+    panel.appendChild(textarea);
+    panel.appendChild(statsBar);
+
+    return panel;
   }
 
-  function loadContent(panelId, source) {
-    const textarea = document.getElementById(`${panelId}-textarea`);
-    if (!textarea) return;
-    
-    let content = '';
-    
-    switch(source) {
-      case 'selection':
-        const selection = window.getSelection().toString().trim();
-        content = selection || 'No text selected. Please select text on the page.';
-        break;
-      case 'page':
-        content = document.body.innerText || document.body.textContent;
-        break;
-      case 'meta-title':
-        content = document.title || 'No meta title found';
-        break;
-      case 'meta-description':
-        const metaDesc = document.querySelector('meta[name="description"]');
-        content = metaDesc ? metaDesc.getAttribute('content') : 'No meta description found';
-        break;
-      case 'h1':
-        const h1 = document.querySelector('h1');
-        content = h1 ? h1.textContent : 'No H1 tag found';
-        break;
-      case 'first-paragraph':
-        const firstP = document.querySelector('p');
-        content = firstP ? firstP.textContent : 'No paragraph found';
-        break;
-      case 'paste':
-      default:
-        return;
-    }
-    
-    textarea.value = content;
-    updateStats(panelId, content);
+  // ─── UTILITIES ───
+  function scheduleComparison() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(performComparison, DEBOUNCE_MS);
+  }
+
+  function swapPanels() {
+    const left = content.querySelector('#left-textarea');
+    const right = content.querySelector('#right-textarea');
+    if (!left || !right) return;
+    const temp = left.value;
+    left.value = right.value;
+    right.value = temp;
     performComparison();
   }
 
-  // Advanced comparison algorithms
-  function calculateSimilarity(text1, text2) {
-    if (!text1 || !text2) return 0;
-    
-    const words1 = new Set(text1.toLowerCase().match(/\b\w+\b/g) || []);
-    const words2 = new Set(text2.toLowerCase().match(/\b\w+\b/g) || []);
-    
-    const intersection = new Set([...words1].filter(x => words2.has(x)));
-    const union = new Set([...words1, ...words2]);
-    
-    return (intersection.size / union.size) * 100;
-  }
-  
-  function calculateKeywordDensity(text, keywords) {
-    const words = text.toLowerCase().match(/\b\w+\b/g) || [];
-    const totalWords = words.length;
-    const densities = {};
-    
-    keywords.forEach(keyword => {
-      const count = words.filter(w => w === keyword.toLowerCase()).length;
-      densities[keyword] = totalWords > 0 ? (count / totalWords) * 100 : 0;
+  function switchTab(tabId) {
+    activeTab = tabId;
+    Object.keys(tabButtons).forEach(id => {
+      const btn = tabButtons[id];
+      const isActive = id === tabId;
+      btn.style.color = isActive ? GDI.ThemeEngine.token('colors.primary') : GDI.ThemeEngine.token('colors.textSecondary');
+      btn.style.borderBottom = isActive ? `2px solid ${GDI.ThemeEngine.token('colors.primary')}` : '2px solid transparent';
     });
-    
-    return densities;
-  }
-  
-  function calculateReadabilityScore(text) {
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const words = text.match(/\b\w+\b/g) || [];
-    const syllables = words.reduce((count, word) => {
-      return count + (word.toLowerCase().match(/[aeiouy]{1,2}/g) || []).length;
-    }, 0);
-    
-    if (sentences.length === 0 || words.length === 0) return 0;
-    
-    const avgWordsPerSentence = words.length / sentences.length;
-    const avgSyllablesPerWord = syllables / words.length;
-    
-    // Flesch Reading Ease formula
-    const score = 206.835 - (1.015 * avgWordsPerSentence) - (84.6 * avgSyllablesPerWord);
-    return Math.max(0, Math.min(100, score));
-  }
-  
-  function getReadabilityLevel(score) {
-    if (score >= 90) return 'Very Easy (5th grade)';
-    if (score >= 80) return 'Easy (6th grade)';
-    if (score >= 70) return 'Fairly Easy (7th grade)';
-    if (score >= 60) return 'Standard (8th-9th grade)';
-    if (score >= 50) return 'Fairly Difficult (10th-12th grade)';
-    if (score >= 30) return 'Difficult (College)';
-    return 'Very Difficult (College Graduate)';
-  }
-  
-  function findKeywordGaps(text1, text2, topN = 10) {
-    const words1 = new Set(text1.toLowerCase().match(/\b\w+\b/g) || []);
-    const words2 = new Set(text2.toLowerCase().match(/\b\w+\b/g) || []);
-    
-    const missingInText2 = [...words1].filter(w => !words2.has(w));
-    const missingInText1 = [...words2].filter(w => !words1.has(w));
-    
-    // Get most important keywords (longer words are typically more meaningful)
-    const importantMissing1 = missingInText1.sort((a,b) => b.length - a.length).slice(0, topN);
-    const importantMissing2 = missingInText2.sort((a,b) => b.length - a.length).slice(0, topN);
-    
-    return { missingInText1: importantMissing1, missingInText2: importantMissing2 };
+    renderResults();
   }
 
-  function performComparison() {
-    const text1 = document.getElementById('left-textarea')?.value || '';
-    const text2 = document.getElementById('right-textarea')?.value || '';
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ─── ANALYSIS ENGINE ───
+  function getWords(text) {
+    return (text.toLowerCase().match(/\b[a-z0-9]+\b/g) || []);
+  }
+
+  function getTermFreq(text) {
+    const words = getWords(text);
+    const freq = {};
+    words.forEach(w => freq[w] = (freq[w] || 0) + 1);
+    return freq;
+  }
+
+  function calculateCosineSimilarity(text1, text2) {
+    if (!text1 || !text2) return 0;
+    const tf1 = getTermFreq(text1);
+    const tf2 = getTermFreq(text2);
+    const allWords = new Set([...Object.keys(tf1), ...Object.keys(tf2)]);
+    let dot = 0, mag1 = 0, mag2 = 0;
+    allWords.forEach(w => {
+      const v1 = tf1[w] || 0, v2 = tf2[w] || 0;
+      dot += v1 * v2;
+      mag1 += v1 * v1;
+      mag2 += v2 * v2;
+    });
+    if (mag1 === 0 || mag2 === 0) return 0;
+    return (dot / (Math.sqrt(mag1) * Math.sqrt(mag2)));
+  }
+
+  function calculateJaccardSimilarity(text1, text2) {
+    const set1 = new Set(getWords(text1));
+    const set2 = new Set(getWords(text2));
+    if (set1.size === 0 || set2.size === 0) return 0;
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+    return intersection.size / union.size;
+  }
+
+  // PERFORMANCE FIX: Cap LCS calculation at 2000 chars to prevent browser lockup
+  function calculateLCSSimilarity(text1, text2) {
+    const limit = 2000;
+    const s1 = text1.replace(/\s+/g, ' ').trim().substring(0, limit);
+    const s2 = text2.replace(/\s+/g, ' ').trim().substring(0, limit);
+    if (!s1 || !s2) return 0;
     
-    if (!text1 && !text2) {
-      resultsContent.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Enter text in both panels to see comparison results</div>';
-      return;
+    const m = s1.length, n = s2.length;
+    const dp = Array(2).fill(null).map(() => Array(n + 1).fill(0));
+    
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i % 2][j] = s1[i - 1] === s2[j - 1]
+          ? dp[(i - 1) % 2][j - 1] + 1
+          : Math.max(dp[(i - 1) % 2][j], dp[i % 2][j - 1]);
+      }
+    }
+    const lcs = dp[m % 2][n];
+    return (2 * lcs) / (m + n);
+  }
+
+  function calculateSimilarity(text1, text2) {
+    const cosine = calculateCosineSimilarity(text1, text2);
+    const jaccard = calculateJaccardSimilarity(text1, text2);
+    const lcs = calculateLCSSimilarity(text1, text2);
+    // Weighted ensemble: cosine good for topic, jaccard for vocabulary overlap, lcs for exact duplication
+    const score = (cosine * 0.5) + (jaccard * 0.3) + (lcs * 0.2);
+    return Math.min(100, Math.round(score * 100));
+  }
+
+  // ACCURACY FIX: Better regex for English syllable counting
+  function countSyllables(word) {
+    word = word.toLowerCase().replace(/[^a-z]/g, '');
+    if (word.length <= 3) return 1;
+    // Handle silent 'e' and 'es' / 'ed', but keep 'le' (like table, apple)
+    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+    word = word.replace(/^y/, '');
+    const m = word.match(/[aeiouy]{1,2}/g);
+    return m ? m.length : 1;
+  }
+
+  function calculateReadability(text) {
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const words = text.match(/\b[a-zA-Z]{2,}\b/g) || [];
+    if (sentences.length === 0 || words.length === 0) return { flesch: 0, kincaid: 0, smog: 0 };
+
+    const totalSyllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
+    const avgWordsPerSentence = words.length / sentences.length;
+    const avgSyllablesPerWord = totalSyllables / words.length;
+
+    const flesch = Math.max(0, Math.min(100, Math.round(206.835 - (1.015 * avgWordsPerSentence) - (84.6 * avgSyllablesPerWord))));
+    const kincaid = Math.max(0, Math.round((0.39 * avgWordsPerSentence) + (11.8 * avgSyllablesPerWord) - 15.59));
+    const smog = Math.max(0, Math.round(1.043 * Math.sqrt(words.filter(w => countSyllables(w) > 2).length * (30 / sentences.length)) + 3.1291));
+
+    return { flesch, kincaid, smog };
+  }
+
+  function getReadabilityLevel(score) {
+    if (score >= 90) return 'Very Easy';
+    if (score >= 80) return 'Easy';
+    if (score >= 70) return 'Fairly Easy';
+    if (score >= 60) return 'Standard';
+    if (score >= 50) return 'Fairly Difficult';
+    if (score >= 30) return 'Difficult';
+    return 'Very Difficult';
+  }
+
+  function getSEOMetrics(text) {
+    const words = getWords(text);
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+    const headings = (text.match(/^#{1,6}\s+/gm) || []).length + (text.match(/\[H[1-6]\]/g) || []).length;
+
+    return {
+      charCount: text.length,
+      wordCount: words.length,
+      sentenceCount: sentences.length,
+      paragraphCount: paragraphs.length,
+      headingCount: headings,
+      avgWordLength: words.length ? (words.reduce((a, b) => a + b.length, 0) / words.length).toFixed(1) : 0,
+      avgSentenceLength: sentences.length ? (words.length / sentences.length).toFixed(1) : 0,
+      uniqueWords: new Set(words).size,
+      readingTime: Math.max(1, Math.ceil(words.length / 200))
+    };
+  }
+
+  function calculateKeywordDensity(text, topN = 10) {
+    const words = getWords(text);
+    if (!words.length) return [];
+    const freq = {};
+    words.forEach(w => { if (!STOP_WORDS.has(w) && w.length > 2) freq[w] = (freq[w] || 0) + 1; });
+    return Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, topN)
+      .map(([word, count]) => ({ word, count, density: ((count / words.length) * 100).toFixed(2) }));
+  }
+
+  function findKeywordGaps(text1, text2, topN = 12) {
+    const density1 = calculateKeywordDensity(text1, 50);
+    const density2 = calculateKeywordDensity(text2, 50);
+    const map1 = Object.fromEntries(density1.map(d => [d.word, d.count]));
+    const map2 = Object.fromEntries(density2.map(d => [d.word, d.count]));
+
+    const missingIn2 = density1.filter(d => !map2[d.word]).slice(0, topN).map(d => ({ word: d.word, count: d.count }));
+    const missingIn1 = density2.filter(d => !map1[d.word]).slice(0, topN).map(d => ({ word: d.word, count: d.count }));
+
+    const competitive = density1
+      .filter(d => map2[d.word])
+      .map(d => {
+        const other = map2[d.word];
+        const diff = d.count - other;
+        return { word: d.word, left: d.count, right: other, diff };
+      })
+      .filter(d => Math.abs(d.diff) >= 2)
+      .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+      .slice(0, topN);
+
+    return { missingInText1: missingIn1, missingInText2: missingIn2, competitive };
+  }
+
+  // PERFORMANCE FIX: Chunked Diff algorithm to prevent browser freezing on large texts
+  function generateDiff(text1, text2) {
+    // Preserve line breaks by replacing them with a special token during split
+    const t1 = text1.replace(/\n/g, ' ↵ ');
+    const t2 = text2.replace(/\n/g, ' ↵ ');
+    
+    // Limit diffing array to 1000 words to prevent memory heap crash (O(N^2))
+    const limit = 1000; 
+    const words1 = t1.split(/(\s+|[.,;!?])/g).filter(w => w.length > 0).slice(0, limit);
+    const words2 = t2.split(/(\s+|[.,;!?])/g).filter(w => w.length > 0).slice(0, limit);
+
+    const m = words1.length, n = words2.length;
+    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+    
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] = words1[i - 1] === words2[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+      }
+    }
+
+    let html1 = '', html2 = '';
+    let p1 = 0, p2 = 0;
+    
+    const renderToken = (word, isError, isSuccess) => {
+      if (word === '↵') return '<br>';
+      if (isError) return `<mark style="background:${GDI.ThemeEngine.token('colors.errorLight')};color:${GDI.ThemeEngine.token('colors.error')};padding:1px 2px;border-radius:2px;">${escapeHtml(word)}</mark>`;
+      if (isSuccess) return `<mark style="background:${GDI.ThemeEngine.token('colors.successLight')};color:${GDI.ThemeEngine.token('colors.success')};padding:1px 2px;border-radius:2px;">${escapeHtml(word)}</mark>`;
+      return escapeHtml(word);
+    };
+
+    while (p1 < m || p2 < n) {
+      if (p1 < m && p2 < n && words1[p1] === words2[p2]) {
+        html1 += renderToken(words1[p1], false, false);
+        html2 += renderToken(words2[p2], false, false);
+        p1++; p2++;
+      } else if (p1 < m && (p2 >= n || dp[p1 + 1]?.[p2] >= dp[p1]?.[p2 + 1])) {
+        html1 += renderToken(words1[p1], true, false);
+        p1++;
+      } else if (p2 < n) {
+        html2 += renderToken(words2[p2], false, true);
+        p2++;
+      }
     }
     
-    const similarity = calculateSimilarity(text1, text2);
-    const readability1 = calculateReadabilityScore(text1);
-    const readability2 = calculateReadabilityScore(text2);
-    const keywordGaps = findKeywordGaps(text1, text2);
-    
-    // Extract common keywords
-    const words1 = text1.toLowerCase().match(/\b\w+\b/g) || [];
-    const words2 = text2.toLowerCase().match(/\b\w+\b/g) || [];
-    const freq1 = {};
-    const freq2 = {};
-    
-    words1.forEach(w => freq1[w] = (freq1[w] || 0) + 1);
-    words2.forEach(w => freq2[w] = (freq2[w] || 0) + 1);
-    
-    const commonKeywords = Object.keys(freq1)
-      .filter(k => freq2[k])
-      .sort((a,b) => (freq2[b] + freq1[b]) - (freq2[a] + freq1[a]))
-      .slice(0, 15);
-    
-    // Update similarity score in header
-    const similaritySpan = document.getElementById('similarityScore');
-    if (similaritySpan) {
-      similaritySpan.textContent = `${Math.round(similarity)}% Similar`;
-      similaritySpan.style.backgroundColor = similarity > 70 ? '#4CAF50' : similarity > 40 ? '#FF9800' : '#f44336';
-    }
-    
-    // Build results HTML
-    resultsContent.innerHTML = `
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
-        <!-- Similarity Card -->
-        <div style="background: white; padding: 16px; border-radius: 8px; border-left: 4px solid #667eea;">
-          <div style="font-size: 12px; color: #666; margin-bottom: 8px;">📊 CONTENT SIMILARITY</div>
-          <div style="font-size: 32px; font-weight: bold; color: ${similarity > 70 ? '#4CAF50' : similarity > 40 ? '#FF9800' : '#f44336'};">${Math.round(similarity)}%</div>
-          <div style="font-size: 12px; color: #999; margin-top: 8px;">
-            ${similarity > 80 ? 'Very similar content' : similarity > 50 ? 'Moderately similar' : 'Significant differences'}
-          </div>
+    const warning = (text1.split(/\s+/).length > limit || text2.split(/\s+/).length > limit) 
+      ? `<div style="background:${GDI.ThemeEngine.token('colors.warningLight')}; color:#92400E; padding:8px; text-align:center; font-size:11px; margin-bottom:8px; border-radius:4px;">⚠️ Diff view truncated to first 1000 words for performance.</div>` 
+      : '';
+
+    return { left: warning + html1, right: warning + html2 };
+  }
+
+  function analyzeStructure(text) {
+    const lines = text.split('\n');
+    const headings = [];
+    const paragraphs = [];
+    let currentPara = [];
+
+    lines.forEach((line, idx) => {
+      const hMatch = line.match(/^(#{1,6})\s+(.+)/) || line.match(/^\[(H[1-6])\]\s*(.+)/);
+      if (hMatch) {
+        if (currentPara.length) { paragraphs.push(currentPara.join('\n')); currentPara = []; }
+        headings.push({ level: hMatch[1].replace('#', '').length || parseInt(hMatch[1][1]), text: hMatch[2].trim(), line: idx + 1 });
+      } else if (line.trim()) {
+        currentPara.push(line);
+      } else if (currentPara.length) {
+        paragraphs.push(currentPara.join('\n')); currentPara = [];
+      }
+    });
+    if (currentPara.length) paragraphs.push(currentPara.join('\n'));
+
+    const links = [...text.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(m => ({ text: m[1], url: m[2] }));
+    const plainLinks = [...text.matchAll(/(https?:\/\/[^\s]+)/g)].map(m => m[1]);
+    const lists = text.split('\n').filter(l => /^\s*[-*+]\s+/.test(l)).length;
+    const boldCount = (text.match(/\*\*[^*]+\*\*/g) || []).length + (text.match(/__[^_]+__/g) || []).length;
+
+    return { headings, paragraphs, links, plainLinks, lists, boldCount };
+  }
+
+  function renderGauge(label, value, max = 100, color = 'primary') {
+    const pct = Math.min(100, Math.max(0, (value / max) * 100));
+    return `
+      <div style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+          <span style="color:${GDI.ThemeEngine.token('colors.textSecondary')}">${label}</span>
+          <span style="font-weight:700;color:${GDI.ThemeEngine.token(`colors.${color}`)}">${value}</span>
         </div>
-        
-        <!-- Readability Card -->
-        <div style="background: white; padding: 16px; border-radius: 8px; border-left: 4px solid #4CAF50;">
-          <div style="font-size: 12px; color: #666; margin-bottom: 8px;">📖 READABILITY SCORE</div>
-          <div style="display: flex; justify-content: space-between; align-items: baseline;">
-            <div>
-              <span style="font-size: 24px; font-weight: bold;">${Math.round(readability1)}</span>
-              <span style="font-size: 12px; color: #999;"> / ${Math.round(readability2)}</span>
-            </div>
-            <div style="font-size: 12px; color: #666;">Left | Right</div>
-          </div>
-          <div style="font-size: 11px; color: #666; margin-top: 8px;">
-            Left: ${getReadabilityLevel(readability1)}<br>
-            Right: ${getReadabilityLevel(readability2)}
-          </div>
+        <div style="height:6px;background:${GDI.ThemeEngine.token('colors.border')};border-radius:3px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:${GDI.ThemeEngine.token(`colors.${color}`)};transition:width 0.3s ease;"></div>
         </div>
-        
-        <!-- Length Comparison -->
-        <div style="background: white; padding: 16px; border-radius: 8px; border-left: 4px solid #FF9800;">
-          <div style="font-size: 12px; color: #666; margin-bottom: 8px;">📏 CONTENT LENGTH</div>
-          <div style="display: flex; gap: 16px; justify-content: space-between;">
-            <div>
-              <div style="font-size: 20px; font-weight: bold;">${text1.split(/\s+/).filter(w => w).length}</div>
-              <div style="font-size: 10px; color: #999;">Left Words</div>
-            </div>
-            <div>
-              <div style="font-size: 20px; font-weight: bold;">${text2.split(/\s+/).filter(w => w).length}</div>
-              <div style="font-size: 10px; color: #999;">Right Words</div>
-            </div>
-            <div>
-              <div style="font-size: 20px; font-weight: bold;">${Math.abs(text1.length - text2.length)}</div>
-              <div style="font-size: 10px; color: #999;">Difference</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Keyword Gaps -->
-      <div style="background: white; padding: 16px; border-radius: 8px; margin-top: 16px;">
-        <div style="font-size: 12px; color: #666; margin-bottom: 12px;">🔑 KEYWORD GAPS ANALYSIS</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-          <div>
-            <div style="font-weight: 600; margin-bottom: 8px; color: #667eea;">Missing in Right Text:</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-              ${keywordGaps.missingInText2.map(k => `<span style="background: #ffebee; color: #c62828; padding: 4px 8px; border-radius: 4px; font-size: 11px;">${k}</span>`).join('') || '<span style="color: #999;">No significant gaps</span>'}
-            </div>
-          </div>
-          <div>
-            <div style="font-weight: 600; margin-bottom: 8px; color: #4CAF50;">Missing in Left Text:</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-              ${keywordGaps.missingInText1.map(k => `<span style="background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 4px; font-size: 11px;">${k}</span>`).join('') || '<span style="color: #999;">No significant gaps</span>'}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Common Keywords -->
-      <div style="background: white; padding: 16px; border-radius: 8px; margin-top: 16px;">
-        <div style="font-size: 12px; color: #666; margin-bottom: 12px;">⭐ TOP COMMON KEYWORDS</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-          ${commonKeywords.map(k => `<span style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">${k}</span>`).join('') || '<span style="color: #999;">No common keywords found</span>'}
-        </div>
-      </div>
-      
-      <!-- SEO Recommendations -->
-      <div style="background: #fff3e0; padding: 16px; border-radius: 8px; margin-top: 16px; border-left: 4px solid #FF9800;">
-        <div style="font-weight: 600; margin-bottom: 12px; color: #e65100;">💡 SEO RECOMMENDATIONS</div>
-        <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6;">
-          ${similarity > 80 ? '<li>⚠️ Content is very similar - consider adding more unique value to avoid duplicate content issues</li>' : ''}
-          ${similarity < 40 ? '<li>✅ Good content differentiation - maintain unique value proposition</li>' : ''}
-          ${text1.split(/\s+/).length < 300 ? '<li>📝 Consider expanding content length for better SEO performance (target 300+ words)</li>' : ''}
-          ${readability1 < 50 ? '<li>📚 Left text readability is low - simplify sentences for better user engagement</li>' : ''}
-          ${readability2 < 50 ? '<li>📚 Right text readability is low - simplify sentences for better user engagement</li>' : ''}
-          ${keywordGaps.missingInText2.length > 0 ? '<li>🔑 Right text missing important keywords from left - consider incorporating them</li>' : ''}
-          ${keywordGaps.missingInText1.length > 0 ? '<li>🔑 Left text missing important keywords from right - consider incorporating them</li>' : ''}
-        </ul>
       </div>
     `;
   }
 
-  // Event listeners for panels
-  function setupPanelListeners(panelId) {
-    const loadBtn = document.getElementById(`${panelId}-load`);
-    const clearBtn = document.getElementById(`${panelId}-clear`);
-    const copyBtn = document.getElementById(`${panelId}-copy`);
-    const sourceSelect = document.getElementById(`${panelId}-source`);
-    const textarea = document.getElementById(`${panelId}-textarea`);
-    
-    if (loadBtn) {
-      loadBtn.addEventListener('click', () => {
-        loadContent(panelId, sourceSelect.value);
-      });
-    }
-    
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        if (textarea) {
-          textarea.value = '';
-          updateStats(panelId, '');
-          performComparison();
-        }
-      });
-    }
-    
-    if (copyBtn) {
-      copyBtn.addEventListener('click', () => {
-        if (textarea && textarea.value) {
-          copyToClipboard(textarea.value).then(() => {
-            showNotification('Text copied to clipboard!', 'success');
-          });
-        }
-      });
-    }
-    
-    if (textarea) {
-      textarea.addEventListener('input', () => {
-        updateStats(panelId, textarea.value);
-        performComparison();
-      });
-    }
+  function updateStats(panelId, text) {
+    const metrics = getSEOMetrics(text);
+    const statsDiv = content.querySelector(`#${panelId}-stats`);
+    if (!statsDiv) return;
+    statsDiv.innerHTML = `
+      <span title="Characters">📊 ${metrics.charCount.toLocaleString()}</span>
+      <span title="Words">📝 ${metrics.wordCount.toLocaleString()}</span>
+      <span title="Sentences">📏 ${metrics.sentenceCount.toLocaleString()}</span>
+      <span title="Paragraphs">¶ ${metrics.paragraphCount}</span>
+      <span title="Unique Words">🔤 ${metrics.uniqueWords.toLocaleString()}</span>
+      <span title="Reading Time">📖 ${metrics.readingTime} min</span>
+    `;
   }
-  
-  setupPanelListeners('left');
-  setupPanelListeners('right');
-  
-  const refreshBtn = document.getElementById('refreshComparison');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', performComparison);
-  }
-  
-  const closeBtn = document.getElementById('closeCompareBtn');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      document.body.removeChild(overlay);
-    });
-  }
-  
-  // Initial update
-  performComparison();
-  
-  // Handle overlay click to close
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) {
-      document.body.removeChild(overlay);
-    }
-  });
-}
 
+  // ─── RENDERERS ───
+  function renderOverview(data) {
+    const simColor = data.similarity > 70 ? 'success' : data.similarity > 40 ? 'warning' : 'error';
+    const r1 = data.readability1, r2 = data.readability2;
+
+    return `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
+        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:16px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};border-left:4px solid ${GDI.ThemeEngine.token(`colors.${simColor}`)};">
+          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:8px;">📊 Similarity Score</div>
+          <div style="font-size:32px;font-weight:800;color:${GDI.ThemeEngine.token(`colors.${simColor}`)}">${data.similarity}%</div>
+          <div style="font-size:11px;color:${GDI.ThemeEngine.token('colors.textSecondary')};margin-top:4px;">
+            Cosine: ${Math.round(data.details.cosine * 100)}% · Jaccard: ${Math.round(data.details.jaccard * 100)}% · LCS: ${Math.round(data.details.lcs * 100)}%
+          </div>
+          ${renderGauge('Duplicate Risk', data.similarity, 100, simColor)}
+        </div>
+
+        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:16px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};border-left:4px solid ${GDI.ThemeEngine.token('colors.info')};">
+          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:8px;">📖 Readability</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+              <div style="font-size:10px;color:${GDI.ThemeEngine.token('colors.textMuted')};">LEFT</div>
+              ${renderGauge('Flesch', r1.flesch, 100, 'info')}
+              <div style="font-size:10px;color:${GDI.ThemeEngine.token('colors.textSecondary')}">Grade ${r1.kincaid} · ${getReadabilityLevel(r1.flesch)}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:${GDI.ThemeEngine.token('colors.textMuted')};">RIGHT</div>
+              ${renderGauge('Flesch', r2.flesch, 100, 'info')}
+              <div style="font-size:10px;color:${GDI.ThemeEngine.token('colors.textSecondary')}">Grade ${r2.kincaid} · ${getReadabilityLevel(r2.flesch)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:16px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};border-left:4px solid ${GDI.ThemeEngine.token('colors.primary')};">
+          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:8px;">📐 Content Metrics</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
+            <div><span style="color:${GDI.ThemeEngine.token('colors.textMuted')}">Words:</span> <strong>${data.metrics1.wordCount.toLocaleString()}</strong> vs <strong>${data.metrics2.wordCount.toLocaleString()}</strong></div>
+            <div><span style="color:${GDI.ThemeEngine.token('colors.textMuted')}">Sentences:</span> <strong>${data.metrics1.sentenceCount}</strong> vs <strong>${data.metrics2.sentenceCount}</strong></div>
+            <div><span style="color:${GDI.ThemeEngine.token('colors.textMuted')}">Paragraphs:</span> <strong>${data.metrics1.paragraphCount}</strong> vs <strong>${data.metrics2.paragraphCount}</strong></div>
+            <div><span style="color:${GDI.ThemeEngine.token('colors.textMuted')}">Avg Words/Sent:</span> <strong>${data.metrics1.avgSentenceLength}</strong> vs <strong>${data.metrics2.avgSentenceLength}</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;background:${GDI.ThemeEngine.token('colors.surface')};padding:16px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
+        <div style="font-weight:700;font-size:11px;text-transform:uppercase;color:${GDI.ThemeEngine.token('colors.textMuted')};margin-bottom:12px;">🔑 Keyword Gaps</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:240px;">
+            <div style="font-weight:600;color:${GDI.ThemeEngine.token('colors.error')};font-size:12px;margin-bottom:6px;">Missing in Right (${data.gaps.missingInText2.length})</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              ${data.gaps.missingInText2.map(k => `<span style="background:${GDI.ThemeEngine.token('colors.errorLight')};color:${GDI.ThemeEngine.token('colors.error')};padding:4px 8px;border-radius:4px;font-size:11px;font-family:${GDI.DESIGN_TOKENS.typography.fontMono}" title="Frequency: ${k.count}">${escapeHtml(k.word)} <small>×${k.count}</small></span>`).join('') || '<span style="color:#999;font-size:12px;">None</span>'}
+            </div>
+          </div>
+          <div style="flex:1;min-width:240px;">
+            <div style="font-weight:600;color:${GDI.ThemeEngine.token('colors.success')};font-size:12px;margin-bottom:6px;">Missing in Left (${data.gaps.missingInText1.length})</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              ${data.gaps.missingInText1.map(k => `<span style="background:${GDI.ThemeEngine.token('colors.successLight')};color:${GDI.ThemeEngine.token('colors.success')};padding:4px 8px;border-radius:4px;font-size:11px;font-family:${GDI.DESIGN_TOKENS.typography.fontMono}" title="Frequency: ${k.count}">${escapeHtml(k.word)} <small>×${k.count}</small></span>`).join('') || '<span style="color:#999;font-size:12px;">None</span>'}
+            </div>
+          </div>
+        </div>
+        ${data.gaps.competitive.length ? `
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid ${GDI.ThemeEngine.token('colors.border')};">
+          <div style="font-weight:600;color:${GDI.ThemeEngine.token('colors.warning')};font-size:12px;margin-bottom:6px;">⚡ Competitive Gaps (frequency diff ≥ 2)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            ${data.gaps.competitive.map(k => {
+              const color = k.diff > 0 ? GDI.ThemeEngine.token('colors.primary') : GDI.ThemeEngine.token('colors.textSecondary');
+              return `<span style="background:${GDI.ThemeEngine.token('colors.surfaceSecondary')};color:${color};padding:4px 8px;border-radius:4px;font-size:11px;font-family:${GDI.DESIGN_TOKENS.typography.fontMono};border:1px solid ${GDI.ThemeEngine.token('colors.border')}">${escapeHtml(k.word)} L${k.left}:R${k.right}</span>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
+      </div>
+
+      <div style="margin-top:16px;background:${GDI.ThemeEngine.token('colors.surface')};padding:16px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
+        <div style="font-weight:700;font-size:11px;text-transform:uppercase;color:${GDI.ThemeEngine.token('colors.textMuted')};margin-bottom:12px;">⭐ Common Keywords</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${data.commonKeywords.map(k => `<span style="background:${GDI.ThemeEngine.token('colors.infoLight')};color:${GDI.ThemeEngine.token('colors.info')};padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;font-family:${GDI.DESIGN_TOKENS.typography.fontMono}">${escapeHtml(k)}</span>`).join('') || '<span style="color:#999;font-size:12px;">None</span>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderDiff(data) {
+    if (!data.text1 && !data.text2) return '<div style="text-align:center;padding:40px;color:#999;">Enter text in both panels to see diff</div>';
+    const diff = generateDiff(data.text1, data.text2);
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:${GDI.ThemeEngine.token('colors.surface')};border:1px solid ${GDI.ThemeEngine.token('colors.border')};border-radius:${GDI.DESIGN_TOKENS.radii.lg};padding:14px;overflow:auto;max-height:400px;font-family:${GDI.DESIGN_TOKENS.typography.fontMono};font-size:12px;line-height:1.7;" class="gdi-scrollbar">
+          <div style="font-size:10px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:8px;">Original (red = removed)</div>
+          <div style="word-break:break-word;">${diff.left || '<em style="color:#999;">Empty</em>'}</div>
+        </div>
+        <div style="background:${GDI.ThemeEngine.token('colors.surface')};border:1px solid ${GDI.ThemeEngine.token('colors.border')};border-radius:${GDI.DESIGN_TOKENS.radii.lg};padding:14px;overflow:auto;max-height:400px;font-family:${GDI.DESIGN_TOKENS.typography.fontMono};font-size:12px;line-height:1.7;" class="gdi-scrollbar">
+          <div style="font-size:10px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:8px;">Comparison (green = added)</div>
+          <div style="word-break:break-word;">${diff.right || '<em style="color:#999;">Empty</em>'}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderStructure(data) {
+    const s1 = data.structure1, s2 = data.structure2;
+    const renderHeadings = (h) => h.length ? h.map(x => `<div style="padding:2px 0;padding-left:${(x.level-1)*12}px;font-size:12px;color:${GDI.ThemeEngine.token('colors.textPrimary')}"><span style="color:${GDI.ThemeEngine.token('colors.textMuted')};font-size:10px;">H${x.level}</span> ${escapeHtml(x.text.substring(0, 60))}${x.text.length>60?'...':''}</div>`).join('') : '<em style="color:#999;font-size:12px;">No headings found</em>';
+    const renderList = (items, empty) => items.length ? `<ul style="margin:4px 0;padding-left:16px;font-size:12px;">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : `<em style="color:#999;font-size:12px;">${empty}</em>`;
+
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:14px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
+          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:10px;">🏗️ Left Structure</div>
+          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Headings (${s1.headings.length})</strong><div style="margin-top:4px;">${renderHeadings(s1.headings)}</div></div>
+          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Paragraphs:</strong> <span style="font-size:12px;">${s1.paragraphs.length}</span></div>
+          <div style="margin-bottom:10px;"><strong style="font-size:12px;">List Items:</strong> <span style="font-size:12px;">${s1.lists}</span></div>
+          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Bold Emphasis:</strong> <span style="font-size:12px;">${s1.boldCount}</span></div>
+          <div><strong style="font-size:12px;">Links:</strong> ${renderList(s1.links.map(l => `${l.text} → ${l.url}`), 'No markdown links')}</div>
+        </div>
+        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:14px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
+          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:10px;">🏗️ Right Structure</div>
+          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Headings (${s2.headings.length})</strong><div style="margin-top:4px;">${renderHeadings(s2.headings)}</div></div>
+          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Paragraphs:</strong> <span style="font-size:12px;">${s2.paragraphs.length}</span></div>
+          <div style="margin-bottom:10px;"><strong style="font-size:12px;">List Items:</strong> <span style="font-size:12px;">${s2.lists}</span></div>
+          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Bold Emphasis:</strong> <span style="font-size:12px;">${s2.boldCount}</span></div>
+          <div><strong style="font-size:12px;">Links:</strong> ${renderList(s2.links.map(l => `${l.text} → ${l.url}`), 'No markdown links')}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderKeywords(data) {
+    const renderDensity = (list) => list.length ? `
+      <table style="width:100%;font-size:12px;border-collapse:collapse;">
+        <tr style="color:${GDI.ThemeEngine.token('colors.textMuted')};font-size:10px;text-align:left;">
+          <th style="padding:4px 0;">Keyword</th><th style="padding:4px 0;">Count</th><th style="padding:4px 0;">Density</th>
+        </tr>
+        ${list.map(k => `<tr style="border-top:1px solid ${GDI.ThemeEngine.token('colors.border')}">
+          <td style="padding:6px 0;font-family:${GDI.DESIGN_TOKENS.typography.fontMono};">${escapeHtml(k.word)}</td>
+          <td style="padding:6px 0;">${k.count}</td>
+          <td style="padding:6px 0;">${k.density}%</td>
+        </tr>`).join('')}
+      </table>
+    ` : '<em style="color:#999;font-size:12px;">No significant keywords found</em>';
+
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:14px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
+          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:10px;">🔑 Left Keyword Density</div>
+          ${renderDensity(data.density1)}
+        </div>
+        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:14px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
+          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:10px;">🔑 Right Keyword Density</div>
+          ${renderDensity(data.density2)}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderResults() {
+    if (!lastResults) return;
+    switch (activeTab) {
+      case 'diff': resultsContent.innerHTML = renderDiff(lastResults); break;
+      case 'structure': resultsContent.innerHTML = renderStructure(lastResults); break;
+      case 'keywords': resultsContent.innerHTML = renderKeywords(lastResults); break;
+      case 'overview': default: resultsContent.innerHTML = renderOverview(lastResults); break;
+    }
+  }
+
+  // ─── EXPORT ───
+  function exportResults(format) {
+    if (!lastResults) { GDI.showNotification('No analysis to export', 'warning'); return; }
+    const timestamp = new Date().toISOString();
+    const payload = { ...lastResults, exportedAt: timestamp };
+
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `seo-compare-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
+      GDI.showNotification('Exported JSON', 'success');
+    } else {
+      const rows = [
+        ['Metric', 'Left', 'Right'],
+        ['Words', lastResults.metrics1.wordCount, lastResults.metrics2.wordCount],
+        ['Sentences', lastResults.metrics1.sentenceCount, lastResults.metrics2.sentenceCount],
+        ['Paragraphs', lastResults.metrics1.paragraphCount, lastResults.metrics2.paragraphCount],
+        ['Flesch Score', lastResults.readability1.flesch, lastResults.readability2.flesch],
+        ['Kincaid Grade', lastResults.readability1.kincaid, lastResults.readability2.kincaid],
+        ['Similarity %', lastResults.similarity, '']
+      ];
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `seo-compare-${Date.now()}.csv`; a.click(); URL.revokeObjectURL(url);
+      GDI.showNotification('Exported CSV', 'success');
+    }
+  }
+
+  // ─── MAIN COMPARISON ───
+  function performComparison() {
+    const text1 = content.querySelector('#left-textarea')?.value || '';
+    const text2 = content.querySelector('#right-textarea')?.value || '';
+
+    updateStats('left', text1);
+    updateStats('right', text2);
+
+    if (!text1 && !text2) {
+      resultsContent.innerHTML = `<div style="text-align:center;padding:40px;color:${GDI.ThemeEngine.token('colors.textMuted')};">Enter text in both panels to see comparison results</div>`;
+      scoreBadge.textContent = '0% Similar';
+      scoreBadge.style.background = GDI.ThemeEngine.token('colors.infoLight');
+      scoreBadge.style.color = GDI.ThemeEngine.token('colors.info');
+      lastResults = null;
+      return;
+    }
+
+    const cosine = calculateCosineSimilarity(text1, text2);
+    const jaccard = calculateJaccardSimilarity(text1, text2);
+    const lcs = calculateLCSSimilarity(text1, text2);
+    const similarity = Math.min(100, Math.round((cosine * 0.5 + jaccard * 0.3 + lcs * 0.2) * 100));
+
+    const readability1 = calculateReadability(text1);
+    const readability2 = calculateReadability(text2);
+    const metrics1 = getSEOMetrics(text1);
+    const metrics2 = getSEOMetrics(text2);
+    const gaps = findKeywordGaps(text1, text2);
+    const density1 = calculateKeywordDensity(text1);
+    const density2 = calculateKeywordDensity(text2);
+    const structure1 = analyzeStructure(text1);
+    const structure2 = analyzeStructure(text2);
+
+    const words1 = getWords(text1);
+    const words2 = getWords(text2);
+    const freq1 = getTermFreq(text1);
+    const freq2 = getTermFreq(text2);
+    const commonKeywords = Object.keys(freq1).filter(k => freq2[k]).sort((a, b) => (freq2[b] + freq1[b]) - (freq2[a] + freq1[a])).slice(0, 15);
+
+    lastResults = {
+      text1, text2, similarity, details: { cosine, jaccard, lcs },
+      readability1, readability2, metrics1, metrics2, gaps,
+      density1, density2, structure1, structure2, commonKeywords
+    };
+
+    const simColor = similarity > 70 ? 'success' : similarity > 40 ? 'warning' : 'error';
+    scoreBadge.style.background = GDI.ThemeEngine.token(`colors.${simColor}Light`);
+    scoreBadge.style.color = GDI.ThemeEngine.token(`colors.${simColor}`);
+    scoreBadge.textContent = `${similarity}% Similar`;
+
+    renderResults();
+  }
+}
 // ==================== ADVANCED SEO IMAGE TOOLKIT ====================
 
 function advancedImageToolkit() {
-  // Create modal overlay
-  const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.95);
-    backdrop-filter: blur(8px);
-    z-index: 100000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  `;
+  const contentContainer = GDI.createElement('div', {
+    styles: { display: 'flex', flexDirection: 'column', height: '80vh', overflow: 'hidden' }
+  });
 
-  const modal = document.createElement('div');
-  modal.style.cssText = `
-    background: #fff;
-    border-radius: 16px;
-    width: 95%;
-    max-width: 1400px;
-    height: 90vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-  `;
-
-  // Header
-  const header = document.createElement('div');
-  header.style.cssText = `
-    padding: 20px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  `;
-  header.innerHTML = `
-    <div>
-      <h2 style="margin: 0; font-size: 20px; font-weight: 600;">🖼️ Advanced SEO Image Toolkit</h2>
-      <p style="margin: 4px 0 0; opacity: 0.9; font-size: 12px;">Resize, Convert, Optimize & Find Free Images for SEO</p>
-    </div>
-    <button id="closeImageToolkit" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 20px;">×</button>
-  `;
-
-  // Tabs
-  const tabsContainer = document.createElement('div');
-  tabsContainer.style.cssText = `
-    display: flex;
-    background: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0;
-    padding: 0 24px;
-    gap: 8px;
-  `;
+  // ─── TABS NAVIGATION ───
+  const tabsContainer = GDI.createElement('div', {
+    styles: {
+      display: 'flex', background: GDI.ThemeEngine.token('colors.surfaceSecondary'),
+      borderBottom: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+      padding: '0 24px', gap: '8px', flexShrink: '0', overflowX: 'auto'
+    },
+    attrs: { className: 'gdi-scrollbar' }
+  });
   
   const tabs = [
-    { id: 'resizer', name: '📐 Image Resizer', icon: '📐' },
-    { id: 'converter', name: '🔄 Image Converter', icon: '🔄' },
-    { id: 'sources', name: '📷 Free Image Sources', icon: '📷' },
-    { id: 'optimizer', name: '⚡ Image Optimizer', icon: '⚡' },
-    { id: 'analyzer', name: '🔍 SEO Analyzer', icon: '🔍' }
+    { id: 'resizer', name: '📐 Image Resizer' },
+    { id: 'converter', name: '🔄 Image Converter' },
+    { id: 'sources', name: '📷 Free Image Sources' },
+    { id: 'optimizer', name: '⚡ Image Optimizer' },
+    { id: 'analyzer', name: '🔍 SEO Analyzer' }
   ];
   
   const tabButtons = [];
-  const tabContents = {};
+  const tabPanels = {};
   
+  // Main area for tab content
+  const panelsContainer = GDI.createElement('div', {
+    styles: { flex: '1', overflowY: 'auto', padding: '24px', background: GDI.ThemeEngine.token('colors.surface') },
+    attrs: { className: 'gdi-scrollbar' }
+  });
+
   tabs.forEach((tab, index) => {
-    const btn = document.createElement('button');
-    btn.textContent = tab.name;
-    btn.style.cssText = `
-      padding: 12px 20px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      color: #666;
-      border-bottom: 3px solid transparent;
-      transition: all 0.3s;
-    `;
-    if (index === 0) {
-      btn.style.color = '#667eea';
-      btn.style.borderBottomColor = '#667eea';
-    }
-    btn.onclick = () => {
+    const btn = GDI.createElement('button', {
+      styles: {
+        padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer',
+        fontSize: '13px', fontWeight: '600',
+        color: index === 0 ? GDI.ThemeEngine.token('colors.primary') : GDI.ThemeEngine.token('colors.textSecondary'),
+        borderBottom: `3px solid ${index === 0 ? GDI.ThemeEngine.token('colors.primary') : 'transparent'}`,
+        transition: `all ${GDI.DESIGN_TOKENS.transitions.fast}`, whiteSpace: 'nowrap'
+      },
+      text: tab.name
+    });
+    
+    const panel = GDI.createElement('div', {
+      styles: { display: index === 0 ? 'block' : 'none' }
+    });
+    
+    btn.addEventListener('click', () => {
       tabButtons.forEach(b => {
-        b.style.color = '#666';
+        b.style.color = GDI.ThemeEngine.token('colors.textSecondary');
         b.style.borderBottomColor = 'transparent';
       });
-      btn.style.color = '#667eea';
-      btn.style.borderBottomColor = '#667eea';
-      Object.values(tabContents).forEach(content => {
-        content.style.display = 'none';
-      });
-      tabContents[tab.id].style.display = 'block';
-    };
+      btn.style.color = GDI.ThemeEngine.token('colors.primary');
+      btn.style.borderBottomColor = GDI.ThemeEngine.token('colors.primary');
+      
+      Object.values(tabPanels).forEach(p => p.style.display = 'none');
+      panel.style.display = 'block';
+    });
+    
     tabsContainer.appendChild(btn);
+    panelsContainer.appendChild(panel);
     tabButtons.push(btn);
+    tabPanels[tab.id] = panel;
   });
-  
-  // Content container
-  const contentContainer = document.createElement('div');
-  contentContainer.style.cssText = `
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px;
-  `;
-  
+
+  contentContainer.appendChild(tabsContainer);
+  contentContainer.appendChild(panelsContainer);
+
   // ==================== IMAGE RESIZER TAB ====================
-  const resizerTab = document.createElement('div');
-  resizerTab.id = 'resizer-tab';
-  resizerTab.style.cssText = `display: block;`;
-  resizerTab.innerHTML = `
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-      <!-- Upload Section -->
-      <div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
-        <h3 style="margin: 0 0 16px; font-size: 18px;">📤 Upload Image</h3>
-        <div id="dropZone" style="border: 2px dashed #ccc; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s;">
-          <div style="font-size: 48px; margin-bottom: 12px;">📸</div>
-          <div>Drag & drop image here or click to upload</div>
-          <div style="font-size: 12px; color: #999; margin-top: 8px;">Supports: JPG, PNG, WebP, GIF, SVG</div>
-        </div>
-        <input type="file" id="imageUpload" accept="image/*" style="display: none;">
-        <div id="imagePreview" style="margin-top: 20px; display: none;">
-          <img id="previewImg" style="max-width: 100%; border-radius: 8px;">
-        </div>
-      </div>
-      
-      <!-- Resize Controls -->
-      <div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
-        <h3 style="margin: 0 0 16px; font-size: 18px;">📏 Resize Options</h3>
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Preset Sizes:</label>
-          <select id="presetSizes" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
-            <option value="">Custom Size</option>
-            <option value="150x150">Thumbnail (150x150)</option>
-            <option value="300x200">Small (300x200)</option>
-            <option value="600x400">Medium (600x400)</option>
-            <option value="800x600">Large (800x600)</option>
-            <option value="1200x800">Extra Large (1200x800)</option>
-            <option value="1920x1080">Full HD (1920x1080)</option>
-            <option value="social">Social Media (1200x630)</option>
-            <option value="og-image">Open Graph (1200x630)</option>
-            <option value="twitter-card">Twitter Card (800x418)</option>
-          </select>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Width (px):</label>
-            <input type="number" id="resizeWidth" placeholder="Auto" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
-          </div>
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Height (px):</label>
-            <input type="number" id="resizeHeight" placeholder="Auto" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 16px;">
-          <label style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" id="maintainAspect" checked>
-            <span>Maintain aspect ratio</span>
-          </label>
-        </div>
-        
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Quality:</label>
-          <input type="range" id="resizeQuality" min="1" max="100" value="90" style="width: 100%;">
-          <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666;">
-            <span>Low</span>
-            <span id="qualityValue">90%</span>
-            <span>High</span>
-          </div>
-        </div>
-        
-        <button id="resizeImageBtn" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Resize Image</button>
-        <button id="downloadResized" style="width: 100%; margin-top: 12px; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: none;">Download Resized Image</button>
-      </div>
-    </div>
-  `;
+  const resizerPanel = tabPanels['resizer'];
+  resizerPanel.style.display = 'grid';
+  resizerPanel.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+  resizerPanel.style.gap = '24px';
+
+  // Upload Area
+  const resizerUploadArea = GDI.createElement('div', {
+    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
+  });
+  resizerUploadArea.innerHTML = `<h3 style="margin: 0 0 16px; font-size: 15px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">📤 Upload Image</h3>`;
   
-  // ==================== IMAGE CONVERTER TAB ====================
-  const converterTab = document.createElement('div');
-  converterTab.id = 'converter-tab';
-  converterTab.style.cssText = `display: none;`;
-  converterTab.innerHTML = `
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-      <div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
-        <h3 style="margin: 0 0 16px; font-size: 18px;">📤 Upload Image</h3>
-        <div id="converterDropZone" style="border: 2px dashed #ccc; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer;">
-          <div style="font-size: 48px;">🔄</div>
-          <div>Click to upload image for conversion</div>
-        </div>
-        <input type="file" id="converterUpload" accept="image/*" style="display: none;">
-        <div id="converterPreview" style="margin-top: 20px; display: none;">
-          <img id="converterPreviewImg" style="max-width: 100%; border-radius: 8px;">
-        </div>
-      </div>
-      
-      <div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
-        <h3 style="margin: 0 0 16px; font-size: 18px;">🔄 Convert To</h3>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-          <button class="format-btn" data-format="image/jpeg">JPEG</button>
-          <button class="format-btn" data-format="image/png">PNG</button>
-          <button class="format-btn" data-format="image/webp">WebP</button>
-          <button class="format-btn" data-format="image/gif">GIF</button>
-          <button class="format-btn" data-format="image/bmp">BMP</button>
-          <button class="format-btn" data-format="image/tiff">TIFF</button>
-        </div>
-        
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Quality:</label>
-          <input type="range" id="convertQuality" min="1" max="100" value="85" style="width: 100%;">
-          <div id="convertQualityValue" style="text-align: center; font-size: 12px; margin-top: 5px;">85%</div>
-        </div>
-        
-        <button id="convertImageBtn" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" disabled>Convert Image</button>
-        <button id="downloadConverted" style="width: 100%; margin-top: 12px; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: none;">Download Converted Image</button>
-      </div>
-    </div>
-  `;
-  
-  // ==================== FREE IMAGE SOURCES TAB ====================
-  const sourcesTab = document.createElement('div');
-  sourcesTab.id = 'sources-tab';
-  sourcesTab.style.cssText = `display: none;`;
-  
-  const imageSources = [
-    { name: 'Unsplash', url: 'https://unsplash.com', description: 'High-quality free stock photos', category: 'Stock Photos', rating: '⭐⭐⭐⭐⭐' },
-    { name: 'Pexels', url: 'https://pexels.com', description: 'Free stock photos & videos', category: 'Stock Photos', rating: '⭐⭐⭐⭐⭐' },
-    { name: 'Pixabay', url: 'https://pixabay.com', description: 'Free images, illustrations, vectors', category: 'All Types', rating: '⭐⭐⭐⭐⭐' },
-    { name: 'Burst (by Shopify)', url: 'https://burst.shopify.com', description: 'Free stock photos for websites', category: 'E-commerce', rating: '⭐⭐⭐⭐' },
-    { name: 'Kaboompics', url: 'https://kaboompics.com', description: 'Free stock photos with color search', category: 'Stock Photos', rating: '⭐⭐⭐⭐' },
-    { name: 'Stocksnap.io', url: 'https://stocksnap.io', description: 'High-resolution free images', category: 'Stock Photos', rating: '⭐⭐⭐⭐' },
-    { name: 'Reshot', url: 'https://reshot.com', description: 'Free icons & illustrations', category: 'Icons', rating: '⭐⭐⭐⭐' },
-    { name: 'Freepik', url: 'https://freepik.com', description: 'Free vectors & illustrations', category: 'Vectors', rating: '⭐⭐⭐⭐' },
-    { name: 'Flaticon', url: 'https://flaticon.com', description: 'Free icons for websites', category: 'Icons', rating: '⭐⭐⭐⭐' },
-    { name: 'Iconscout', url: 'https://iconscout.com', description: 'Free illustrations & icons', category: 'Icons', rating: '⭐⭐⭐⭐' },
-    { name: 'Canva', url: 'https://canva.com', description: 'Design tool with free images', category: 'Design Tool', rating: '⭐⭐⭐⭐⭐' },
-    { name: 'Remove.bg', url: 'https://remove.bg', description: 'Remove background from images', category: 'Tool', rating: '⭐⭐⭐⭐' }
-  ];
-  
-  sourcesTab.innerHTML = `
-    <div style="margin-bottom: 20px;">
-      <input type="text" id="sourceSearch" placeholder="🔍 Search image sources..." style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
-    </div>
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;" id="sourcesGrid">
-      ${imageSources.map(source => `
-        <div class="source-card" style="background: #f8f9fa; padding: 16px; border-radius: 12px; cursor: pointer; transition: all 0.3s;" data-url="${source.url}">
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-            <h4 style="margin: 0; font-size: 16px; color: #667eea;">${source.name}</h4>
-            <span style="font-size: 12px; color: #999;">${source.rating}</span>
-          </div>
-          <p style="margin: 8px 0; font-size: 13px; color: #666;">${source.description}</p>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-            <span style="background: #e0e0e0; padding: 4px 8px; border-radius: 4px; font-size: 11px;">${source.category}</span>
-            <span style="color: #667eea; font-size: 12px;">Open →</span>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-  
-  // ==================== IMAGE OPTIMIZER TAB ====================
-  const optimizerTab = document.createElement('div');
-  optimizerTab.id = 'optimizer-tab';
-  optimizerTab.style.cssText = `display: none;`;
-  optimizerTab.innerHTML = `
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-      <div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
-        <h3 style="margin: 0 0 16px; font-size: 18px;">📤 Upload Image</h3>
-        <div id="optimizerDropZone" style="border: 2px dashed #ccc; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer;">
-          <div style="font-size: 48px;">⚡</div>
-          <div>Upload image for optimization</div>
-        </div>
-        <input type="file" id="optimizerUpload" accept="image/*" style="display: none;">
-        <div id="optimizerPreview" style="margin-top: 20px; display: none;">
-          <img id="optimizerPreviewImg" style="max-width: 100%; border-radius: 8px;">
-        </div>
-      </div>
-      
-      <div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
-        <h3 style="margin: 0 0 16px; font-size: 18px;">📊 Optimization Results</h3>
-        <div id="optimizationResults" style="margin-bottom: 20px;">
-          <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span>Original Size:</span>
-              <span id="originalSize">-</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span>Optimized Size:</span>
-              <span id="optimizedSize">-</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span>Savings:</span>
-              <span id="savings">-</span>
-            </div>
-            <div style="background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 12px;">
-              <div id="savingsBar" style="height: 100%; background: #4CAF50; width: 0%;"></div>
-            </div>
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Optimization Level:</label>
-          <input type="range" id="optimizationLevel" min="1" max="100" value="80" style="width: 100%;">
-          <div style="display: flex; justify-content: space-between; font-size: 12px;">
-            <span>Less Compression</span>
-            <span id="levelValue">80%</span>
-            <span>More Compression</span>
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 16px;">
-          <label style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" id="convertToWebP" checked>
-            <span>Convert to WebP for better compression</span>
-          </label>
-        </div>
-        
-        <button id="optimizeImageBtn" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" disabled>Optimize Image</button>
-        <button id="downloadOptimized" style="width: 100%; margin-top: 12px; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: none;">Download Optimized Image</button>
-      </div>
-    </div>
-  `;
-  
-  // ==================== SEO ANALYZER TAB ====================
-  const analyzerTab = document.createElement('div');
-  analyzerTab.id = 'analyzer-tab';
-  analyzerTab.style.cssText = `display: none;`;
-  analyzerTab.innerHTML = `
-    <div>
-      <h3 style="margin: 0 0 16px; font-size: 18px;">🔍 Page Image SEO Analysis</h3>
-      <div id="seoAnalysisResults" style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
-        <div style="text-align: center; padding: 40px;">
-          <div style="font-size: 48px;">🔍</div>
-          <p>Click "Analyze Page Images" to check SEO metrics for images on this page</p>
-          <button id="runSeoAnalysis" style="padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Analyze Page Images</button>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  contentContainer.appendChild(resizerTab);
-  contentContainer.appendChild(converterTab);
-  contentContainer.appendChild(sourcesTab);
-  contentContainer.appendChild(optimizerTab);
-  contentContainer.appendChild(analyzerTab);
-  
-  modal.appendChild(header);
-  modal.appendChild(tabsContainer);
-  modal.appendChild(contentContainer);
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-  
-  tabContents.resizer = resizerTab;
-  tabContents.converter = converterTab;
-  tabContents.sources = sourcesTab;
-  tabContents.optimizer = optimizerTab;
-  tabContents.analyzer = analyzerTab;
-  
-  // ==================== IMAGE RESIZER FUNCTIONALITY ====================
-  let currentImageFile = null;
-  let resizedBlob = null;
-  
-  const dropZone = document.getElementById('dropZone');
-  const imageUpload = document.getElementById('imageUpload');
-  const previewImg = document.getElementById('previewImg');
-  const imagePreview = document.getElementById('imagePreview');
-  const resizeWidth = document.getElementById('resizeWidth');
-  const resizeHeight = document.getElementById('resizeHeight');
-  const maintainAspect = document.getElementById('maintainAspect');
-  const resizeQuality = document.getElementById('resizeQuality');
-  const qualityValue = document.getElementById('qualityValue');
-  const presetSizes = document.getElementById('presetSizes');
-  const resizeBtn = document.getElementById('resizeImageBtn');
-  const downloadResized = document.getElementById('downloadResized');
-  
-  let originalWidth = 0, originalHeight = 0;
-  
-  resizeQuality.addEventListener('input', () => {
-    qualityValue.textContent = resizeQuality.value + '%';
+  const resizeDropZone = GDI.createElement('div', {
+    styles: { border: `2px dashed ${GDI.ThemeEngine.token('colors.border')}`, borderRadius: GDI.DESIGN_TOKENS.radii.md, padding: '40px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s' },
+    html: `<div style="font-size: 32px; margin-bottom: 12px;">📸</div><div style="color:${GDI.ThemeEngine.token('colors.textPrimary')}">Drag & drop image or click to upload</div><div style="font-size: 11px; color: ${GDI.ThemeEngine.token('colors.textMuted')}; margin-top: 8px;">Supports: JPG, PNG, WebP</div>`
   });
   
-  dropZone.addEventListener('click', () => imageUpload.click());
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = '#667eea';
-    dropZone.style.background = '#f0f0f0';
-  });
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.style.borderColor = '#ccc';
-    dropZone.style.background = 'transparent';
-  });
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = '#ccc';
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      loadImage(file);
-    }
-  });
+  const resizeFileInput = GDI.createElement('input', { attrs: { type: 'file', accept: 'image/*' }, styles: { display: 'none' } });
+  const resizePreviewWrap = GDI.createElement('div', { styles: { marginTop: '20px', display: 'none', textAlign: 'center' } });
+  const resizePreviewImg = GDI.createElement('img', { styles: { maxWidth: '100%', maxHeight: '300px', borderRadius: GDI.DESIGN_TOKENS.radii.md, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` } });
+  resizePreviewWrap.appendChild(resizePreviewImg);
   
-  imageUpload.addEventListener('change', (e) => {
-    if (e.target.files[0]) loadImage(e.target.files[0]);
+  resizerUploadArea.appendChild(resizeDropZone);
+  resizerUploadArea.appendChild(resizeFileInput);
+  resizerUploadArea.appendChild(resizePreviewWrap);
+
+  // Controls Area
+  const resizerControls = GDI.createElement('div', {
+    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
   });
+  resizerControls.innerHTML = `<h3 style="margin: 0 0 16px; font-size: 15px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">📏 Resize Options</h3>`;
   
-  function loadImage(file) {
-    currentImageFile = file;
+  const presetSelect = GDI.createSelect({
+    label: 'Preset Sizes',
+    options: [
+      { value: 'custom', label: 'Custom Size' },
+      { value: '150x150', label: 'Thumbnail (150x150)' },
+      { value: '600x400', label: 'Medium (600x400)' },
+      { value: '1200x800', label: 'Large (1200x800)' },
+      { value: '1200x630', label: 'Social / Open Graph (1200x630)' },
+      { value: '800x418', label: 'Twitter Card (800x418)' }
+    ],
+    defaultValue: 'custom'
+  });
+
+  const dimsRow = GDI.createElement('div', { styles: { display: 'flex', gap: '12px' } });
+  const widthInput = GDI.createInputField({ label: 'Width (px)', type: 'number', placeholder: 'Auto' });
+  const heightInput = GDI.createInputField({ label: 'Height (px)', type: 'number', placeholder: 'Auto' });
+  widthInput.wrapper.style.flex = '1'; heightInput.wrapper.style.flex = '1';
+  dimsRow.appendChild(widthInput.wrapper); dimsRow.appendChild(heightInput.wrapper);
+
+  const aspectToggle = GDI.createToggle({ label: 'Maintain aspect ratio', checked: true });
+  aspectToggle.wrapper.style.marginBottom = '16px';
+
+  const qWrap = GDI.createElement('div', { styles: { marginBottom: '20px' } });
+  qWrap.innerHTML = `<label style="display:block; font-size:12px; font-weight:600; color:${GDI.ThemeEngine.token('colors.textPrimary')}; margin-bottom:8px;">Quality: <span id="gdi-rz-qval">90%</span></label>`;
+  const qSlider = GDI.createElement('input', { attrs: { type: 'range', min: '1', max: '100', value: '90' }, styles: { width: '100%', cursor: 'pointer' } });
+  qSlider.addEventListener('input', () => qWrap.querySelector('#gdi-rz-qval').textContent = `${qSlider.value}%`);
+  qWrap.appendChild(qSlider);
+
+  const resizeBtn = GDI.createButton('Resize Image', null, { variant: 'primary', disabled: true });
+  const dlResizedBtn = GDI.createButton('Download Resized Image', null, { variant: 'success' });
+  dlResizedBtn.style.display = 'none';
+  dlResizedBtn.style.marginTop = '10px';
+
+  resizerControls.appendChild(presetSelect.wrapper);
+  resizerControls.appendChild(dimsRow);
+  resizerControls.appendChild(aspectToggle.wrapper);
+  resizerControls.appendChild(qWrap);
+  resizerControls.appendChild(resizeBtn);
+  resizerControls.appendChild(dlResizedBtn);
+
+  resizerPanel.appendChild(resizerUploadArea);
+  resizerPanel.appendChild(resizerControls);
+
+  // Resizer Logic
+  let currentFile = null; let resizedBlob = null; let origW = 0; let origH = 0;
+  
+  resizeDropZone.addEventListener('click', () => resizeFileInput.click());
+  resizeFileInput.addEventListener('change', (e) => { if(e.target.files[0]) loadResizeImg(e.target.files[0]); });
+  
+  function loadResizeImg(file) {
+    currentFile = file;
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        originalWidth = img.width;
-        originalHeight = img.height;
-        previewImg.src = e.target.result;
-        imagePreview.style.display = 'block';
-        resizeWidth.value = originalWidth;
-        resizeHeight.value = originalHeight;
+        origW = img.width; origH = img.height;
+        resizePreviewImg.src = e.target.result;
+        resizePreviewWrap.style.display = 'block';
+        widthInput.input.value = origW; heightInput.input.value = origH;
         resizeBtn.disabled = false;
+        resizeBtn.style.opacity = '1';
+        dlResizedBtn.style.display = 'none';
       };
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   }
-  
-  presetSizes.addEventListener('change', () => {
-    const value = presetSizes.value;
-    if (value === 'social' || value === 'og-image') {
-      resizeWidth.value = 1200;
-      resizeHeight.value = 630;
-    } else if (value === 'twitter-card') {
-      resizeWidth.value = 800;
-      resizeHeight.value = 418;
-    } else if (value) {
-      const [w, h] = value.split('x');
-      resizeWidth.value = w;
-      resizeHeight.value = h;
+
+  presetSelect.select.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if(val !== 'custom') {
+      const [w, h] = val.split('x');
+      widthInput.input.value = w; heightInput.input.value = h;
     }
   });
-  
+
   resizeBtn.addEventListener('click', () => {
-    if (!currentImageFile) return;
-    
-    let targetWidth = parseInt(resizeWidth.value);
-    let targetHeight = parseInt(resizeHeight.value);
-    
-    if (isNaN(targetWidth)) targetWidth = originalWidth;
-    if (isNaN(targetHeight)) targetHeight = originalHeight;
-    
-    if (maintainAspect.checked && targetWidth && targetHeight) {
-      const ratio = originalWidth / originalHeight;
-      const targetRatio = targetWidth / targetHeight;
-      if (targetRatio > ratio) {
-        targetWidth = Math.round(targetHeight * ratio);
-      } else {
-        targetHeight = Math.round(targetWidth / ratio);
-      }
+    if(!currentFile) return;
+    let tw = parseInt(widthInput.input.value) || origW;
+    let th = parseInt(heightInput.input.value) || origH;
+
+    if (aspectToggle.getValue()) {
+      const ratio = origW / origH;
+      if ((tw / th) > ratio) tw = Math.round(th * ratio);
+      else th = Math.round(tw / ratio);
+      widthInput.input.value = tw; heightInput.input.value = th;
     }
-    
+
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
+      canvas.width = tw; canvas.height = th;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+      ctx.drawImage(img, 0, 0, tw, th);
       canvas.toBlob((blob) => {
         resizedBlob = blob;
-        downloadResized.style.display = 'block';
-        showNotification(`Image resized to ${targetWidth}x${targetHeight}`, 'success');
-      }, currentImageFile.type, resizeQuality.value / 100);
+        dlResizedBtn.style.display = 'flex';
+        GDI.showNotification(`Image resized to ${tw}x${th}`, 'success');
+      }, currentFile.type, qSlider.value / 100);
     };
-    img.src = previewImg.src;
+    img.src = resizePreviewImg.src;
   });
-  
-  downloadResized.addEventListener('click', () => {
+
+  dlResizedBtn.addEventListener('click', () => {
     if (resizedBlob) {
       const url = URL.createObjectURL(resizedBlob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `resized_${currentImageFile.name}`;
-      a.click();
-      URL.revokeObjectURL(url);
+      a.href = url; a.download = `resized_${currentFile.name}`;
+      a.click(); URL.revokeObjectURL(url);
     }
   });
+
+  // ==================== IMAGE CONVERTER TAB ====================
+  const converterPanel = tabPanels['converter'];
+  converterPanel.style.display = 'none';
+  converterPanel.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+  converterPanel.style.gap = '24px';
+
+  const convUploadArea = GDI.createElement('div', {
+    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
+  });
+  convUploadArea.innerHTML = `<h3 style="margin: 0 0 16px; font-size: 15px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">📤 Upload Image</h3>`;
   
-  // ==================== IMAGE CONVERTER FUNCTIONALITY ====================
-  let converterImageFile = null;
-  let convertedBlob = null;
+  const convDropZone = GDI.createElement('div', {
+    styles: { border: `2px dashed ${GDI.ThemeEngine.token('colors.border')}`, borderRadius: GDI.DESIGN_TOKENS.radii.md, padding: '40px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s' },
+    html: `<div style="font-size: 32px; margin-bottom: 12px;">🔄</div><div style="color:${GDI.ThemeEngine.token('colors.textPrimary')}">Click to upload image for conversion</div>`
+  });
+  const convFileInput = GDI.createElement('input', { attrs: { type: 'file', accept: 'image/*' }, styles: { display: 'none' } });
+  const convPreviewWrap = GDI.createElement('div', { styles: { marginTop: '20px', display: 'none', textAlign: 'center' } });
+  const convPreviewImg = GDI.createElement('img', { styles: { maxWidth: '100%', maxHeight: '300px', borderRadius: GDI.DESIGN_TOKENS.radii.md, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` } });
+  convPreviewWrap.appendChild(convPreviewImg);
+  convUploadArea.appendChild(convDropZone); convUploadArea.appendChild(convFileInput); convUploadArea.appendChild(convPreviewWrap);
+
+  const convControls = GDI.createElement('div', {
+    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
+  });
+  convControls.innerHTML = `<h3 style="margin: 0 0 16px; font-size: 15px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">🔄 Convert To</h3>`;
+
+  const formatsGrid = GDI.createElement('div', { styles: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' } });
+  const formats = ['JPEG', 'PNG', 'WEBP', 'BMP'];
   let selectedFormat = 'image/jpeg';
-  
-  const converterDropZone = document.getElementById('converterDropZone');
-  const converterUpload = document.getElementById('converterUpload');
-  const converterPreviewImg = document.getElementById('converterPreviewImg');
-  const converterPreview = document.getElementById('converterPreview');
-  const convertQuality = document.getElementById('convertQuality');
-  const convertQualityValue = document.getElementById('convertQualityValue');
-  const convertBtn = document.getElementById('convertImageBtn');
-  const downloadConverted = document.getElementById('downloadConverted');
-  
-  convertQuality.addEventListener('input', () => {
-    convertQualityValue.textContent = convertQuality.value + '%';
+  const formatBtns = [];
+
+  formats.forEach((fmt, i) => {
+    const btn = GDI.createButton(fmt, () => {
+      formatBtns.forEach(b => { b.style.background = GDI.ThemeEngine.token('colors.surfaceTertiary'); b.style.color = GDI.ThemeEngine.token('colors.textPrimary'); });
+      btn.style.background = GDI.ThemeEngine.token('colors.primary'); btn.style.color = '#fff';
+      selectedFormat = `image/${fmt.toLowerCase()}`;
+    }, { variant: 'secondary' });
+    if(i === 0) { btn.style.background = GDI.ThemeEngine.token('colors.primary'); btn.style.color = '#fff'; }
+    formatBtns.push(btn);
+    formatsGrid.appendChild(btn);
   });
-  
-  converterDropZone.addEventListener('click', () => converterUpload.click());
-  converterUpload.addEventListener('change', (e) => {
-    if (e.target.files[0]) loadConverterImage(e.target.files[0]);
+
+  const cqWrap = GDI.createElement('div', { styles: { marginBottom: '20px' } });
+  cqWrap.innerHTML = `<label style="display:block; font-size:12px; font-weight:600; color:${GDI.ThemeEngine.token('colors.textPrimary')}; margin-bottom:8px;">Quality: <span id="gdi-cv-qval">85%</span></label>`;
+  const cqSlider = GDI.createElement('input', { attrs: { type: 'range', min: '1', max: '100', value: '85' }, styles: { width: '100%', cursor: 'pointer' } });
+  cqSlider.addEventListener('input', () => cqWrap.querySelector('#gdi-cv-qval').textContent = `${cqSlider.value}%`);
+  cqWrap.appendChild(cqSlider);
+
+  const convertBtn = GDI.createButton('Convert Image', null, { variant: 'primary', disabled: true });
+  const dlConvertedBtn = GDI.createButton('Download Converted Image', null, { variant: 'success' });
+  dlConvertedBtn.style.display = 'none'; dlConvertedBtn.style.marginTop = '10px';
+
+  convControls.appendChild(formatsGrid); convControls.appendChild(cqWrap);
+  convControls.appendChild(convertBtn); convControls.appendChild(dlConvertedBtn);
+
+  converterPanel.appendChild(convUploadArea); converterPanel.appendChild(convControls);
+
+  // Converter Logic
+  let convFile = null; let convertedBlob = null;
+  convDropZone.addEventListener('click', () => convFileInput.click());
+  convFileInput.addEventListener('change', (e) => {
+    if(e.target.files[0]) {
+      convFile = e.target.files[0];
+      const r = new FileReader();
+      r.onload = ev => {
+        convPreviewImg.src = ev.target.result;
+        convPreviewWrap.style.display = 'block';
+        convertBtn.disabled = false; convertBtn.style.opacity = '1';
+        dlConvertedBtn.style.display = 'none';
+      };
+      r.readAsDataURL(convFile);
+    }
   });
-  
-  function loadConverterImage(file) {
-    converterImageFile = file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      converterPreviewImg.src = e.target.result;
-      converterPreview.style.display = 'block';
-      convertBtn.disabled = false;
-    };
-    reader.readAsDataURL(file);
-  }
-  
-  document.querySelectorAll('.format-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.format-btn').forEach(b => {
-        b.style.background = '#e0e0e0';
-        b.style.color = '#666';
-      });
-      btn.style.background = '#667eea';
-      btn.style.color = 'white';
-      selectedFormat = btn.dataset.format;
-    });
-  });
-  
+
   convertBtn.addEventListener('click', () => {
-    if (!converterImageFile) return;
-    
+    if(!convFile) return;
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      
-      let mimeType = selectedFormat;
-      canvas.toBlob((blob) => {
+      const cvs = document.createElement('canvas');
+      cvs.width = img.width; cvs.height = img.height;
+      cvs.getContext('2d').drawImage(img, 0, 0);
+      cvs.toBlob(blob => {
         convertedBlob = blob;
-        downloadConverted.style.display = 'block';
-        const formatName = selectedFormat.split('/')[1].toUpperCase();
-        showNotification(`Image converted to ${formatName}`, 'success');
-      }, mimeType, convertQuality.value / 100);
+        dlConvertedBtn.style.display = 'flex';
+        GDI.showNotification(`Converted to ${selectedFormat.split('/')[1].toUpperCase()}`, 'success');
+      }, selectedFormat, cqSlider.value / 100);
     };
-    img.src = converterPreviewImg.src;
+    img.src = convPreviewImg.src;
   });
-  
-  downloadConverted.addEventListener('click', () => {
-    if (convertedBlob) {
+
+  dlConvertedBtn.addEventListener('click', () => {
+    if(convertedBlob) {
       const url = URL.createObjectURL(convertedBlob);
       const a = document.createElement('a');
-      a.href = url;
-      const ext = selectedFormat.split('/')[1];
-      a.download = `converted.${ext}`;
-      a.click();
-      URL.revokeObjectURL(url);
+      a.href = url; a.download = `converted.${selectedFormat.split('/')[1]}`;
+      a.click(); URL.revokeObjectURL(url);
     }
   });
-  
-  // ==================== FREE IMAGE SOURCES ====================
-  const sourceSearch = document.getElementById('sourceSearch');
-  if (sourceSearch) {
-    sourceSearch.addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      const cards = document.querySelectorAll('.source-card');
-      cards.forEach(card => {
-        const text = card.textContent.toLowerCase();
-        if (text.includes(searchTerm)) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
-      });
-    });
-  }
-  
-  document.querySelectorAll('.source-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const url = card.dataset.url;
-      if (url) window.open(url, '_blank');
-    });
+
+  // ==================== IMAGE OPTIMIZER TAB ====================
+  const optPanel = tabPanels['optimizer'];
+  optPanel.style.display = 'none';
+  optPanel.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+  optPanel.style.gap = '24px';
+
+  const optUploadArea = GDI.createElement('div', {
+    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
+  });
+  optUploadArea.innerHTML = `<h3 style="margin: 0 0 16px; font-size: 15px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">📤 Upload Image</h3>`;
+  const optDropZone = GDI.createElement('div', {
+    styles: { border: `2px dashed ${GDI.ThemeEngine.token('colors.border')}`, borderRadius: GDI.DESIGN_TOKENS.radii.md, padding: '40px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s' },
+    html: `<div style="font-size: 32px; margin-bottom: 12px;">⚡</div><div style="color:${GDI.ThemeEngine.token('colors.textPrimary')}">Upload image for optimization</div>`
+  });
+  const optFileInput = GDI.createElement('input', { attrs: { type: 'file', accept: 'image/*' }, styles: { display: 'none' } });
+  const optPreviewWrap = GDI.createElement('div', { styles: { marginTop: '20px', display: 'none', textAlign: 'center' } });
+  const optPreviewImg = GDI.createElement('img', { styles: { maxWidth: '100%', maxHeight: '250px', borderRadius: GDI.DESIGN_TOKENS.radii.md, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` } });
+  optPreviewWrap.appendChild(optPreviewImg);
+  optUploadArea.appendChild(optDropZone); optUploadArea.appendChild(optFileInput); optUploadArea.appendChild(optPreviewWrap);
+
+  const optControls = GDI.createElement('div', {
+    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
   });
   
-  // ==================== IMAGE OPTIMIZER FUNCTIONALITY ====================
-  let optimizerImageFile = null;
-  let optimizedBlob = null;
-  
-  const optimizerDropZone = document.getElementById('optimizerDropZone');
-  const optimizerUpload = document.getElementById('optimizerUpload');
-  const optimizerPreviewImg = document.getElementById('optimizerPreviewImg');
-  const optimizerPreview = document.getElementById('optimizerPreview');
-  const optimizationLevel = document.getElementById('optimizationLevel');
-  const levelValue = document.getElementById('levelValue');
-  const convertToWebP = document.getElementById('convertToWebP');
-  const optimizeBtn = document.getElementById('optimizeImageBtn');
-  const downloadOptimized = document.getElementById('downloadOptimized');
-  const originalSizeSpan = document.getElementById('originalSize');
-  const optimizedSizeSpan = document.getElementById('optimizedSize');
-  const savingsSpan = document.getElementById('savings');
-  const savingsBar = document.getElementById('savingsBar');
-  
-  optimizationLevel.addEventListener('input', () => {
-    levelValue.textContent = optimizationLevel.value + '%';
+  const resultsBox = GDI.createElement('div', {
+    styles: { background: GDI.ThemeEngine.token('colors.surface'), padding: '16px', borderRadius: GDI.DESIGN_TOKENS.radii.md, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`, marginBottom: '16px', fontSize: '13px', color: GDI.ThemeEngine.token('colors.textPrimary') },
+    html: `
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Original Size:</span><strong id="gdi-opt-orig">-</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Optimized Size:</span><strong id="gdi-opt-new" style="color:${GDI.ThemeEngine.token('colors.success')}">-</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Savings:</span><strong id="gdi-opt-save">-</strong></div>
+    `
   });
-  
-  optimizerDropZone.addEventListener('click', () => optimizerUpload.click());
-  optimizerUpload.addEventListener('change', (e) => {
-    if (e.target.files[0]) loadOptimizerImage(e.target.files[0]);
+
+  const oqWrap = GDI.createElement('div', { styles: { marginBottom: '16px' } });
+  oqWrap.innerHTML = `<label style="display:block; font-size:12px; font-weight:600; color:${GDI.ThemeEngine.token('colors.textPrimary')}; margin-bottom:8px;">Compression Level: <span id="gdi-opt-qval">80%</span></label>`;
+  const oqSlider = GDI.createElement('input', { attrs: { type: 'range', min: '1', max: '100', value: '80' }, styles: { width: '100%', cursor: 'pointer' } });
+  oqSlider.addEventListener('input', () => oqWrap.querySelector('#gdi-opt-qval').textContent = `${oqSlider.value}%`);
+  oqWrap.appendChild(oqSlider);
+
+  const webpToggle = GDI.createToggle({ label: 'Convert to WebP (Best savings)', checked: true });
+  webpToggle.wrapper.style.marginBottom = '20px';
+
+  const optimizeBtn = GDI.createButton('Optimize Image', null, { variant: 'primary', disabled: true });
+  const dlOptBtn = GDI.createButton('Download Optimized Image', null, { variant: 'success' });
+  dlOptBtn.style.display = 'none'; dlOptBtn.style.marginTop = '10px';
+
+  optControls.appendChild(resultsBox);
+  optControls.appendChild(oqWrap);
+  optControls.appendChild(webpToggle.wrapper);
+  optControls.appendChild(optimizeBtn);
+  optControls.appendChild(dlOptBtn);
+
+  optPanel.appendChild(optUploadArea);
+  optPanel.appendChild(optControls);
+
+  // Optimizer Logic
+  let optFile = null; let optimizedBlob = null;
+  optDropZone.addEventListener('click', () => optFileInput.click());
+  optFileInput.addEventListener('change', (e) => {
+    if(e.target.files[0]) {
+      optFile = e.target.files[0];
+      resultsBox.querySelector('#gdi-opt-orig').textContent = GDI.formatFileSize(optFile.size);
+      const r = new FileReader();
+      r.onload = ev => {
+        optPreviewImg.src = ev.target.result;
+        optPreviewWrap.style.display = 'block';
+        optimizeBtn.disabled = false; optimizeBtn.style.opacity = '1';
+        dlOptBtn.style.display = 'none';
+        resultsBox.querySelector('#gdi-opt-new').textContent = '-';
+        resultsBox.querySelector('#gdi-opt-save').textContent = '-';
+      };
+      r.readAsDataURL(optFile);
+    }
   });
-  
-  function loadOptimizerImage(file) {
-    optimizerImageFile = file;
-    originalSizeSpan.textContent = formatFileSize(file.size);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      optimizerPreviewImg.src = e.target.result;
-      optimizerPreview.style.display = 'block';
-      optimizeBtn.disabled = false;
-    };
-    reader.readAsDataURL(file);
-  }
-  
+
   optimizeBtn.addEventListener('click', () => {
-    if (!optimizerImageFile) return;
-    
+    if(!optFile) return;
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
+      const cvs = document.createElement('canvas');
+      cvs.width = img.width; cvs.height = img.height;
+      cvs.getContext('2d').drawImage(img, 0, 0);
+      const mime = webpToggle.getValue() ? 'image/webp' : optFile.type;
       
-      const quality = optimizationLevel.value / 100;
-      const mimeType = convertToWebP.checked ? 'image/webp' : optimizerImageFile.type;
-      
-      canvas.toBlob((blob) => {
+      cvs.toBlob(blob => {
         optimizedBlob = blob;
-        const optimizedSize = blob.size;
-        const savingsPercent = ((optimizerImageFile.size - optimizedSize) / optimizerImageFile.size * 100).toFixed(1);
-        
-        optimizedSizeSpan.textContent = formatFileSize(optimizedSize);
-        savingsSpan.textContent = `${savingsPercent}% (${formatFileSize(optimizerImageFile.size - optimizedSize)} saved)`;
-        savingsBar.style.width = `${savingsPercent}%`;
-        
-        downloadOptimized.style.display = 'block';
-        showNotification(`Image optimized! Saved ${savingsPercent}%`, 'success');
-        
-        // Show preview of optimized image
-        const optimizedUrl = URL.createObjectURL(blob);
-        optimizerPreviewImg.src = optimizedUrl;
-      }, mimeType, quality);
+        const saved = optFile.size - blob.size;
+        const pct = ((saved / optFile.size) * 100).toFixed(1);
+        resultsBox.querySelector('#gdi-opt-new').textContent = GDI.formatFileSize(blob.size);
+        resultsBox.querySelector('#gdi-opt-save').textContent = `${pct}% (${GDI.formatFileSize(saved)})`;
+        dlOptBtn.style.display = 'flex';
+        optPreviewImg.src = URL.createObjectURL(blob); // show optimized result
+        GDI.showNotification(`Saved ${pct}%!`, 'success');
+      }, mime, oqSlider.value / 100);
     };
-    img.src = optimizerPreviewImg.src;
+    img.src = optPreviewImg.src;
   });
-  
-  downloadOptimized.addEventListener('click', () => {
-    if (optimizedBlob) {
+
+  dlOptBtn.addEventListener('click', () => {
+    if(optimizedBlob) {
       const url = URL.createObjectURL(optimizedBlob);
       const a = document.createElement('a');
-      a.href = url;
-      const ext = convertToWebP.checked ? 'webp' : optimizerImageFile.name.split('.').pop();
+      a.href = url; 
+      const ext = webpToggle.getValue() ? 'webp' : optFile.name.split('.').pop();
       a.download = `optimized_${Date.now()}.${ext}`;
-      a.click();
-      URL.revokeObjectURL(url);
+      a.click(); URL.revokeObjectURL(url);
     }
   });
+
+  // ==================== FREE IMAGE SOURCES TAB ====================
+  const sourcesPanel = tabPanels['sources'];
+  sourcesPanel.style.display = 'none';
   
-  // ==================== SEO ANALYZER FUNCTIONALITY ====================
-  const runSeoAnalysis = document.getElementById('runSeoAnalysis');
-  const seoAnalysisResults = document.getElementById('seoAnalysisResults');
+  const imageSources = [
+    { name: 'Unsplash', url: 'https://unsplash.com', desc: 'High-quality free stock photos', cat: 'Stock Photos' },
+    { name: 'Pexels', url: 'https://pexels.com', desc: 'Free stock photos & videos', cat: 'Stock Photos' },
+    { name: 'Pixabay', url: 'https://pixabay.com', desc: 'Free images, illustrations, vectors', cat: 'All Types' },
+    { name: 'Burst', url: 'https://burst.shopify.com', desc: 'Free stock photos for websites', cat: 'E-commerce' },
+    { name: 'Freepik', url: 'https://freepik.com', desc: 'Free vectors & illustrations', cat: 'Vectors' },
+    { name: 'Flaticon', url: 'https://flaticon.com', desc: 'Free icons for websites', cat: 'Icons' }
+  ];
+
+  const searchWrap = GDI.createInputField({ placeholder: '🔍 Search sources...', id: 'src-search' });
+  sourcesPanel.appendChild(searchWrap.wrapper);
+
+  const sourcesGrid = GDI.createElement('div', {
+    styles: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }
+  });
+
+  function renderSources(filter = '') {
+    sourcesGrid.innerHTML = '';
+    imageSources.forEach(src => {
+      if(filter && !src.name.toLowerCase().includes(filter.toLowerCase()) && !src.desc.toLowerCase().includes(filter.toLowerCase())) return;
+      
+      const card = GDI.createElement('div', {
+        styles: {
+          background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '16px',
+          borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+          cursor: 'pointer', transition: `all ${GDI.DESIGN_TOKENS.transitions.fast}`
+        },
+        html: `
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <h4 style="margin:0; font-size:15px; color:${GDI.ThemeEngine.token('colors.primary')}">${src.name}</h4>
+          </div>
+          <p style="margin:0 0 12px; font-size:12px; color:${GDI.ThemeEngine.token('colors.textSecondary')}">${src.desc}</p>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="background:${GDI.ThemeEngine.token('colors.surfaceTertiary')}; padding:4px 8px; border-radius:4px; font-size:11px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">${src.cat}</span>
+            <span style="color:${GDI.ThemeEngine.token('colors.primary')}; font-size:12px; font-weight:bold;">Open ↗</span>
+          </div>
+        `
+      });
+      card.addEventListener('mouseenter', () => card.style.borderColor = GDI.ThemeEngine.token('colors.primary'));
+      card.addEventListener('mouseleave', () => card.style.borderColor = GDI.ThemeEngine.token('colors.border'));
+      card.addEventListener('click', () => window.open(src.url, '_blank'));
+      sourcesGrid.appendChild(card);
+    });
+  }
   
-  runSeoAnalysis.addEventListener('click', () => {
+  renderSources();
+  searchWrap.input.addEventListener('input', (e) => renderSources(e.target.value));
+  sourcesPanel.appendChild(sourcesGrid);
+
+  // ==================== SEO ANALYZER TAB ====================
+  const analyzerPanel = tabPanels['analyzer'];
+  analyzerPanel.style.display = 'none';
+
+  const analyzerContent = GDI.createElement('div', {
+    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '40px 20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`, textAlign: 'center' }
+  });
+
+  const runAnalysisBtn = GDI.createButton('Analyze Page Images', () => {
     const images = document.querySelectorAll('img');
-    const results = {
-      total: images.length,
-      withAlt: 0,
-      withoutAlt: 0,
-      emptyAlt: 0,
-      missingAlt: [],
-      withLazyLoading: 0,
-      missingDimensions: 0
-    };
-    
+    let noAlt = 0, emptyAlt = 0, lazy = 0, noDims = 0;
+    const missingList = [];
+
     images.forEach(img => {
       const alt = img.getAttribute('alt');
-      if (alt === null) {
-        results.withoutAlt++;
-        results.missingAlt.push(img.src || img.getAttribute('data-src') || 'Unknown');
-      } else if (alt === '') {
-        results.emptyAlt++;
-      } else {
-        results.withAlt++;
-      }
-      
-      if (img.loading === 'lazy') results.withLazyLoading++;
-      if (!img.width || !img.height) results.missingDimensions++;
+      if (alt === null) { noAlt++; missingList.push(img.src || 'Unknown'); }
+      else if (alt === '') emptyAlt++;
+      if (img.loading === 'lazy') lazy++;
+      if (!img.width || !img.height) noDims++;
     });
-    
-    seoAnalysisResults.innerHTML = `
-      <div style="background: white; padding: 20px; border-radius: 12px;">
-        <h3 style="margin: 0 0 16px;">📊 Page Image SEO Report</h3>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
-          <div style="background: #e3f2fd; padding: 16px; border-radius: 8px; text-align: center;">
-            <div style="font-size: 28px; font-weight: bold;">${results.total}</div>
-            <div style="font-size: 12px;">Total Images</div>
-          </div>
-          <div style="background: #c8e6c9; padding: 16px; border-radius: 8px; text-align: center;">
-            <div style="font-size: 28px; font-weight: bold;">${results.withAlt}</div>
-            <div style="font-size: 12px;">With Alt Text</div>
-          </div>
-          <div style="background: #ffcdd2; padding: 16px; border-radius: 8px; text-align: center;">
-            <div style="font-size: 28px; font-weight: bold;">${results.withoutAlt + results.emptyAlt}</div>
-            <div style="font-size: 12px;">Missing/Empty Alt</div>
-          </div>
-          <div style="background: #fff9c4; padding: 16px; border-radius: 8px; text-align: center;">
-            <div style="font-size: 28px; font-weight: bold;">${results.withLazyLoading}</div>
-            <div style="font-size: 12px;">Lazy Loading Enabled</div>
-          </div>
+
+    analyzerContent.innerHTML = `
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; text-align: left;">
+        <div style="background:${GDI.ThemeEngine.token('colors.infoLight')}; padding:16px; border-radius:8px; border-left:4px solid ${GDI.ThemeEngine.token('colors.info')}">
+          <div style="font-size:24px; font-weight:bold; color:${GDI.ThemeEngine.token('colors.info')}">${images.length}</div>
+          <div style="font-size:12px; color:${GDI.ThemeEngine.token('colors.textSecondary')}">Total Images</div>
         </div>
-        
-        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-          <strong>📋 Recommendations:</strong>
-          <ul style="margin-top: 12px; padding-left: 20px;">
-            ${results.withoutAlt + results.emptyAlt > 0 ? '<li>⚠️ Add descriptive alt text to all images for better accessibility and SEO</li>' : '<li>✅ All images have alt text - good job!</li>'}
-            ${results.withLazyLoading < results.total ? '<li>💡 Consider adding lazy loading to improve page speed (loading="lazy")</li>' : '<li>✅ Good use of lazy loading!</li>'}
-            ${results.missingDimensions > 0 ? '<li>📏 Set width and height attributes to prevent layout shift (CLS)</li>' : '<li>✅ Images have dimension attributes</li>'}
-          </ul>
+        <div style="background:${GDI.ThemeEngine.token('colors.errorLight')}; padding:16px; border-radius:8px; border-left:4px solid ${GDI.ThemeEngine.token('colors.error')}">
+          <div style="font-size:24px; font-weight:bold; color:${GDI.ThemeEngine.token('colors.error')}">${noAlt + emptyAlt}</div>
+          <div style="font-size:12px; color:${GDI.ThemeEngine.token('colors.textSecondary')}">Missing/Empty Alt</div>
         </div>
-        
-        ${results.missingAlt.length > 0 ? `
-          <details>
-            <summary style="cursor: pointer; font-weight: 600; margin-bottom: 12px;">🔍 View Images Missing Alt Text (${results.missingAlt.length})</summary>
-            <div style="max-height: 300px; overflow-y: auto;">
-              ${results.missingAlt.map((src, i) => `<div style="padding: 8px; border-bottom: 1px solid #e0e0e0; font-size: 12px; word-break: break-all;">${i+1}. ${src.substring(0, 100)}</div>`).join('')}
-            </div>
-          </details>
-        ` : ''}
-        
-        <button id="closeSeoAnalysis" style="margin-top: 20px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+        <div style="background:${GDI.ThemeEngine.token('colors.warningLight')}; padding:16px; border-radius:8px; border-left:4px solid ${GDI.ThemeEngine.token('colors.warning')}">
+          <div style="font-size:24px; font-weight:bold; color:${GDI.ThemeEngine.token('colors.warning')}">${noDims}</div>
+          <div style="font-size:12px; color:${GDI.ThemeEngine.token('colors.textSecondary')}">Missing Dimensions</div>
+        </div>
+      </div>
+      <div style="text-align: left; background:${GDI.ThemeEngine.token('colors.surface')}; border:1px solid ${GDI.ThemeEngine.token('colors.border')}; padding:16px; border-radius:8px;">
+        <strong style="color:${GDI.ThemeEngine.token('colors.textPrimary')}">📋 Recommendations:</strong>
+        <ul style="margin: 12px 0 0; padding-left: 20px; font-size:13px; color:${GDI.ThemeEngine.token('colors.textSecondary')}; line-height:1.6;">
+          ${(noAlt + emptyAlt) > 0 ? `<li style="color:${GDI.ThemeEngine.token('colors.error')}">⚠️ Add descriptive alt text to ${noAlt + emptyAlt} images.</li>` : '<li>✅ All images have alt text.</li>'}
+          ${noDims > 0 ? `<li style="color:${GDI.ThemeEngine.token('colors.warning')}">⚠️ ${noDims} images missing width/height (causes layout shifts).</li>` : '<li>✅ All images have dimensions set.</li>'}
+          ${lazy < images.length ? `<li>💡 Consider adding <code>loading="lazy"</code> to offscreen images.</li>` : '<li>✅ Good use of lazy loading!</li>'}
+        </ul>
       </div>
     `;
-    
-    document.getElementById('closeSeoAnalysis').addEventListener('click', () => {
-      location.reload();
-    });
-  });
+  }, { variant: 'primary', fullWidth: false });
   
-  // Helper functions
-  function formatFileSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  }
+  runAnalysisBtn.style.margin = '0 auto';
   
-  function showNotification(message, type) {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      padding: 12px 20px;
-      background: ${type === 'success' ? '#4CAF50' : '#f44336'};
-      color: white;
-      border-radius: 8px;
-      z-index: 100001;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 13px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      opacity: 0;
-      transition: opacity 0.3s;
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.style.opacity = '1', 10);
-    setTimeout(() => {
-      notification.style.opacity = '0';
-      setTimeout(() => notification.remove(), 300);
-    }, 3000);
-  }
-  
-  // Close button
-  document.getElementById('closeImageToolkit').addEventListener('click', () => {
-    document.body.removeChild(overlay);
-  });
-  
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) {
-      document.body.removeChild(overlay);
-    }
+  analyzerContent.innerHTML = `<div style="font-size:48px; margin-bottom:16px;">🔍</div><p style="color:${GDI.ThemeEngine.token('colors.textSecondary')}; margin-bottom:20px; font-size:14px;">Click below to check SEO metrics for all images currently loaded on this page.</p>`;
+  analyzerContent.appendChild(runAnalysisBtn);
+  analyzerPanel.appendChild(analyzerContent);
+
+  // Use the native GDI Modal
+  GDI.createModal('Advanced Image Toolkit', contentContainer, { 
+    width: '95vw', 
+    maxWidth: '1200px',
+    icon: '🖼️',
+    subtitle: 'Resize, Convert, Optimize & Analyze SEO Images'
   });
 }
 
 // ==================== ENHANCED SITE STRUCTURE ====================
+
 function visualizeSiteStructure() {
-  // ============ SELF-CONTAINED HELPERS ============
-  const $ = (s, c = document) => c.querySelector(s);
-  const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
-
-  const clean = (t) => (t || '').replace(/\s+/g, ' ').trim();
-
-  const escapeHtml = (str) => {
-    if (!str) return '';
-    const d = document.createElement('div');
-    d.textContent = String(str);
-    return d.innerHTML;
-  };
-
-  const copy = async (text) => {
-    try { await navigator.clipboard.writeText(text); return true; }
-    catch {
-      const ta = document.createElement('textarea');
-      ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;';
-      document.body.appendChild(ta); ta.select();
-      const ok = document.execCommand('copy'); document.body.removeChild(ta);
-      return ok;
-    }
-  };
-
-  const toast = (msg, type = 'success') => {
-    const colors = {
-      success: { bg: '#10b981', icon: '✓' },
-      error: { bg: '#ef4444', icon: '✕' },
-      info: { bg: '#3b82f6', icon: 'ℹ' },
-      warning: { bg: '#f59e0b', icon: '!' }
-    };
-    const t = colors[type] || colors.info;
-    const el = document.createElement('div');
-    el.style.cssText = `
-      position:fixed;bottom:24px;right:24px;z-index:2147483647;
-      background:${t.bg};color:#fff;padding:14px 20px;border-radius:14px;
-      font:600 14px/1.4 system-ui,sans-serif;box-shadow:0 20px 40px rgba(0,0,0,.25),0 0 0 1px rgba(255,255,255,.1) inset;
-      display:flex;align-items:center;gap:10px;max-width:380px;pointer-events:none;
-      animation:ssToastIn .4s cubic-bezier(.16,1,.3,1) forwards;
-    `;
-    el.innerHTML = `<span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:rgba(255,255,255,.2);border-radius:50%;font-size:13px;">${t.icon}</span><span>${msg}</span>`;
-    document.body.appendChild(el);
-    setTimeout(() => {
-      el.style.animation = 'ssToastOut .3s ease forwards';
-      setTimeout(() => el.remove(), 300);
-    }, 3000);
-  };
-
-  const createModal = (title, contentNode) => {
-    const overlay = document.createElement('div');
-    overlay.id = 'ss-overlay';
-    overlay.style.cssText = `
-      position:fixed;inset:0;z-index:2147483646;
-      background:rgba(15,23,42,.7);backdrop-filter:blur(16px);
-      display:flex;align-items:center;justify-content:center;
-      padding:16px;box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-      animation:ssFadeIn .25s ease;
-    `;
-
-    const modal = document.createElement('div');
-    modal.id = 'ss-modal';
-    modal.style.cssText = `
-      background:#fff;border-radius:24px;width:100%;max-width:1200px;
-      max-height:94vh;display:flex;flex-direction:column;
-      box-shadow:0 30px 100px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.08) inset;
-      animation:ssModalUp .4s cubic-bezier(.16,1,.3,1);
-      overflow:hidden;position:relative;
-    `;
-
-    const header = document.createElement('div');
-    header.style.cssText = `
-      padding:18px 28px;border-bottom:1px solid #e2e8f0;
-      display:flex;justify-content:space-between;align-items:center;
-      background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);
-    `;
-    header.innerHTML = `
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 16px rgba(99,102,241,.35);">🏗️</div>
-        <div>
-          <h1 style="margin:0;font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-.3px;">${title}</h1>
-          <div style="font-size:12px;color:#64748b;font-weight:500;margin-top:2px;">Interactive site architecture analysis</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button id="ss-minimize" style="background:#fff;border:1px solid #e2e8f0;width:34px;height:34px;border-radius:10px;cursor:pointer;color:#64748b;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s;" title="Minimize">−</button>
-        <button id="ss-close" style="background:#fee2e2;border:1px solid #fecaca;width:34px;height:34px;border-radius:10px;cursor:pointer;color:#dc2626;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s;" title="Close (Esc)">×</button>
-      </div>
-    `;
-
-    const body = document.createElement('div');
-    body.style.cssText = 'flex:1;overflow:hidden;display:flex;flex-direction:column;';
-    body.appendChild(contentNode);
-
-   modal.appendChild(header);
-  modal.appendChild(body);
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-
-  // --- NEW MINIMIZE & CLOSE LOGIC ---
-  const minimizeBtn = header.querySelector('#ss-minimize');
-  const closeBtn = header.querySelector('#ss-close');
-  let isMinimized = false;
-
-  minimizeBtn.addEventListener('click', () => {
-    isMinimized = !isMinimized;
-    if (isMinimized) {
-      body.style.display = 'none';
-      modal.style.width = '350px';
-      overlay.style.alignItems = 'flex-end';
-      overlay.style.justifyContent = 'flex-end';
-      minimizeBtn.innerHTML = '□';
-      minimizeBtn.title = 'Expand';
-    } else {
-      body.style.display = 'flex';
-      modal.style.width = '100%';
-      overlay.style.alignItems = 'center';
-      overlay.style.justifyContent = 'center';
-      minimizeBtn.innerHTML = '−';
-      minimizeBtn.title = 'Minimize';
-    }
-  });
-
-  closeBtn.addEventListener('click', destroy);
-  // ----------------------------------
-
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) destroy(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') destroy(); }, { once: true });
-
-  return overlay;
-  };
-
-  const destroy = () => { $('#ss-overlay')?.remove(); };
+  const { $, $$, cleanText: clean, escapeHtml, copyToClipboard: copy, showNotification: toast } = GDI;
 
   // ============ DATA COLLECTION ENGINE ============
   const collectData = () => {
@@ -11246,7 +10976,6 @@ function visualizeSiteStructure() {
       id: f.id || '',
       inputs: $$('input, textarea, select, button', f).length
     }));
-    const inputs = $$('input, textarea, select').length;
 
     // Canonical & lang
     const canonical = $('link[rel="canonical"]')?.href || fullUrl;
@@ -11275,14 +11004,7 @@ function visualizeSiteStructure() {
 
     // Page size
     const pageSizeKB = (document.documentElement.outerHTML.length / 1024).toFixed(2);
-
-    // Responsive
     const viewport = $('meta[name="viewport"]')?.getAttribute('content') || '';
-    const hasViewport = !!viewport;
-
-    // URL analysis
-    const pathSegments = currentPath.split('/').filter(Boolean);
-    const urlDepth = pathSegments.length;
 
     return {
       domain, currentPath, fullUrl, origin,
@@ -11291,11 +11013,11 @@ function visualizeSiteStructure() {
       breadcrumbs, navItems,
       schemaData, metaTags,
       images, imagesWithoutAlt, imagesWithoutDimensions,
-      forms, inputs,
+      forms,
       canonical, htmlLang,
       scripts, stylesheets, inlineStyles,
       domStats, pageSizeKB,
-      viewport, hasViewport, urlDepth, pathSegments
+      viewport, hasViewport: !!viewport, urlDepth: currentPath.split('/').filter(Boolean).length
     };
   };
 
@@ -11307,53 +11029,32 @@ function visualizeSiteStructure() {
     const issues = [];
     const warnings = [];
 
-    // H1 analysis
-    const h1Count = data.headingHierarchy.h1;
-    if (h1Count === 0) { score -= 15; issues.push('Missing H1 tag'); }
-    else if (h1Count > 1) { score -= 10; warnings.push(`Multiple H1 tags (${h1Count})`); }
+    if (data.headingHierarchy.h1 === 0) { score -= 15; issues.push('Missing H1 tag'); }
+    else if (data.headingHierarchy.h1 > 1) { score -= 10; warnings.push(`Multiple H1 tags (${data.headingHierarchy.h1})`); }
 
-    // Meta description
     const desc = data.metaTags.description || '';
     if (!desc) { score -= 10; issues.push('Missing meta description'); }
     else if (desc.length < 50) { score -= 5; warnings.push('Meta description too short (<50 chars)'); }
     else if (desc.length > 160) { score -= 3; warnings.push('Meta description too long (>160 chars)'); }
 
-    // Title
-    const title = data.metaTags['og:title'] || data.metaTags['twitter:title'] || '';
-    if (!title) { score -= 5; warnings.push('Missing social title tags'); }
+    if (!data.metaTags['og:title'] && !data.metaTags['twitter:title']) { score -= 5; warnings.push('Missing social title tags'); }
 
-    // Images
     if (data.imagesWithoutAlt.length > 0) {
-      const penalty = Math.min(12, data.imagesWithoutAlt.length * 2);
-      score -= penalty;
+      score -= Math.min(12, data.imagesWithoutAlt.length * 2);
       issues.push(`${data.imagesWithoutAlt.length} images missing alt text`);
     }
 
-    // Canonical
-    if (data.canonical !== data.fullUrl) {
-      score -= 5;
-      warnings.push(`Canonical mismatch: ${data.canonical}`);
-    }
-
-    // URL depth
+    if (data.canonical !== data.fullUrl) { score -= 5; warnings.push(`Canonical mismatch: ${data.canonical}`); }
     if (data.urlDepth > 4) { score -= 5; warnings.push(`URL depth too deep (${data.urlDepth} levels)`); }
-
-    // Language
     if (data.htmlLang === 'Not specified') { score -= 5; issues.push('Missing language declaration'); }
-
-    // Viewport
     if (!data.hasViewport) { score -= 5; issues.push('Missing viewport meta tag'); }
-
-    // Internal links
     if (data.internalLinks.length < 5) { score -= 5; warnings.push('Low internal link count'); }
 
-    // Headings hierarchy
     if (data.hierarchyIssues.length > 0) {
       score -= Math.min(8, data.hierarchyIssues.length * 2);
       warnings.push(...data.hierarchyIssues.slice(0, 3));
     }
 
-    // Page size
     if (parseFloat(data.pageSizeKB) > 500) { score -= 5; warnings.push(`Large page size (${data.pageSizeKB} KB)`); }
 
     return { score: Math.max(0, score), issues, warnings };
@@ -11362,37 +11063,29 @@ function visualizeSiteStructure() {
   const seo = calculateSEOScore();
 
   // ============ UI STATE ============
-  let activeTab = 'overview'; // 'overview' | 'structure' | 'links' | 'seo' | 'technical'
+  let activeTab = 'overview';
   let expandedNodes = new Set();
-  let selectedNode = null;
-  let viewMode = 'cards'; // 'cards' | 'tree' | 'graph'
+  let viewMode = 'cards';
+
+  const tColor = (path) => GDI.ThemeEngine.token(path);
 
   // ============ DOM TREE BUILDER ============
   const buildDomTree = (element, depth = 0, maxDepth = 3) => {
     if (depth > maxDepth) return null;
     const tag = element.tagName.toLowerCase();
     const id = element.id ? `#${element.id}` : '';
-    const classes = element.className && typeof element.className === 'string' ?
-      '.' + element.className.split(' ').slice(0, 2).join('.') : '';
+    const classes = element.className && typeof element.className === 'string' ? '.' + element.className.split(' ').slice(0, 2).join('.') : '';
     const children = Array.from(element.children).map(c => buildDomTree(c, depth + 1, maxDepth)).filter(Boolean);
 
-    return {
-      tag, id, classes,
-      name: `${tag}${id}${classes}`,
-      childCount: element.children.length,
-      textLength: element.textContent?.length || 0,
-      hasImage: !!element.querySelector('img'),
-      hasLink: !!element.querySelector('a'),
-      children: children.length > 0 ? children : null,
-      depth
-    };
+    return { tag, id, classes, name: `${tag}${id}${classes}`, childCount: element.children.length, textLength: element.textContent?.length || 0, children: children.length > 0 ? children : null, depth };
   };
 
   const domTree = buildDomTree(document.body, 0, 2);
 
   // ============ RENDER ============
   const content = document.createElement('div');
-content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow:hidden;';
+  content.style.cssText = 'display:flex;flex-direction:column;height:80vh;overflow:hidden;';
+  
   const render = () => {
     const uniqueInternal = [...data.linkMap.values()].sort((a, b) => b.count - a.count);
     const externalDomains = [...new Set(data.externalLinks.map(l => {
@@ -11401,35 +11094,20 @@ content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow
 
     content.innerHTML = `
       <style>
-        @keyframes ssFadeIn{from{opacity:0}to{opacity:1}}
-        @keyframes ssModalUp{from{opacity:0;transform:translateY(20px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-        @keyframes ssToastIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
-        @keyframes ssToastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100px)}}
-        @keyframes ssPulse{0%,100%{opacity:1}50%{opacity:.4}}
-        @keyframes ssNodeIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
-        .ss-btn{padding:10px 16px;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap;}
-        .ss-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12);}
-        .ss-btn:disabled{opacity:.5;cursor:not-allowed;}
-        .ss-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;}
-        .ss-secondary{background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;}
-        .ss-success{background:#10b981;color:#fff;}
-        .ss-danger{background:#fee2e2;color:#dc2626;border:1px solid #fecaca;}
-        .ss-warning{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
-        .ss-tab{padding:12px 20px;font-size:13px;font-weight:700;color:#64748b;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;}
-        .ss-tab.active{color:#6366f1;border-bottom-color:#6366f1;}
-        .ss-tab:hover:not(.active){color:#334155;background:#f8fafc;}
-        .ss-score-ring{position:relative;width:80px;height:80px;}
-        .ss-score-ring svg{transform:rotate(-90deg);}
-        .ss-score-ring .ss-score-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
-        .ss-node{padding:8px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:monospace;cursor:pointer;transition:all .15s;display:inline-block;}
-        .ss-node:hover{background:#f8fafc;border-color:#6366f1;}
-        .ss-node.selected{background:#eff6ff;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2);}
-        .ss-tree-line{width:1px;background:#e2e8f0;margin-left:16px;}
-        .ss-expand-btn{width:18px;height:18px;border-radius:4px;border:1px solid #cbd5e1;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:#64748b;flex-shrink:0;}
+        .ss-tab { padding:12px 20px; font-size:13px; font-weight:700; color:var(--gdi-text-secondary); background:transparent; border:none; border-bottom:2px solid transparent; cursor:pointer; transition:all .2s; }
+        .ss-tab.active { color:var(--gdi-primary); border-bottom-color:var(--gdi-primary); }
+        .ss-tab:hover:not(.active) { color:var(--gdi-text-primary); background:var(--gdi-surface-secondary); }
+        .ss-card { background:var(--gdi-surface); border:1px solid var(--gdi-border); border-radius:16px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .ss-h3 { margin:0 0 16px; font-size:15px; font-weight:800; color:var(--gdi-text-primary); display:flex; align-items:center; gap:8px; }
+        .ss-item { padding:10px 12px; border-radius:8px; background:var(--gdi-surface-secondary); border:1px solid var(--gdi-border); }
+        
+        /* THE FIX: Replaced fake css variables with the real ones! */
+        .ss-text-main { color: var(--gdi-text-primary); }
+        .ss-text-sec { color: var(--gdi-text-secondary); }
+        .ss-text-muted { color: var(--gdi-text-muted); }
       </style>
 
-      <!-- Toolbar -->
-      <div style="padding:12px 24px;border-bottom:1px solid #e2e8f0;background:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div style="padding:0 24px; border-bottom:1px solid var(--gdi-border); background:var(--gdi-surface); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; flex-shrink:0;">
         <div style="display:flex;gap:4px;flex-wrap:wrap;">
           <button data-tab="overview" class="ss-tab ${activeTab === 'overview' ? 'active' : ''}">📊 Overview</button>
           <button data-tab="structure" class="ss-tab ${activeTab === 'structure' ? 'active' : ''}">🏗️ Structure</button>
@@ -11437,20 +11115,19 @@ content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow
           <button data-tab="seo" class="ss-tab ${activeTab === 'seo' ? 'active' : ''}">🎯 SEO</button>
           <button data-tab="technical" class="ss-tab ${activeTab === 'technical' ? 'active' : ''}">⚙️ Technical</button>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div style="display:flex;gap:8px;align-items:center; padding: 8px 0;">
           ${activeTab === 'structure' ? `
-            <div style="display:flex;gap:4px;background:#f1f5f9;padding:4px;border-radius:8px;">
-              <button data-view="cards" class="ss-view-btn ${viewMode === 'cards' ? 'active' : ''}" style="padding:6px 12px;border:none;border-radius:6px;background:${viewMode === 'cards' ? '#fff' : 'transparent'};color:${viewMode === 'cards' ? '#6366f1' : '#64748b'};font-size:12px;font-weight:700;cursor:pointer;box-shadow:${viewMode === 'cards' ? '0 1px 3px rgba(0,0,0,.1)' : 'none'};">Cards</button>
-              <button data-view="tree" class="ss-view-btn ${viewMode === 'tree' ? 'active' : ''}" style="padding:6px 12px;border:none;border-radius:6px;background:${viewMode === 'tree' ? '#fff' : 'transparent'};color:${viewMode === 'tree' ? '#6366f1' : '#64748b'};font-size:12px;font-weight:700;cursor:pointer;box-shadow:${viewMode === 'tree' ? '0 1px 3px rgba(0,0,0,.1)' : 'none'};">Tree</button>
-              <button data-view="graph" class="ss-view-btn ${viewMode === 'graph' ? 'active' : ''}" style="padding:6px 12px;border:none;border-radius:6px;background:${viewMode === 'graph' ? '#fff' : 'transparent'};color:${viewMode === 'graph' ? '#6366f1' : '#64748b'};font-size:12px;font-weight:700;cursor:pointer;box-shadow:${viewMode === 'graph' ? '0 1px 3px rgba(0,0,0,.1)' : 'none'};">Graph</button>
+            <div style="display:flex;gap:4px;background:var(--gdi-surface-secondary);padding:4px;border-radius:8px;">
+              <button data-view="cards" class="ss-view-btn ${viewMode === 'cards' ? 'active' : ''}" style="padding:6px 12px;border:none;border-radius:6px;background:${viewMode === 'cards' ? 'var(--gdi-surface)' : 'transparent'};color:${viewMode === 'cards' ? 'var(--gdi-primary)' : 'var(--gdi-text-secondary)'};font-size:12px;font-weight:700;cursor:pointer;">Cards</button>
+              <button data-view="tree" class="ss-view-btn ${viewMode === 'tree' ? 'active' : ''}" style="padding:6px 12px;border:none;border-radius:6px;background:${viewMode === 'tree' ? 'var(--gdi-surface)' : 'transparent'};color:${viewMode === 'tree' ? 'var(--gdi-primary)' : 'var(--gdi-text-secondary)'};font-size:12px;font-weight:700;cursor:pointer;">Tree</button>
+              <button data-view="graph" class="ss-view-btn ${viewMode === 'graph' ? 'active' : ''}" style="padding:6px 12px;border:none;border-radius:6px;background:${viewMode === 'graph' ? 'var(--gdi-surface)' : 'transparent'};color:${viewMode === 'graph' ? 'var(--gdi-primary)' : 'var(--gdi-text-secondary)'};font-size:12px;font-weight:700;cursor:pointer;">Graph</button>
             </div>
           ` : ''}
-          <button id="ss-export" class="ss-btn ss-secondary" style="padding:8px 14px;font-size:12px;">📤 Export</button>
+          <button id="ss-export" style="padding:8px 14px; font-size:12px; font-weight:bold; border-radius:8px; border:none; background:var(--gdi-primary); color:#fff; cursor:pointer;">📤 Export</button>
         </div>
       </div>
 
-      <!-- Content Area -->
-      <div style="flex:1;overflow-y:auto;padding:24px;background:#f8fafc;">
+      <div class="gdi-scrollbar" style="flex:1;overflow-y:auto;padding:24px;background:var(--gdi-surface-secondary);">
         ${activeTab === 'overview' ? renderOverview(uniqueInternal, externalDomains) : ''}
         ${activeTab === 'structure' ? renderStructure() : ''}
         ${activeTab === 'links' ? renderLinks(uniqueInternal, externalDomains) : ''}
@@ -11463,134 +11140,82 @@ content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow
   };
 
   const renderOverview = (uniqueInternal, externalDomains) => {
-    const h1Count = data.headingHierarchy.h1;
-    const h1Status = h1Count === 1 ? { color: '#10b981', bg: '#dcfce7', text: 'Perfect' } :
-      h1Count === 0 ? { color: '#ef4444', bg: '#fee2e2', text: 'Missing' } :
-      { color: '#f59e0b', bg: '#fef3c7', text: `${h1Count} found` };
-
     return `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px;">
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-bottom:24px;">
+        <div class="ss-card">
           <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
-            <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">SEO Score</div>
-            <div style="padding:4px 10px;border-radius:20px;background:${seo.score >= 80 ? '#dcfce7' : seo.score >= 60 ? '#fef3c7' : '#fee2e2'};color:${seo.score >= 80 ? '#059669' : seo.score >= 60 ? '#b45309' : '#dc2626'};font-size:11px;font-weight:700;">${seo.score >= 80 ? 'Good' : seo.score >= 60 ? 'Fair' : 'Poor'}</div>
+            <div style="font-size:11px;font-weight:800;color:var(--gdi-text-secondary);text-transform:uppercase;letter-spacing:.5px;">SEO Score</div>
+            <div style="padding:4px 10px;border-radius:20px;background:${seo.score >= 80 ? tColor('colors.successLight') : seo.score >= 60 ? tColor('colors.warningLight') : tColor('colors.errorLight')};color:${seo.score >= 80 ? tColor('colors.success') : seo.score >= 60 ? tColor('colors.warning') : tColor('colors.error')};font-size:11px;font-weight:700;">${seo.score >= 80 ? 'Good' : seo.score >= 60 ? 'Fair' : 'Poor'}</div>
           </div>
           <div style="display:flex;align-items:center;gap:16px;">
-            <div class="ss-score-ring">
-              <svg width="80" height="80" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="34" fill="none" stroke="#e2e8f0" stroke-width="7"/>
-                <circle cx="40" cy="40" r="34" fill="none" stroke="${seo.score >= 80 ? '#10b981' : seo.score >= 60 ? '#f59e0b' : '#ef4444'}" stroke-width="7"
-                  stroke-dasharray="${2 * Math.PI * 34}" stroke-dashoffset="${2 * Math.PI * 34 * (1 - seo.score / 100)}"
-                  stroke-linecap="round" style="transition:stroke-dashoffset 1s ease;"/>
-              </svg>
-              <div class="ss-score-text">
-                <div style="font-size:24px;font-weight:800;color:${seo.score >= 80 ? '#059669' : seo.score >= 60 ? '#b45309' : '#dc2626'};">${seo.score}</div>
-              </div>
-            </div>
+            <div style="font-size:36px;font-weight:800;color:${seo.score >= 80 ? tColor('colors.success') : seo.score >= 60 ? tColor('colors.warning') : tColor('colors.error')};">${seo.score}</div>
             <div style="flex:1;">
-              <div style="font-size:13px;color:#475569;line-height:1.5;">
-                ${seo.issues.length ? `<div style="color:#dc2626;margin-bottom:4px;">${seo.issues.length} critical issues</div>` : ''}
-                ${seo.warnings.length ? `<div style="color:#b45309;">${seo.warnings.length} warnings</div>` : ''}
-                ${!seo.issues.length && !seo.warnings.length ? '<div style="color:#059669;">✅ All checks passed</div>' : ''}
+              <div style="font-size:13px;color:var(--gdi-text-sec);line-height:1.5;">
+                ${seo.issues.length ? `<div style="color:${tColor('colors.error')};margin-bottom:4px;">${seo.issues.length} critical issues</div>` : ''}
+                ${seo.warnings.length ? `<div style="color:${tColor('colors.warning')};">${seo.warnings.length} warnings</div>` : ''}
+                ${!seo.issues.length && !seo.warnings.length ? `<div style="color:${tColor('colors.success')};">✅ All checks passed</div>` : ''}
               </div>
             </div>
           </div>
         </div>
 
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Link Profile</div>
+        <div class="ss-card">
+          <div style="font-size:11px;font-weight:800;color:var(--gdi-text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Link Profile</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
-              <div style="font-size:28px;font-weight:800;color:#6366f1;">${data.internalLinks.length}</div>
-              <div style="font-size:12px;color:#64748b;">Internal</div>
+              <div style="font-size:28px;font-weight:800;color:var(--gdi-primary);">${data.internalLinks.length}</div>
+              <div style="font-size:12px;color:var(--gdi-text-muted);">Internal</div>
             </div>
             <div>
-              <div style="font-size:28px;font-weight:800;color:#8b5cf6;">${data.externalLinks.length}</div>
-              <div style="font-size:12px;color:#64748b;">External</div>
-            </div>
-            <div>
-              <div style="font-size:28px;font-weight:800;color:#0f172a;">${uniqueInternal.length}</div>
-              <div style="font-size:12px;color:#64748b;">Unique Pages</div>
-            </div>
-            <div>
-              <div style="font-size:28px;font-weight:800;color:#f59e0b;">${externalDomains.length}</div>
-              <div style="font-size:12px;color:#64748b;">Ext. Domains</div>
+              <div style="font-size:28px;font-weight:800;color:var(--gdi-primary);">${data.externalLinks.length}</div>
+              <div style="font-size:12px;color:var(--gdi-text-muted);">External</div>
             </div>
           </div>
         </div>
 
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Content Structure</div>
+        <div class="ss-card">
+          <div style="font-size:11px;font-weight:800;color:var(--gdi-text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Content Structure</div>
           <div style="display:flex;flex-direction:column;gap:8px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:#475569;">H1 Tags</span>
-              <span style="padding:3px 10px;border-radius:20px;background:${h1Status.bg};color:${h1Status.color};font-size:12px;font-weight:700;">${h1Status.text}</span>
+              <span style="font-size:13px;color:var(--gdi-text-sec);">Total Headings</span>
+              <span style="font-size:13px;font-weight:700;color:var(--gdi-text-main);">${data.headings.length}</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:#475569;">Total Headings</span>
-              <span style="font-size:13px;font-weight:700;color:#0f172a;">${data.headings.length}</span>
+              <span style="font-size:13px;color:var(--gdi-text-sec);">Images</span>
+              <span style="font-size:13px;font-weight:700;color:var(--gdi-text-main);">${data.images.length}</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:#475569;">Images</span>
-              <span style="font-size:13px;font-weight:700;color:#0f172a;">${data.images.length}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:#475569;">Forms</span>
-              <span style="font-size:13px;font-weight:700;color:#0f172a;">${data.forms.length}</span>
-            </div>
-          </div>
-        </div>
-
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Page Health</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:#475569;">Page Size</span>
-              <span style="font-size:13px;font-weight:700;color:#0f172a;">${data.pageSizeKB} KB</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:#475569;">DOM Depth</span>
-              <span style="font-size:13px;font-weight:700;color:#0f172a;">${data.domStats.maxDepth}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:#475569;">Elements</span>
-              <span style="font-size:13px;font-weight:700;color:#0f172a;">${data.domStats.totalElements.toLocaleString()}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:#475569;">URL Depth</span>
-              <span style="font-size:13px;font-weight:700;color:#0f172a;">${data.urlDepth} levels</span>
+              <span style="font-size:13px;color:var(--gdi-text-sec);">Forms</span>
+              <span style="font-size:13px;font-weight:700;color:var(--gdi-text-main);">${data.forms.length}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Quick Issues -->
       ${seo.issues.length > 0 ? `
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">🚨 Critical Issues</h3>
+        <div class="ss-card" style="margin-bottom:24px;">
+          <h3 class="ss-h3">🚨 Critical Issues</h3>
           <div style="display:flex;flex-direction:column;gap:10px;">
             ${seo.issues.map(issue => `
-              <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;background:#fef2f2;border:1px solid #fecaca;">
-                <div style="width:28px;height:28px;border-radius:50%;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">!</div>
-                <div style="font-weight:700;color:#991b1b;font-size:13px;">${escapeHtml(issue)}</div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;background:${tColor('colors.errorLight')};border:1px solid ${tColor('colors.error')};">
+                <div style="font-weight:700;color:${tColor('colors.error')};font-size:13px;">${escapeHtml(issue)}</div>
               </div>
             `).join('')}
           </div>
         </div>
       ` : ''}
 
-      <!-- Top Pages -->
-      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-        <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">🔗 Most Linked Internal Pages</h3>
+      <div class="ss-card">
+        <h3 class="ss-h3">🔗 Most Linked Internal Pages</h3>
         <div style="display:flex;flex-direction:column;gap:8px;">
           ${uniqueInternal.slice(0, 8).map((item, i) => `
-            <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;transition:all .15s;" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='#f8fafc'">
-              <span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i + 1}</span>
+            <div class="ss-item" style="display:flex;align-items:center;gap:12px;">
+              <span style="width:28px;height:28px;border-radius:50%;background:var(--gdi-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i + 1}</span>
               <div style="flex:1;min-width:0;">
-                <div style="font-family:monospace;font-size:12px;color:#334155;word-break:break-all;">${escapeHtml(item.path)}</div>
-                <div style="font-size:11px;color:#64748b;margin-top:2px;">${[...new Set(item.texts)].slice(0, 2).join(' • ')}</div>
+                <div style="font-family:monospace;font-size:12px;color:var(--gdi-text-main);word-break:break-all;">${escapeHtml(item.path)}</div>
+                <div style="font-size:11px;color:var(--gdi-text-muted);margin-top:2px;">${[...new Set(item.texts)].slice(0, 2).join(' • ')}</div>
               </div>
-              <span style="padding:4px 12px;border-radius:20px;background:#e0e7ff;color:#3730a3;font-size:12px;font-weight:700;flex-shrink:0;">${item.count} links</span>
+              <span style="padding:4px 12px;border-radius:20px;background:${tColor('colors.infoLight')};color:${tColor('colors.info')};font-size:12px;font-weight:700;flex-shrink:0;">${item.count} links</span>
             </div>
           `).join('')}
         </div>
@@ -11607,68 +11232,32 @@ content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow
   const renderCardsView = () => {
     return `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;">
-        <!-- Headings Card -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:8px;">
-            <span style="width:32px;height:32px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:16px;">📑</span>
-            Heading Hierarchy
-          </h3>
-          <div style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;">
+        <div class="ss-card">
+          <h3 class="ss-h3">📑 Heading Hierarchy</h3>
+          <div class="gdi-scrollbar" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;">
             ${data.headings.map(h => `
-              <div style="padding:10px 12px;border-radius:8px;background:${h.level === 1 ? '#eff6ff' : h.level === 2 ? '#f8fafc' : '#fff'};border-left:3px solid ${h.level === 1 ? '#3b82f6' : h.level === 2 ? '#6366f1' : '#cbd5e1'};margin-left:${(h.level - 1) * 16}px;">
+              <div class="ss-item" style="margin-left:${(h.level - 1) * 16}px; border-left:3px solid var(--gdi-primary);">
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:11px;font-weight:800;color:${h.level === 1 ? '#3b82f6' : '#64748b'};text-transform:uppercase;">H${h.level}</span>
-                  <span style="font-size:13px;color:#0f172a;font-weight:600;">${escapeHtml(h.text)}</span>
+                  <span style="font-size:11px;font-weight:800;color:var(--gdi-primary);text-transform:uppercase;">H${h.level}</span>
+                  <span style="font-size:13px;color:var(--gdi-text-main);font-weight:600;">${escapeHtml(h.text)}</span>
                 </div>
-                ${h.id ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">#${escapeHtml(h.id)}</div>` : ''}
               </div>
             `).join('')}
           </div>
-          ${data.hierarchyIssues.length ? `
-            <div style="margin-top:12px;padding:10px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;">
-              <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px;">⚠️ Hierarchy Issues</div>
-              ${data.hierarchyIssues.map(i => `<div style="font-size:11px;color:#b45309;">• ${escapeHtml(i)}</div>`).join('')}
-            </div>
-          ` : ''}
         </div>
 
-        <!-- Breadcrumbs Card -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:8px;">
-            <span style="width:32px;height:32px;border-radius:8px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:16px;">🧭</span>
-            Breadcrumbs
-          </h3>
-          ${data.breadcrumbs.length ? `
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              ${data.breadcrumbs.map((b, i) => `
-                <span style="padding:6px 14px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:12px;font-weight:700;">${escapeHtml(b)}</span>
-                ${i < data.breadcrumbs.length - 1 ? '<span style="color:#cbd5e1;">→</span>' : ''}
-              `).join('')}
-            </div>
-          ` : '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:13px;">No breadcrumbs detected</div>'}
-        </div>
-
-        <!-- Navigation Card -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:8px;">
-            <span style="width:32px;height:32px;border-radius:8px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:16px;">🧭</span>
-            Navigation Items
-          </h3>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;max-height:300px;overflow-y:auto;">
+        <div class="ss-card">
+          <h3 class="ss-h3">🧭 Navigation Items</h3>
+          <div class="gdi-scrollbar" style="display:flex;flex-wrap:wrap;gap:6px;max-height:300px;overflow-y:auto;">
             ${data.navItems.slice(0, 40).map(item => `
-              <span style="padding:6px 12px;border-radius:8px;background:#f1f5f9;border:1px solid #e2e8f0;font-size:12px;color:#334155;font-weight:500;transition:all .15s;" title="${escapeHtml(item.href)}" onmouseenter="this.style.background='#e2e8f0'" onmouseleave="this.style.background='#f1f5f9'">${escapeHtml(item.text)}</span>
+              <span style="padding:6px 12px;border-radius:8px;background:var(--gdi-surface-secondary);border:1px solid var(--gdi-border);font-size:12px;color:var(--gdi-text-sec);font-weight:500;">${escapeHtml(item.text)}</span>
             `).join('')}
-            ${data.navItems.length > 40 ? `<span style="padding:6px 12px;color:#94a3b8;font-size:12px;">+${data.navItems.length - 40} more</span>` : ''}
           </div>
         </div>
 
-        <!-- DOM Tree Card -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:8px;">
-            <span style="width:32px;height:32px;border-radius:8px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;font-size:16px;">🌳</span>
-            DOM Snapshot
-          </h3>
-          <div style="font-family:monospace;font-size:12px;color:#475569;line-height:1.6;background:#f8fafc;padding:16px;border-radius:10px;overflow-x:auto;">
+        <div class="ss-card">
+          <h3 class="ss-h3">🌳 DOM Snapshot</h3>
+          <div class="gdi-scrollbar" style="font-family:monospace;font-size:12px;color:var(--gdi-text-sec);line-height:1.6;background:var(--gdi-surface-secondary);padding:16px;border-radius:10px;overflow-x:auto;">
             ${renderDomNode(domTree, 0)}
           </div>
         </div>
@@ -11678,18 +11267,16 @@ content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow
 
   const renderDomNode = (node, depth) => {
     if (!node) return '';
-    const indent = '  '.repeat(depth);
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes.has(node.name) || depth < 1;
 
     return `
       <div style="margin-left:${depth * 12}px;">
-        <div style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:2px 0;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.ss-chevron').style.transform=this.nextElementSibling.style.display==='none'?'rotate(-90deg)':'rotate(0deg)'">
-          ${hasChildren ? `<span class="ss-chevron" style="transition:transform .2s;${isExpanded ? '' : 'transform:rotate(-90deg);'}">▼</span>` : '<span style="width:14px;"></span>'}
-          <span style="color:#6366f1;font-weight:700;">${node.tag}</span>
-          ${node.id ? `<span style="color:#059669;">${node.id}</span>` : ''}
-          ${node.classes ? `<span style="color:#d97706;">${node.classes}</span>` : ''}
-          <span style="color:#94a3b8;font-size:11px;">(${node.childCount} children${node.textLength ? `, ${node.textLength} chars` : ''})</span>
+        <div style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:2px 0;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';">
+          ${hasChildren ? `<span>${isExpanded ? '▼' : '▶'}</span>` : '<span style="width:14px;"></span>'}
+          <span style="color:var(--gdi-primary);font-weight:700;">${node.tag}</span>
+          ${node.id ? `<span style="color:${tColor('colors.success')};">${node.id}</span>` : ''}
+          ${node.classes ? `<span style="color:${tColor('colors.warning')};">${node.classes}</span>` : ''}
         </div>
         ${hasChildren ? `
           <div style="${isExpanded ? '' : 'display:none;'}">
@@ -11701,24 +11288,19 @@ content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow
   };
 
   const renderTreeView = () => {
-    // Simplified tree visualization
     const buildTree = (node, prefix = '', isLast = true) => {
       if (!node) return '';
       const connector = prefix + (isLast ? '└── ' : '├── ');
       const childPrefix = prefix + (isLast ? '    ' : '│   ');
-      let result = `<div style="font-family:monospace;font-size:12px;color:#475569;padding:2px 0;white-space:nowrap;">${connector}<span style="color:#6366f1;font-weight:700;">${node.tag}</span>${node.id || ''}${node.classes || ''}</div>`;
-      if (node.children) {
-        node.children.forEach((child, i) => {
-          result += buildTree(child, childPrefix, i === node.children.length - 1);
-        });
-      }
+      let result = `<div style="font-family:monospace;font-size:12px;color:var(--gdi-text-sec);padding:2px 0;white-space:nowrap;">${connector}<span style="color:var(--gdi-primary);font-weight:700;">${node.tag}</span>${node.id || ''}${node.classes || ''}</div>`;
+      if (node.children) node.children.forEach((child, i) => { result += buildTree(child, childPrefix, i === node.children.length - 1); });
       return result;
     };
 
     return `
-      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-        <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">🌳 DOM Tree View</h3>
-        <div style="background:#f8fafc;padding:20px;border-radius:12px;overflow-x:auto;">
+      <div class="ss-card gdi-scrollbar" style="overflow-x:auto;">
+        <h3 class="ss-h3">🌳 DOM Tree View</h3>
+        <div style="background:var(--gdi-surface-secondary);padding:20px;border-radius:12px;">
           ${buildTree(domTree)}
         </div>
       </div>
@@ -11726,63 +11308,42 @@ content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow
   };
 
   const renderGraphView = () => {
-    // Create a visual node graph of page connections
     const nodes = [{ id: 'root', label: data.currentPath || '/', type: 'root', x: 400, y: 50 }];
     const edges = [];
-
     const uniqueInternal = [...data.linkMap.values()].slice(0, 15);
+    
     uniqueInternal.forEach((item, i) => {
       const angle = (i / uniqueInternal.length) * Math.PI * 2 - Math.PI / 2;
-      const radius = 200;
-      nodes.push({
-        id: `node-${i}`,
-        label: item.path.length > 25 ? item.path.substring(0, 22) + '...' : item.path,
-        fullPath: item.path,
-        count: item.count,
-        x: 400 + Math.cos(angle) * radius,
-        y: 250 + Math.sin(angle) * radius * 0.6
-      });
+      nodes.push({ id: `node-${i}`, label: item.path.length > 25 ? item.path.substring(0, 22) + '...' : item.path, count: item.count, x: 400 + Math.cos(angle) * 200, y: 250 + Math.sin(angle) * 120 });
       edges.push({ from: 'root', to: `node-${i}`, weight: item.count });
     });
 
     const maxCount = Math.max(...edges.map(e => e.weight), 1);
 
     return `
-      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-        <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">🕸️ Link Graph Visualization</h3>
-        <div style="position:relative;width:100%;height:500px;background:#f8fafc;border-radius:12px;overflow:hidden;">
+      <div class="ss-card">
+        <h3 class="ss-h3">🕸️ Link Graph Visualization</h3>
+        <div style="position:relative;width:100%;height:500px;background:var(--gdi-surface-secondary);border-radius:12px;overflow:hidden;">
           <svg width="100%" height="100%" viewBox="0 0 800 400" style="position:absolute;top:0;left:0;">
-            <defs>
-              <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e1"/>
-              </marker>
-            </defs>
             ${edges.map(e => {
-              const fromNode = nodes.find(n => n.id === e.from);
-              const toNode = nodes.find(n => n.id === e.to);
-              const strokeWidth = 1 + (e.weight / maxCount) * 3;
-              return `<line x1="${fromNode.x}" y1="${fromNode.y}" x2="${toNode.x}" y2="${toNode.y}" stroke="#cbd5e1" stroke-width="${strokeWidth}" opacity="0.6" marker-end="url(#arrowhead)"/>`;
+              const fNode = nodes.find(n => n.id === e.from);
+              const tNode = nodes.find(n => n.id === e.to);
+              return `<line x1="${fNode.x}" y1="${fNode.y}" x2="${tNode.x}" y2="${tNode.y}" stroke="var(--gdi-border)" stroke-width="${1 + (e.weight / maxCount) * 3}" opacity="0.6"/>`;
             }).join('')}
             ${nodes.map(n => `
-              <g transform="translate(${n.x},${n.y})" style="cursor:pointer;">
-                <circle r="${n.type === 'root' ? 30 : 20 + (n.count || 0) * 2}" fill="${n.type === 'root' ? '#6366f1' : '#8b5cf6'}" opacity="0.9"/>
-                <text y="4" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" style="pointer-events:none;">${n.type === 'root' ? '🏠' : n.count || ''}</text>
+              <g transform="translate(${n.x},${n.y})">
+                <circle r="${n.type === 'root' ? 30 : 20 + (n.count || 0) * 2}" fill="var(--gdi-primary)" opacity="0.9"/>
+                <text y="4" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">${n.type === 'root' ? '🏠' : n.count || ''}</text>
               </g>
             `).join('')}
           </svg>
           ${nodes.map(n => `
             <div style="position:absolute;left:${(n.x / 800) * 100}%;top:${(n.y / 400) * 100}%;transform:translate(-50%,${n.type === 'root' ? '-120%' : '120%'});text-align:center;pointer-events:none;">
-              <div style="font-size:11px;font-weight:700;color:#334155;background:rgba(255,255,255,.9);padding:4px 8px;border-radius:6px;white-space:nowrap;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+              <div style="font-size:11px;font-weight:700;color:var(--gdi-text-primary);background:var(--gdi-surface);padding:4px 8px;border-radius:6px;border:1px solid var(--gdi-border);">
                 ${escapeHtml(n.label)}
-                ${n.count ? `<span style="color:#6366f1;margin-left:4px;">(${n.count})</span>` : ''}
               </div>
             </div>
           `).join('')}
-        </div>
-        <div style="margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#64748b;">
-          <div style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;border-radius:50%;background:#6366f1;"></span> Current Page</div>
-          <div style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;border-radius:50%;background:#8b5cf6;"></span> Linked Pages</div>
-          <div style="display:flex;align-items:center;gap:6px;"><span style="width:30px;height:2px;background:#cbd5e1;"></span> Link thickness = frequency</div>
         </div>
       </div>
     `;
@@ -11791,88 +11352,26 @@ content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow
   const renderLinks = (uniqueInternal, externalDomains) => {
     return `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:14px;">
-        <!-- Internal Links Detail -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">🔗 Internal Links (${data.internalLinks.length})</h3>
-          <div style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+        <div class="ss-card">
+          <h3 class="ss-h3">🔗 Internal Links (${data.internalLinks.length})</h3>
+          <div class="gdi-scrollbar" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
             ${uniqueInternal.slice(0, 20).map(item => `
-              <div style="padding:10px 12px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                  <span style="font-family:monospace;font-size:12px;color:#334155;word-break:break-all;">${escapeHtml(item.path)}</span>
-                  <span style="padding:2px 8px;border-radius:12px;background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;flex-shrink:0;">${item.count}×</span>
-                </div>
-                <div style="font-size:11px;color:#64748b;">
-                  Anchors: ${[...new Set(item.texts)].slice(0, 3).map(t => `"${escapeHtml(t)}"`).join(', ')}
+              <div class="ss-item">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-family:monospace;font-size:12px;color:var(--gdi-text-main);word-break:break-all;">${escapeHtml(item.path)}</span>
+                  <span style="background:${tColor('colors.infoLight')};color:${tColor('colors.info')};font-size:11px;padding:2px 8px;border-radius:12px;font-weight:bold;">${item.count}×</span>
                 </div>
               </div>
             `).join('')}
           </div>
         </div>
 
-        <!-- External Links -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">🌐 External Domains (${externalDomains.length})</h3>
-          <div style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
-            ${externalDomains.slice(0, 25).map(domain => {
-              const count = data.externalLinks.filter(l => l.url.includes(domain)).length;
-              const nofollowCount = data.externalLinks.filter(l => l.url.includes(domain) && l.isNofollow).length;
-              return `
-                <div style="padding:10px 12px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
-                  <span style="font-size:13px;color:#334155;font-weight:600;">${escapeHtml(domain)}</span>
-                  <div style="display:flex;gap:6px;">
-                    <span style="padding:2px 8px;border-radius:12px;background:#dbeafe;color:#1e40af;font-size:11px;font-weight:700;">${count} links</span>
-                    ${nofollowCount ? `<span style="padding:2px 8px;border-radius:12px;background:#fee2e2;color:#991b1b;font-size:11px;font-weight:700;">${nofollowCount} nofollow</span>` : ''}
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-
-        <!-- Link Attributes -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">🏷️ Link Attributes</h3>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div style="padding:14px;border-radius:10px;background:#fef2f2;border:1px solid #fecaca;text-align:center;">
-              <div style="font-size:24px;font-weight:800;color:#dc2626;">${data.nofollowLinks.length}</div>
-              <div style="font-size:12px;color:#991b1b;font-weight:600;">Nofollow</div>
-            </div>
-            <div style="padding:14px;border-radius:10px;background:#fef3c7;border:1px solid #fcd34d;text-align:center;">
-              <div style="font-size:24px;font-weight:800;color:#b45309;">${data.sponsoredLinks.length}</div>
-              <div style="font-size:12px;color:#92400e;font-weight:600;">Sponsored</div>
-            </div>
-            <div style="padding:14px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;text-align:center;">
-              <div style="font-size:24px;font-weight:800;color:#1e40af;">${data.ugcLinks.length}</div>
-              <div style="font-size:12px;color:#1e40af;font-weight:600;">UGC</div>
-            </div>
-            <div style="padding:14px;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;text-align:center;">
-              <div style="font-size:24px;font-weight:800;color:#059669;">${data.brokenLinks.length}</div>
-              <div style="font-size:12px;color:#059669;font-weight:600;">Broken</div>
-            </div>
-          </div>
-          ${data.brokenLinks.length ? `
-            <div style="margin-top:12px;padding:10px;border-radius:8px;background:#fee2e2;border:1px solid #fecaca;">
-              <div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:6px;">Broken Links</div>
-              ${data.brokenLinks.slice(0, 5).map(l => `
-                <div style="font-size:11px;color:#dc2626;word-break:break-all;margin-bottom:3px;">${escapeHtml(l.url)} — ${escapeHtml(l.error)}</div>
-              `).join('')}
-            </div>
-          ` : ''}
-        </div>
-
-        <!-- Anchor Text Analysis -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">📝 Anchor Text Variations</h3>
-          <div style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
-            ${[...data.anchorTextMap.entries()].slice(0, 15).map(([path, texts]) => `
-              <div style="padding:10px 12px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;">
-                <div style="font-family:monospace;font-size:11px;color:#64748b;word-break:break-all;margin-bottom:4px;">${escapeHtml(path)}</div>
-                <div style="display:flex;flex-wrap:wrap;gap:4px;">
-                  ${[...texts].slice(0, 4).map(t => `
-                    <span style="padding:3px 8px;border-radius:6px;background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:600;">"${escapeHtml(t)}"</span>
-                  `).join('')}
-                  ${texts.size > 4 ? `<span style="padding:3px 8px;color:#94a3b8;font-size:11px;">+${texts.size - 4} more</span>` : ''}
-                </div>
+        <div class="ss-card">
+          <h3 class="ss-h3">🌐 External Domains (${externalDomains.length})</h3>
+          <div class="gdi-scrollbar" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+            ${externalDomains.slice(0, 25).map(domain => `
+              <div class="ss-item" style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--gdi-text-main);font-weight:600;">${escapeHtml(domain)}</span>
               </div>
             `).join('')}
           </div>
@@ -11882,125 +11381,32 @@ content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow
   };
 
   const renderSEO = () => {
-    const desc = data.metaTags.description || '';
-    const title = data.metaTags['og:title'] || data.metaTags['twitter:title'] || '';
-
     return `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:14px;">
-        <!-- SEO Score Card -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.04);grid-column:1 / -1;">
-          <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
-            <div class="ss-score-ring" style="width:100px;height:100px;">
-              <svg width="100" height="100" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#e2e8f0" stroke-width="8"/>
-                <circle cx="50" cy="50" r="42" fill="none" stroke="${seo.score >= 80 ? '#10b981' : seo.score >= 60 ? '#f59e0b' : '#ef4444'}" stroke-width="8"
-                  stroke-dasharray="${2 * Math.PI * 42}" stroke-dashoffset="${2 * Math.PI * 42 * (1 - seo.score / 100)}"
-                  stroke-linecap="round" style="transition:stroke-dashoffset 1s ease;"/>
-              </svg>
-              <div class="ss-score-text">
-                <div style="font-size:32px;font-weight:800;color:${seo.score >= 80 ? '#059669' : seo.score >= 60 ? '#b45309' : '#dc2626'};">${seo.score}</div>
-                <div style="font-size:11px;color:#64748b;font-weight:600;">/100</div>
-              </div>
-            </div>
-            <div style="flex:1;min-width:250px;">
-              <div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:8px;">SEO Health Check</div>
-              <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                ${seo.issues.map(i => `<span style="padding:4px 12px;border-radius:20px;background:#fee2e2;color:#991b1b;font-size:12px;font-weight:700;">🚨 ${escapeHtml(i)}</span>`).join('')}
-                ${seo.warnings.map(w => `<span style="padding:4px 12px;border-radius:20px;background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;">⚠️ ${escapeHtml(w)}</span>`).join('')}
-                ${!seo.issues.length && !seo.warnings.length ? '<span style="padding:4px 12px;border-radius:20px;background:#dcfce7;color:#059669;font-size:12px;font-weight:700;">✅ All checks passed</span>' : ''}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Meta Tags -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">📝 Meta Tags</h3>
+        <div class="ss-card">
+          <h3 class="ss-h3">📝 Meta Tags</h3>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            ${Object.entries(data.metaTags).slice(0, 20).map(([name, content]) => {
-              const isLong = content.length > 100;
-              const isOptimal = name === 'description' && content.length >= 50 && content.length <= 160;
-              return `
-                <div style="padding:10px 12px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;${isOptimal ? 'border-left:3px solid #10b981;' : ''}">
-                  <div style="font-size:11px;font-weight:800;color:#6366f1;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">${escapeHtml(name)}</div>
-                  <div style="font-size:12px;color:#334155;word-break:break-all;${isLong ? 'line-height:1.5;' : ''}">${escapeHtml(content)}</div>
-                  ${name === 'description' ? `<div style="font-size:11px;color:${content.length >= 50 && content.length <= 160 ? '#059669' : '#dc2626'};margin-top:2px;font-weight:600;">${content.length} characters ${content.length >= 50 && content.length <= 160 ? '✓' : '✗'}</div>` : ''}
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-
-        <!-- Schema Data -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">📋 Schema.org JSON-LD</h3>
-          ${data.schemaData.length ? `
-            <div style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;">
-              ${data.schemaData.map((schema, i) => `
-                <div style="padding:12px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;">
-                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                    <span style="padding:3px 8px;border-radius:6px;background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;">${schema['@type'] || 'Unknown'}</span>
-                    <span style="font-size:11px;color:#94a3b8;">Schema #${i + 1}</span>
-                  </div>
-                  <pre style="margin:0;font-size:11px;color:#475569;overflow-x:auto;white-space:pre-wrap;word-break:break-all;">${escapeHtml(JSON.stringify(schema, null, 2))}</pre>
-                </div>
-              `).join('')}
-            </div>
-          ` : '<div style="text-align:center;padding:40px;color:#94a3b8;">No schema markup found</div>'}
-        </div>
-
-        <!-- Heading Analysis -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">📑 Heading Analysis</h3>
-          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-            ${Object.entries(data.headingHierarchy).map(([level, count]) => count > 0 ? `
-              <div style="padding:8px 16px;border-radius:10px;background:${level === 'h1' ? '#eff6ff' : '#f8fafc'};border:1px solid ${level === 'h1' ? '#bfdbfe' : '#e2e8f0'};text-align:center;min-width:60px;">
-                <div style="font-size:20px;font-weight:800;color:${level === 'h1' ? '#3b82f6' : '#64748b'};">${count}</div>
-                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;">${level}</div>
-              </div>
-            ` : '').join('')}
-          </div>
-          ${data.hierarchyIssues.length ? `
-            <div style="padding:10px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;margin-bottom:12px;">
-              <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px;">⚠️ Hierarchy Issues</div>
-              ${data.hierarchyIssues.map(i => `<div style="font-size:11px;color:#b45309;">• ${escapeHtml(i)}</div>`).join('')}
-            </div>
-          ` : ''}
-          <div style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;">
-            ${data.headings.map(h => `
-              <div style="padding:8px 10px;border-radius:6px;background:${h.level === 1 ? '#eff6ff' : h.level === 2 ? '#f8fafc' : '#fff'};border-left:2px solid ${h.level === 1 ? '#3b82f6' : h.level === 2 ? '#6366f1' : '#cbd5e1'};margin-left:${(h.level - 1) * 12}px;">
-                <span style="font-size:10px;font-weight:800;color:${h.level === 1 ? '#3b82f6' : '#94a3b8'};margin-right:6px;">H${h.level}</span>
-                <span style="font-size:12px;color:#334155;">${escapeHtml(h.text)}</span>
+            ${Object.entries(data.metaTags).slice(0, 10).map(([name, content]) => `
+              <div class="ss-item">
+                <div style="font-size:11px;font-weight:800;color:var(--gdi-primary);text-transform:uppercase;margin-bottom:2px;">${escapeHtml(name)}</div>
+                <div style="font-size:12px;color:var(--gdi-text-main);word-break:break-all;">${escapeHtml(content)}</div>
               </div>
             `).join('')}
           </div>
         </div>
 
-        <!-- Image SEO -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">🖼️ Image SEO</h3>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
-            <div style="text-align:center;padding:12px;border-radius:10px;background:#f8fafc;">
-              <div style="font-size:24px;font-weight:800;color:#0f172a;">${data.images.length}</div>
-              <div style="font-size:11px;color:#64748b;">Total</div>
+        <div class="ss-card">
+          <h3 class="ss-h3">🖼️ Image SEO</h3>
+          <div style="display:flex;gap:10px;">
+            <div class="ss-item" style="flex:1;text-align:center;">
+              <div style="font-size:24px;font-weight:800;color:var(--gdi-text-main);">${data.images.length}</div>
+              <div style="font-size:11px;color:var(--gdi-text-muted);">Total Images</div>
             </div>
-            <div style="text-align:center;padding:12px;border-radius:10px;background:${data.imagesWithoutAlt.length ? '#fef2f2' : '#f0fdf4'};">
-              <div style="font-size:24px;font-weight:800;color:${data.imagesWithoutAlt.length ? '#dc2626' : '#059669'};">${data.imagesWithoutAlt.length}</div>
-              <div style="font-size:11px;color:#64748b;">Missing Alt</div>
-            </div>
-            <div style="text-align:center;padding:12px;border-radius:10px;background:${data.imagesWithoutDimensions.length ? '#fef3c7' : '#f0fdf4'};">
-              <div style="font-size:24px;font-weight:800;color:${data.imagesWithoutDimensions.length ? '#b45309' : '#059669'};">${data.imagesWithoutDimensions.length}</div>
-              <div style="font-size:11px;color:#64748b;">No Dimensions</div>
+            <div class="ss-item" style="flex:1;text-align:center;background:${data.imagesWithoutAlt.length ? tColor('colors.errorLight') : tColor('colors.successLight')}">
+              <div style="font-size:24px;font-weight:800;color:${data.imagesWithoutAlt.length ? tColor('colors.error') : tColor('colors.success')};">${data.imagesWithoutAlt.length}</div>
+              <div style="font-size:11px;color:var(--gdi-text-muted);">Missing Alt</div>
             </div>
           </div>
-          ${data.imagesWithoutAlt.length ? `
-            <div style="max-height:200px;overflow-y:auto;">
-              <div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:6px;">Images Missing Alt Text</div>
-              ${data.imagesWithoutAlt.slice(0, 8).map(src => `
-                <div style="font-size:11px;color:#dc2626;word-break:break-all;padding:4px 0;border-bottom:1px solid #fee2e2;">${escapeHtml(src.substring(0, 80))}${src.length > 80 ? '...' : ''}</div>
-              `).join('')}
-            </div>
-          ` : ''}
         </div>
       </div>
     `;
@@ -12009,270 +11415,46 @@ content.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow
   const renderTechnical = () => {
     return `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;">
-        <!-- Page Info -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">📄 Page Information</h3>
+        <div class="ss-card">
+          <h3 class="ss-h3">📄 Page Information</h3>
           <div style="display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">Canonical URL</span>
-              <span style="font-size:12px;color:#334155;font-weight:600;word-break:break-all;max-width:200px;text-align:right;">${escapeHtml(data.canonical)}</span>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--gdi-border);padding-bottom:8px;">
+              <span class="ss-text-sec" style="font-size:13px;">Canonical URL</span>
+              <span class="ss-text-main" style="font-size:12px;font-weight:600;">${escapeHtml(data.canonical)}</span>
             </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">Language</span>
-              <span style="font-size:13px;color:${data.htmlLang === 'Not specified' ? '#dc2626' : '#334155'};font-weight:600;">${escapeHtml(data.htmlLang)}</span>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--gdi-border);padding-bottom:8px;">
+              <span class="ss-text-sec" style="font-size:13px;">Page Size</span>
+              <span class="ss-text-main" style="font-size:13px;font-weight:600;">${data.pageSizeKB} KB</span>
             </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">Page Size</span>
-              <span style="font-size:13px;color:#334155;font-weight:600;">${data.pageSizeKB} KB</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">DOM Elements</span>
-              <span style="font-size:13px;color:#334155;font-weight:600;">${data.domStats.totalElements.toLocaleString()}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">Max DOM Depth</span>
-              <span style="font-size:13px;color:${data.domStats.maxDepth > 32 ? '#dc2626' : '#334155'};font-weight:600;">${data.domStats.maxDepth}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;">
-              <span style="font-size:13px;color:#64748b;">Deepest Element</span>
-              <span style="font-size:11px;color:#334155;font-weight:600;font-family:monospace;word-break:break-all;max-width:200px;text-align:right;">${escapeHtml(data.domStats.deepestPath)}</span>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--gdi-border);padding-bottom:8px;">
+              <span class="ss-text-sec" style="font-size:13px;">DOM Elements</span>
+              <span class="ss-text-main" style="font-size:13px;font-weight:600;">${data.domStats.totalElements.toLocaleString()}</span>
             </div>
           </div>
-        </div>
-
-        <!-- Responsive -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">📱 Responsive</h3>
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">Viewport Meta</span>
-              <span style="font-size:13px;color:${data.hasViewport ? '#059669' : '#dc2626'};font-weight:600;">${data.hasViewport ? '✅ Present' : '❌ Missing'}</span>
-            </div>
-            ${data.hasViewport ? `
-              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-                <span style="font-size:13px;color:#64748b;">Viewport Content</span>
-                <span style="font-size:11px;color:#334155;font-weight:600;word-break:break-all;max-width:200px;text-align:right;">${escapeHtml(data.viewport)}</span>
-              </div>
-            ` : ''}
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">Window Width</span>
-              <span style="font-size:13px;color:#334155;font-weight:600;">${window.innerWidth}px</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">Window Height</span>
-              <span style="font-size:13px;color:#334155;font-weight:600;">${window.innerHeight}px</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;">
-              <span style="font-size:13px;color:#64748b;">Pixel Ratio</span>
-              <span style="font-size:13px;color:#334155;font-weight:600;">${window.devicePixelRatio || 1}×</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Assets -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">⚡ Assets</h3>
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">External Scripts</span>
-              <span style="font-size:13px;color:#334155;font-weight:600;">${data.scripts.length}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">Stylesheets</span>
-              <span style="font-size:13px;color:#334155;font-weight:600;">${data.stylesheets.length}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-size:13px;color:#64748b;">Inline Styles</span>
-              <span style="font-size:13px;color:#334155;font-weight:600;">${data.inlineStyles}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;">
-              <span style="font-size:13px;color:#64748b;">Forms</span>
-              <span style="font-size:13px;color:#334155;font-weight:600;">${data.forms.length}</span>
-            </div>
-          </div>
-          ${data.scripts.length > 0 ? `
-            <div style="margin-top:12px;max-height:150px;overflow-y:auto;">
-              <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;">Scripts</div>
-              ${data.scripts.slice(0, 5).map(s => `
-                <div style="font-size:10px;color:#94a3b8;word-break:break-all;padding:2px 0;">${escapeHtml(s)}</div>
-              `).join('')}
-            </div>
-          ` : ''}
-        </div>
-
-        <!-- Forms Detail -->
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:#0f172a;">📝 Forms (${data.forms.length})</h3>
-          ${data.forms.length ? `
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              ${data.forms.map((f, i) => `
-                <div style="padding:10px 12px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;">
-                  <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:13px;font-weight:700;color:#334155;">Form #${i + 1}</span>
-                    <span style="padding:2px 8px;border-radius:12px;background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;">${f.inputs} fields</span>
-                  </div>
-                  <div style="font-size:11px;color:#64748b;margin-top:4px;font-family:monospace;">
-                    ${f.action ? `action="${escapeHtml(f.action)}"` : 'No action'} method="${f.method}"
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          ` : '<div style="text-align:center;padding:20px;color:#94a3b8;">No forms found</div>'}
         </div>
       </div>
     `;
   };
 
   const bindEvents = () => {
-    // Tabs
     $$('.ss-tab', content).forEach(t => {
       t.addEventListener('click', () => { activeTab = t.dataset.tab; render(); });
     });
-
-    // View mode toggle
     $$('.ss-view-btn', content).forEach(b => {
       b.addEventListener('click', () => { viewMode = b.dataset.view; render(); });
     });
 
-    // Export
-    $('#ss-export', content)?.addEventListener('click', showExportMenu);
-
-  
-  };
-
-  const showExportMenu = () => {
-    const existing = $('#ss-export-menu');
-    if (existing) { existing.remove(); return; }
-
-    const menu = document.createElement('div');
-    menu.id = 'ss-export-menu';
-    menu.style.cssText = `
-      position:absolute;right:28px;top:70px;z-index:100;
-      background:#fff;border:1px solid #e2e8f0;border-radius:14px;
-      box-shadow:0 20px 50px rgba(0,0,0,.15);padding:8px;min-width:220px;
-      animation:ssFadeIn .2s ease;
-    `;
-    menu.innerHTML = `
-      <div style="padding:8px 12px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Export Report</div>
-      <button id="ss-exp-full" class="ss-menu-item" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:8px;"><span>📋</span> Full Report (Text)</button>
-      <button id="ss-exp-csv" class="ss-menu-item" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:8px;"><span>📊</span> Links CSV</button>
-      <button id="ss-exp-seo" class="ss-menu-item" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:8px;"><span>🎯</span> SEO Audit CSV</button>
-      <div style="height:1px;background:#e2e8f0;margin:6px 0;"></div>
-      <button id="ss-exp-copy" class="ss-menu-item" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:8px;"><span>📋</span> Copy Summary</button>
-    `;
-    modal.appendChild(menu);
-
-    const closeMenu = (e) => { if (!menu.contains(e.target) && e.target.id !== 'ss-export') { menu.remove(); document.removeEventListener('click', closeMenu); } };
-    setTimeout(() => document.addEventListener('click', closeMenu), 10);
-
-    menu.querySelectorAll('.ss-menu-item').forEach(item => {
-      item.addEventListener('mouseenter', () => item.style.background = '#f8fafc');
-      item.addEventListener('mouseleave', () => item.style.background = 'transparent');
+    $('#ss-export', content)?.addEventListener('click', () => {
+      const summary = `Site Structure Report — ${data.domain}\nSEO Score: ${seo.score}/100\nInternal Links: ${data.internalLinks.length}\nExternal Links: ${data.externalLinks.length}\nImages: ${data.images.length} (${data.imagesWithoutAlt.length} missing alt)\nPage Size: ${data.pageSizeKB} KB`;
+      copy(summary).then(() => toast('Report copied to clipboard!', 'success'));
     });
-
-    $('#ss-exp-full', menu).addEventListener('click', () => { exportFullReport(); menu.remove(); });
-    $('#ss-exp-csv', menu).addEventListener('click', () => { exportLinksCSV(); menu.remove(); });
-    $('#ss-exp-seo', menu).addEventListener('click', () => { exportSEOCSV(); menu.remove(); });
-    $('#ss-exp-copy', menu).addEventListener('click', async () => {
-      const summary = `Site Structure Report — ${data.domain}
-SEO Score: ${seo.score}/100
-Internal Links: ${data.internalLinks.length}
-External Links: ${data.externalLinks.length}
-Unique Pages: ${data.linkMap.size}
-Images: ${data.images.length} (${data.imagesWithoutAlt.length} missing alt)
-DOM Depth: ${data.domStats.maxDepth}
-Page Size: ${data.pageSizeKB} KB`;
-      const ok = await copy(summary);
-      toast(ok ? 'Copied!' : 'Failed', ok ? 'success' : 'error');
-      menu.remove();
-    });
-  };
-
-  const exportFullReport = () => {
-    const report = `SITE STRUCTURE REPORT
-Generated: ${new Date().toLocaleString()}
-URL: ${data.fullUrl}
-Domain: ${data.domain}
-
-=== SEO SCORE: ${seo.score}/100 ===
-Issues: ${seo.issues.join(', ') || 'None'}
-Warnings: ${seo.warnings.join(', ') || 'None'}
-
-=== LINKS ===
-Internal: ${data.internalLinks.length}
-External: ${data.externalLinks.length}
-Unique Pages: ${data.linkMap.size}
-Nofollow: ${data.nofollowLinks.length}
-Sponsored: ${data.sponsoredLinks.length}
-Broken: ${data.brokenLinks.length}
-
-=== HEADINGS ===
-${Object.entries(data.headingHierarchy).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join('\n')}
-
-=== META TAGS ===
-${Object.entries(data.metaTags).map(([k, v]) => `${k}: ${v.substring(0, 100)}`).join('\n')}
-
-=== TECHNICAL ===
-Page Size: ${data.pageSizeKB} KB
-DOM Elements: ${data.domStats.totalElements}
-DOM Depth: ${data.domStats.maxDepth}
-Canonical: ${data.canonical}
-Language: ${data.htmlLang}
-Viewport: ${data.hasViewport ? 'Present' : 'Missing'}`;
-
-    const blob = new Blob([report], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `site-report-${data.domain}-${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('Report downloaded', 'success');
-  };
-
-  const exportLinksCSV = () => {
-    let csv = 'Type,Path/URL,Count,Anchor Texts,Status\n';
-    [...data.linkMap.values()].forEach(item => {
-      csv += `"Internal","${item.path.replace(/"/g, '""')}",${item.count},"${[...new Set(item.texts)].join(' | ').replace(/"/g, '""').substring(0, 200)}","OK"\n`;
-    });
-    data.brokenLinks.forEach(item => {
-      csv += `"Broken","${item.url.replace(/"/g, '""')}",0,"","${item.error.replace(/"/g, '""')}"\n`;
-    });
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `links-${data.domain}-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('Links CSV exported', 'success');
-  };
-
-  const exportSEOCSV = () => {
-    let csv = 'Category,Item,Status,Value,Recommendation\n';
-    csv += `"Structure","H1 Tags","${data.headingHierarchy.h1 === 1 ? 'Good' : 'Issue'}","${data.headingHierarchy.h1} found","Should have exactly 1 H1"\n`;
-    csv += `"Meta","Description","${data.metaTags.description ? 'Present' : 'Missing'}","${(data.metaTags.description || '').length} chars","50-160 characters optimal"\n`;
-    csv += `"Meta","Viewport","${data.hasViewport ? 'Present' : 'Missing'}","${data.viewport || 'N/A'}","Required for mobile"\n`;
-    csv += `"Links","Internal Links","${data.internalLinks.length >= 5 ? 'Good' : 'Low'}","${data.internalLinks.length}","At least 5 recommended"\n`;
-    csv += `"Images","Alt Text","${data.imagesWithoutAlt.length === 0 ? 'Good' : 'Issue'}","${data.imagesWithoutAlt.length} missing","All images need alt text"\n`;
-    csv += `"Technical","Canonical","${data.canonical === data.fullUrl ? 'Match' : 'Mismatch'}","${data.canonical}","Should match current URL"\n`;
-    csv += `"Technical","Language","${data.htmlLang !== 'Not specified' ? 'Present' : 'Missing'}","${data.htmlLang}","Declare page language"\n`;
-    csv += `"Technical","Page Size","${parseFloat(data.pageSizeKB) < 500 ? 'Good' : 'Large'}","${data.pageSizeKB} KB","Keep under 500KB"\n`;
-    csv += `"SEO Score","Overall","${seo.score >= 80 ? 'Good' : seo.score >= 60 ? 'Fair' : 'Poor'}","${seo.score}/100","Aim for 80+"\n`;
-
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `seo-audit-${data.domain}-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('SEO audit exported', 'success');
   };
 
   // ============ INIT ============
-  const modal = createModal('Site Structure Visualizer', content);
   render();
+  GDI.createModal('Site Structure Visualizer', content, { 
+    width: '95vw', maxWidth: '1200px', icon: '🏗️', subtitle: 'Interactive site architecture analysis' 
+  });
 }
 
 // ==================== GOOGLE MAPS SCRAPER (WORKING VERSION) ====================
@@ -12343,7 +11525,8 @@ function scrapeGoogleMaps() {
     `;
 
     overlay.appendChild(modal);
-    document.body.appendChild(overlay);
+    overlay.classList.add('gdi-pointer-auto');
+    GDI.ShadowRoot.appendChild(overlay);
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay && !isMinimized) destroy(); });
     document.addEventListener('keydown', (e) => {
@@ -12380,7 +11563,8 @@ function scrapeGoogleMaps() {
       <span style="font-size:11px;opacity:.8;">Ctrl+M</span>
     `;
     pill.onclick = restore;
-    document.body.appendChild(pill);
+    pill.classList.add('gdi-pointer-auto');
+    GDI.ShadowRoot.appendChild(pill);
     toast('Minimized — Ctrl+M to restore', 'info');
   };
 
@@ -13800,7 +12984,8 @@ function toolImageDownloader() {
 
     overlay.appendChild(fullImg);
     overlay.appendChild(caption);
-    document.body.appendChild(overlay);
+    overlay.classList.add('gdi-pointer-auto');
+    GDI.ShadowRoot.appendChild(overlay);
 
     const close = () => overlay.remove();
     overlay.addEventListener('click', close);
@@ -14315,6 +13500,475 @@ function toolMultiDeviceTester() {
 
   const { close } = GDI.createModal('Multi-Device Emulator', content, { width: '95vw', maxWidth: '1400px' });
 }
+
+// ==================== TOOL: IMAGE OCR EXTRACTOR (PRO) ====================
+
+function toolImageOCR() {
+  const content = GDI.createElement('div');
+  
+  content.appendChild(createToolHeader(
+    '👁️ Image OCR Extractor Pro',
+    'Extract text from images with AI, featuring auto-enhancement and drag & drop.',
+    'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)'
+  ));
+
+  // --- 1. Settings Bar ---
+  const settingsRow = GDI.createElement('div', {
+    styles: { display: 'flex', gap: '16px', alignItems: 'flex-end', marginBottom: '16px', flexWrap: 'wrap' }
+  });
+
+  const langSelect = GDI.createSelect({
+    label: 'Language',
+    options: [
+      { value: 'eng', label: 'English' },
+      { value: 'spa', label: 'Spanish' },
+      { value: 'fre', label: 'French' },
+      { value: 'ger', label: 'German' },
+      { value: 'ita', label: 'Italian' }
+    ],
+    defaultValue: 'eng'
+  });
+  langSelect.wrapper.style.flex = '1';
+  langSelect.wrapper.style.marginBottom = '0';
+
+  const enhanceToggle = GDI.createToggle({
+    label: 'Enhance Image (B&W Contrast)',
+    checked: true
+  });
+  enhanceToggle.wrapper.style.marginBottom = '8px';
+
+  settingsRow.appendChild(langSelect.wrapper);
+  settingsRow.appendChild(enhanceToggle.wrapper);
+  content.appendChild(createSection('⚙️ OCR Settings', [settingsRow]));
+
+  // --- 2. Upload & Paste Area ---
+  const uploadArea = GDI.createElement('div', {
+    styles: { 
+      background: GDI.ThemeEngine.token('colors.surfaceSecondary'), 
+      padding: '24px', 
+      borderRadius: GDI.DESIGN_TOKENS.radii.lg, 
+      border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
+      marginBottom: '20px',
+      position: 'relative'
+    }
+  });
+  
+  const dropZone = GDI.createElement('div', {
+    attrs: { tabindex: '0' },
+    styles: { 
+      border: `2px dashed ${GDI.ThemeEngine.token('colors.primary')}`, 
+      borderRadius: GDI.DESIGN_TOKENS.radii.md, 
+      padding: '40px 20px', 
+      textAlign: 'center', 
+      cursor: 'pointer', 
+      transition: 'all 0.3s',
+      background: `${GDI.ThemeEngine.token('colors.primary')}08`,
+      outline: 'none'
+    },
+    html: `
+      <div style="font-size: 36px; margin-bottom: 12px; pointer-events: none;">📸</div>
+      <div style="color:${GDI.ThemeEngine.token('colors.textPrimary')}; font-weight: 700; font-size: 15px; pointer-events: none;">Drag & Drop, Paste (Ctrl+V), or Click to upload</div>
+      <div style="font-size: 12px; color: ${GDI.ThemeEngine.token('colors.textMuted')}; margin-top: 8px; pointer-events: none;">Supports JPG, PNG, WebP</div>
+    `
+  });
+  
+  const fileInput = GDI.createElement('input', { attrs: { type: 'file', accept: 'image/*' }, styles: { display: 'none' } });
+  
+  const previewWrap = GDI.createElement('div', { styles: { marginTop: '20px', display: 'none', textAlign: 'center', position: 'relative' } });
+  const previewImg = GDI.createElement('img', { styles: { maxWidth: '100%', maxHeight: '250px', borderRadius: GDI.DESIGN_TOKENS.radii.md, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`, boxShadow: GDI.DESIGN_TOKENS.shadows.md } });
+  
+  const clearImgBtn = GDI.createButton('✕', () => resetUI(), { variant: 'danger', size: 'sm', fullWidth: false });
+  clearImgBtn.style.position = 'absolute';
+  clearImgBtn.style.top = '-10px';
+  clearImgBtn.style.right = '-10px';
+  clearImgBtn.style.borderRadius = '50%';
+  clearImgBtn.style.width = '30px';
+  clearImgBtn.style.height = '30px';
+  clearImgBtn.style.padding = '0';
+  clearImgBtn.title = "Clear Image";
+
+  previewWrap.appendChild(previewImg);
+  previewWrap.appendChild(clearImgBtn);
+  
+  uploadArea.appendChild(dropZone);
+  uploadArea.appendChild(fileInput);
+  uploadArea.appendChild(previewWrap);
+  content.appendChild(uploadArea);
+// >>> ADD THIS NEW CAPTURE BUTTON <<<
+  const captureBtn = GDI.createButton('📸 Auto-Capture Current Page', () => {
+    if (isProcessing) return;
+    
+    resultsArea.style.display = 'block';
+    statusDisplay.textContent = '📸 Capturing visible screen...';
+    statusDisplay.style.background = GDI.ThemeEngine.token('colors.infoLight');
+    statusDisplay.style.color = GDI.ThemeEngine.token('colors.info');
+    
+    // Call your existing background.js capture function
+    chrome.runtime.sendMessage({ action: 'captureVisibleTab' }, (response) => {
+      if (chrome.runtime.lastError || !response || !response.dataUrl) {
+        GDI.showNotification('Failed to capture screen.', 'error');
+        statusDisplay.textContent = '❌ Capture failed.';
+        return;
+      }
+      
+      // Feed the automatic screenshot directly into the OCR processor
+      processImage(response.dataUrl);
+    });
+  }, { variant: 'primary', size: 'lg' });
+  
+  captureBtn.style.marginBottom = '20px';
+  content.appendChild(captureBtn);
+  // --- 3. Results Area ---
+  const resultsArea = GDI.createElement('div', { styles: { display: 'none' } });
+  
+  const statusDisplay = GDI.createElement('div', {
+    styles: {
+      padding: '12px', background: GDI.ThemeEngine.token('colors.infoLight'),
+      color: GDI.ThemeEngine.token('colors.info'), borderRadius: GDI.DESIGN_TOKENS.radii.md,
+      marginBottom: '16px', fontWeight: 'bold', textAlign: 'center', fontSize: '13px'
+    }
+  });
+
+  const { wrapper: textWrapper, textarea: resultTextarea } = createTextarea({
+    label: 'Extracted Text',
+    id: 'ocr-result',
+    rows: 8
+  });
+  
+  // Toolbar for extracted text
+  const actionToolbar = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' } });
+  
+  actionToolbar.appendChild(GDI.createButton('📋 Copy', () => {
+    GDI.copyToClipboard(resultTextarea.value).then(() => GDI.showNotification('Text copied!', 'success'));
+  }, { variant: 'primary', fullWidth: false }));
+
+  actionToolbar.appendChild(GDI.createButton('🧹 Clean Line Breaks', () => {
+    // Replaces multiple newlines with a single space, fixing broken OCR paragraphs
+    const cleaned = resultTextarea.value.replace(/\n+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    resultTextarea.value = cleaned;
+    GDI.showNotification('Text formatted!', 'info');
+  }, { variant: 'secondary', fullWidth: false }));
+
+  resultsArea.appendChild(statusDisplay);
+  resultsArea.appendChild(textWrapper);
+  resultsArea.appendChild(actionToolbar);
+  content.appendChild(resultsArea);
+
+  // --- 4. Logic: Image Processing & API ---
+  let isProcessing = false;
+
+  const resetUI = () => {
+    previewWrap.style.display = 'none';
+    resultsArea.style.display = 'none';
+    dropZone.style.display = 'block';
+    resultTextarea.value = '';
+    fileInput.value = '';
+  };
+
+  const processImage = async (imageSrc) => {
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    dropZone.style.display = 'none';
+    previewImg.src = imageSrc;
+    previewWrap.style.display = 'block';
+    resultsArea.style.display = 'block';
+    
+    statusDisplay.textContent = '☁️ Optimizing & Enhancing image...';
+    statusDisplay.style.background = GDI.ThemeEngine.token('colors.warningLight');
+    statusDisplay.style.color = GDI.ThemeEngine.token('colors.warning');
+    resultTextarea.value = '';
+
+    try {
+      const compressedImage = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          const maxDim = 1500; 
+          
+          if (width > maxDim || height > maxDim) {
+            if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; } 
+            else { width = Math.round((width * maxDim) / height); height = maxDim; }
+          }
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Enhancement Engine: Convert to High-Contrast Grayscale if toggled
+          if (enhanceToggle.getValue()) {
+            const imgData = ctx.getImageData(0, 0, width, height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
+              // Threshold binarization to make text pop against background
+              const threshold = brightness > 128 ? 255 : 0; 
+              data[i] = data[i + 1] = data[i + 2] = threshold;
+            }
+            ctx.putImageData(imgData, 0, 0);
+          }
+
+          resolve(canvas.toDataURL('image/jpeg', 0.9)); 
+        };
+        img.src = imageSrc;
+      });
+
+      // Update preview to show the enhanced version to the user
+      previewImg.src = compressedImage;
+
+      statusDisplay.textContent = '☁️ Extracting text via Secure Background Worker...';
+
+      chrome.runtime.sendMessage(
+        { 
+          action: 'performOCR', 
+          base64Image: compressedImage, 
+          language: langSelect.select.value 
+        }, 
+        (response) => {
+          if (chrome.runtime.lastError) throw new Error(chrome.runtime.lastError.message);
+          if (!response || !response.success) throw new Error(response?.error || 'Unknown extension error');
+          
+          const data = response.data;
+          if (data.IsErroredOnProcessing) throw new Error(data.ErrorMessage?.[0] || 'API Processing Error');
+
+          const text = data.ParsedResults?.[0]?.ParsedText || '';
+          resultTextarea.value = text.trim();
+          
+          if (text.trim()) {
+            statusDisplay.textContent = '✅ Extraction Complete!';
+            statusDisplay.style.background = GDI.ThemeEngine.token('colors.successLight');
+            statusDisplay.style.color = GDI.ThemeEngine.token('colors.success');
+          } else {
+            statusDisplay.textContent = '⚠️ No readable text found in this image.';
+          }
+          isProcessing = false;
+        }
+      );
+
+    } catch (error) {
+      console.error('OCR Error:', error);
+      statusDisplay.textContent = '❌ Error processing image. Please try again.';
+      statusDisplay.style.background = GDI.ThemeEngine.token('colors.errorLight');
+      statusDisplay.style.color = GDI.ThemeEngine.token('colors.error');
+      isProcessing = false;
+    }
+  };
+
+  // --- 5. Event Listeners ---
+  
+  // Click to upload
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => processImage(e.target.result);
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Paste (Ctrl+V)
+  uploadArea.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    for (let index in items) {
+      const item = items[index];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const blob = item.getAsFile();
+        const reader = new FileReader();
+        reader.onload = (event) => processImage(event.target.result);
+        reader.readAsDataURL(blob);
+        return;
+      }
+    }
+    GDI.showNotification('No image found in clipboard!', 'warning');
+  });
+
+  // Real Drag & Drop
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = GDI.ThemeEngine.token('colors.primaryDark');
+    dropZone.style.background = `${GDI.ThemeEngine.token('colors.primary')}20`;
+  });
+
+  dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = GDI.ThemeEngine.token('colors.primary');
+    dropZone.style.background = `${GDI.ThemeEngine.token('colors.primary')}08`;
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = GDI.ThemeEngine.token('colors.primary');
+    dropZone.style.background = `${GDI.ThemeEngine.token('colors.primary')}08`;
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (ev) => processImage(ev.target.result);
+        reader.readAsDataURL(file);
+      } else {
+        GDI.showNotification('Please drop an image file.', 'error');
+      }
+    }
+  });
+
+  setTimeout(() => dropZone.focus(), 100);
+
+  GDI.createModal('Image OCR Extractor Pro', content, { width: '650px' });
+}
+// ==================== TOOL: BULK CURRENCY CONVERTER ====================
+
+function toolBulkCurrencyConverter() {
+  const content = GDI.createElement('div');
+
+  content.appendChild(createToolHeader(
+    '💱 Bulk Currency Converter',
+    'Paste a list of numbers to convert them instantly',
+    'linear-gradient(135deg, #10B981 0%, #047857 100%)'
+  ));
+
+  const currencies = [
+    { value: 'usd', label: 'USD - US Dollar' },
+    { value: 'eur', label: 'EUR - Euro' },
+    { value: 'gbp', label: 'GBP - British Pound' },
+    { value: 'php', label: 'PHP - Philippine Peso' },
+    { value: 'aud', label: 'AUD - Australian Dollar' },
+    { value: 'cad', label: 'CAD - Canadian Dollar' },
+    { value: 'sgd', label: 'SGD - Singapore Dollar' },
+    { value: 'jpy', label: 'JPY - Japanese Yen' },
+    { value: 'inr', label: 'INR - Indian Rupee' },
+    { value: 'cny', label: 'CNY - Chinese Yuan' }
+  ];
+
+  // --- Configuration Section ---
+  const configRow = GDI.createElement('div', {
+    styles: { display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }
+  });
+
+  const fromSelect = GDI.createSelect({ label: 'From Currency', id: 'bcc-from', options: currencies, defaultValue: 'usd' });
+  const toSelect = GDI.createSelect({ label: 'To Currency', id: 'bcc-to', options: currencies, defaultValue: 'php' });
+  
+  fromSelect.wrapper.style.flex = '1';
+  toSelect.wrapper.style.flex = '1';
+
+  const rateInput = GDI.createInputField({
+    label: 'Exchange Rate',
+    id: 'bcc-rate',
+    type: 'number',
+    placeholder: 'e.g., 55.50'
+  });
+  rateInput.wrapper.style.flex = '1';
+
+  configRow.appendChild(fromSelect.wrapper);
+  configRow.appendChild(toSelect.wrapper);
+  configRow.appendChild(rateInput.wrapper);
+
+  // Fetch Live Rates Button
+  const fetchRow = GDI.createElement('div', { styles: { display: 'flex', gap: '12px', marginBottom: '20px' }});
+  const fetchBtn = GDI.createButton('🔄 Fetch Live Rate', async () => {
+    const from = fromSelect.select.value;
+    const to = toSelect.select.value;
+    fetchBtn.textContent = '⏳ Fetching...';
+    
+    try {
+      // Using a highly reliable, free CDN API for currency rates
+      const res = await fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${from}.json`);
+      if (!res.ok) throw new Error('API Error');
+      const data = await res.json();
+      const rate = data[from][to];
+      
+      rateInput.input.value = rate.toFixed(4);
+      GDI.showNotification(`Live rate applied: 1 ${from.toUpperCase()} = ${rate.toFixed(4)} ${to.toUpperCase()}`, 'success');
+      processConversion();
+    } catch (err) {
+      GDI.showNotification('Failed to fetch live rates. Please enter manually.', 'error');
+    } finally {
+      fetchBtn.textContent = '🔄 Fetch Live Rate';
+    }
+  }, { variant: 'secondary', size: 'sm', fullWidth: false });
+
+  fetchRow.appendChild(fetchBtn);
+  
+  content.appendChild(createSection('⚙️ Conversion Settings', [configRow, fetchRow]));
+
+  // --- Input & Output Section ---
+  const textRow = GDI.createElement('div', {
+    styles: { display: 'flex', gap: '16px', flexWrap: 'wrap' }
+  });
+
+  const inputArea = GDI.createTextarea({
+    label: 'Input Amounts (one per line)',
+    id: 'bcc-input',
+    placeholder: '100\n250.50\n1,000',
+    rows: 10
+  });
+  inputArea.wrapper.style.flex = '1';
+  inputArea.wrapper.style.minWidth = '250px';
+
+  const outputArea = GDI.createTextarea({
+    label: 'Converted Amounts',
+    id: 'bcc-output',
+    placeholder: 'Results will appear here...',
+    rows: 10
+  });
+  outputArea.textarea.setAttribute('readonly', 'true');
+  outputArea.textarea.style.background = GDI.ThemeEngine.token('colors.surfaceSecondary');
+  outputArea.wrapper.style.flex = '1';
+  outputArea.wrapper.style.minWidth = '250px';
+
+  textRow.appendChild(inputArea.wrapper);
+  textRow.appendChild(outputArea.wrapper);
+  
+  content.appendChild(createSection('📝 Data Entry', [textRow]));
+
+  // --- Logic ---
+  function processConversion() {
+    const rate = parseFloat(rateInput.input.value);
+    if (isNaN(rate) || rate <= 0) {
+      outputArea.textarea.value = '';
+      return;
+    }
+
+    const rawText = inputArea.textarea.value;
+    const lines = rawText.split('\n');
+    
+    const results = lines.map(line => {
+      if (!line.trim()) return '';
+      // Extract the first valid number from the line (ignores currency symbols, handles commas)
+      const match = line.match(/[\d,]+(\.\d+)?/);
+      if (!match) return line; // Return original text if no number found
+      
+      const num = parseFloat(match[0].replace(/,/g, ''));
+      if (isNaN(num)) return line;
+      
+      return (num * rate).toFixed(2);
+    });
+
+    outputArea.textarea.value = results.join('\n');
+  }
+
+  inputArea.textarea.addEventListener('input', processConversion);
+  rateInput.input.addEventListener('input', processConversion);
+  fromSelect.select.addEventListener('change', () => rateInput.input.value = '');
+  toSelect.select.addEventListener('change', () => rateInput.input.value = '');
+
+  // --- Actions ---
+  const actionRow = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
+  
+  actionRow.appendChild(GDI.createButton('📋 Copy Results', () => {
+    if (!outputArea.textarea.value.trim()) return;
+    GDI.copyToClipboard(outputArea.textarea.value).then(() => {
+      GDI.showNotification('✅ Converted amounts copied!', 'success');
+    });
+  }, { variant: 'primary' }));
+
+  content.appendChild(actionRow);
+
+  GDI.createModal('Bulk Currency Converter', content, { width: '750px' });
+}
+
 // ==================== EXPORT ====================
 
     Object.assign(window.SEOTools, {
@@ -14339,7 +13993,7 @@ function toolMultiDeviceTester() {
       advancedSEOCompare, advancedImageToolkit, visualizeSiteStructure, 
       scrapeGoogleMaps, keywordRankTracker, toolExtractColorTheme, 
       toolExtractTypography, toolSocialCardPreview, toolImageDownloader,
-      toolClearSiteData, toolMultiDeviceTester,
+      toolClearSiteData, toolMultiDeviceTester, toolImageOCR, toolBulkCurrencyConverter
     });
     
   })();
