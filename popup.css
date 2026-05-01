@@ -382,6 +382,38 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition-fast);
+}
+.tool-group h3:hover {
+  color: var(--primary);
+}
+.tool-group h3::after {
+  content: '▼';
+  margin-left: auto;
+  font-size: 10px;
+  transition: transform var(--transition-fast);
+}
+.tool-group.collapsed h3::after {
+  transform: rotate(-90deg);
+}
+.tool-group.collapsed .tool-grid {
+  display: none;
+}
+.tool-group.collapsed {
+  padding-bottom: 4px;
+  margin-bottom: 16px;
+}
+
+.tool-btn.suggested {
+  border-color: var(--accent);
+  background: var(--surface-secondary);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.tool-btn.suggested::before {
+  content: '✨';
+  font-size: 12px;
 }
 
 /* ==================== TOOL GRID ==================== */
@@ -421,10 +453,13 @@ body {
   word-break: break-word;
 }
 
-.tool-btn:hover {
+.tool-btn:hover, .tool-btn.keyboard-focus {
   border-color: var(--primary);
   background: var(--surface-secondary);
   transform: translateY(-1px);
+}
+.tool-btn.keyboard-focus {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
 }
 
 .tool-btn:active {
@@ -1139,3 +1174,16 @@ input:checked + .slider:before {
 @media (max-width: 400px) {
   .tool-grid { grid-template-columns: 1fr !important; }
 }
+/* === COMPACT MODE === */
+body.compact-mode .tool-grid { grid-template-columns: 1fr; gap: 6px; }
+body.compact-mode .tool-btn { min-height: 36px; padding: 8px 12px; font-size: 12px; }
+
+/* === SUCCESS STATE === */
+.tool-btn.btn-success { background: var(--success-light) !important; border-color: var(--success) !important; color: #166534 !important; transition: all 0.2s; }
+body.dark-mode .tool-btn.btn-success { background: rgba(16,185,129,0.2) !important; color: #34d399 !important; }
+
+/* === RECENTLY USED === */
+.recently-used-row { display: flex; gap: 8px; padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+.recently-used-row::-webkit-scrollbar { display: none; }
+.ru-btn { flex: 0 0 auto; padding: 6px 12px; font-size: 10px; font-weight: 700; border-radius: var(--radius-full); background: var(--surface-secondary); border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+.ru-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }

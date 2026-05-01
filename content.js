@@ -3,168 +3,245 @@
  * Routes all 55+ tool actions to their respective functions.
  */
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  const { action, settings = {}, templates = {} } = request;
-  
-  const SEOTools = window.SEOTools;
-  
-  if (!SEOTools) {
-    sendResponse({ success: false, error: 'SEO Tools not loaded' });
-    return true;
-  }
-  
-  try {
-    switch (action) {
-      // Quick Utilities
-      case 'copy-url': SEOTools.toolCopyUrl(); sendResponse({ success: true, message: 'URL copied!' }); break;
-      case 'copy-domain': SEOTools.toolCopyDomain(); sendResponse({ success: true, message: 'Domain copied!' }); break;
-      case 'scroll': SEOTools.toolScrollToBottom(); sendResponse({ success: true, message: 'Scrolled!' }); break;
-      case 'nextpage': SEOTools.toolNextPage(); sendResponse({ success: true, message: 'Navigating...' }); break;
-      case 'full-page-capture': SEOTools.toolFullPageCapture(); sendResponse({ success: true, message: 'Capturing...' }); break;
-      
-      // Generators
-      case 'urlslug': case 'slug': SEOTools.toolUrlSlugGenerator(); sendResponse({ success: true, message: 'URL Slug opened!' }); break;
-      case 'whatsapp-link': SEOTools.toolWhatsappLinkGenerator(); sendResponse({ success: true, message: 'WhatsApp link opened!' }); break;
-      
-      // Extractors
-      case 'email-extract': SEOTools.toolEmailExtractor(); sendResponse({ success: true, message: 'Emails extracted!' }); break;
-      case 'social-extract': SEOTools.toolExtractSocial(); sendResponse({ success: true, message: 'Social links found!' }); break;
-      case 'linkextract': SEOTools.toolExtractLinks(); sendResponse({ success: true, message: 'Links extracted!' }); break;
-      case 'domainextract': SEOTools.toolExtractDomains(); sendResponse({ success: true, message: 'Domains extracted!' }); break;
-      case 'googledomain': case 'bulk-google-domains': SEOTools.toolExtractBulkGoogleDomains(); sendResponse({ success: true, message: 'Deep extraction started!' }); break;
-      
-      // Finders
-      case 'blogs': SEOTools.toolFindBlog(); sendResponse({ success: true, message: 'Searching blog...' }); break;
-      case 'guestpost': SEOTools.toolFindGuestPost(); sendResponse({ success: true, message: 'Searching guest post...' }); break;
-      
-      // SEO Analysis
-      case 'highlight-dofollow': SEOTools.toolHighlightDoFollow(); sendResponse({ success: true, message: 'Highlighted!' }); break;
-      case 'remove-highlights': SEOTools.toolRemoveHighlights(); sendResponse({ success: true, message: 'Removed!' }); break;
-      case 'analyze-headings': SEOTools.toolAnalyzeHeadings(); sendResponse({ success: true, message: 'Headings analyzed!' }); break;
-      case 'analyze-meta': SEOTools.toolAnalyzeMeta(); sendResponse({ success: true, message: 'Meta analyzed!' }); break;
-      case 'analyze-images': SEOTools.toolAnalyzeImages(); sendResponse({ success: true, message: 'Images analyzed!' }); break;
-      case 'analyze-content': case 'keyword-density': SEOTools.toolAnalyzeKeywordDensity(); sendResponse({ success: true, message: 'Density analyzed!' }); break;
-      case 'serp-preview': SEOTools.toolShowSerpPreview(); sendResponse({ success: true, message: 'SERP preview opened!' }); break;
-      case 'broken-links': case 'analyze-links': SEOTools.toolCheckBrokenLinks(); sendResponse({ success: true, message: 'Checking links...' }); break;
-      case 'pagespeed': SEOTools.toolCheckPageSpeed(); sendResponse({ success: true, message: 'Opening PageSpeed...' }); break;
-      case 'robots-txt': SEOTools.toolCheckRobotsTxt(); sendResponse({ success: true, message: 'Opening robots.txt...' }); break;
-      case 'sitemap': SEOTools.toolCheckSitemap(); sendResponse({ success: true, message: 'Checking sitemap...' }); break;
-      case 'metrics': SEOTools.toolShowMetrics(); sendResponse({ success: true, message: 'Metrics opened!' }); break;
-      
-      // Email Templates
-      case 'advance-payment': SEOTools.toolPaymentForm('advance', settings); sendResponse({ success: true, message: 'Advance payment form opened!' }); break;
-      case 'payment-paypal': SEOTools.toolPaymentForm('paypal', settings); sendResponse({ success: true, message: 'PayPal form opened!' }); break;
-      case 'payment-gcash': SEOTools.toolPaymentForm('gcash', settings); sendResponse({ success: true, message: 'GCash form opened!' }); break;
-      case 'send-article': SEOTools.toolArticleForm('full', settings); sendResponse({ success: true, message: 'Article form opened!' }); break;
-      case 'send-quick-article': SEOTools.toolArticleForm('quick', settings); sendResponse({ success: true, message: 'Quick article form opened!' }); break;
-      case 'article-followup': SEOTools.toolFollowupForm(1, settings); sendResponse({ success: true, message: 'Follow-up opened!' }); break;
-      case 'second-followup': SEOTools.toolFollowupForm(2, settings); sendResponse({ success: true, message: '2nd follow-up opened!' }); break;
-      case 'final-notice': SEOTools.toolFollowupForm('final', settings); sendResponse({ success: true, message: 'Final notice opened!' }); break;
-      case 'cancel': SEOTools.toolCancelForm(settings); sendResponse({ success: true, message: 'Cancel form opened!' }); break;
-      case 'declined': SEOTools.toolDeclinedResponse(); sendResponse({ success: true, message: 'Declined template copied!' }); break;
-      case 'send-invoice': SEOTools.toolInvoiceForm(settings); sendResponse({ success: true, message: 'Invoice form opened!' }); break;
-      case 'email-outreach': case 'nego': SEOTools.toolOutreachTemplates(); sendResponse({ success: true, message: 'Templates loaded!' }); break;
-      case 'contact-form': SEOTools.toolFillContactForm(settings); sendResponse({ success: true, message: 'Form filler opened!' }); break;
-      
-      // Search & Discovery
-      case 'searchoperators': SEOTools.toolSearchOperators(); sendResponse({ success: true, message: 'Search operators opened!' }); break;
-      case 'bulk-url': SEOTools.toolBulkUrlOpener(); sendResponse({ success: true, message: 'Bulk URL opened!' }); break;
-      
-      // NEW TOOLS (Batch 8)
-      case 'currency-copier': SEOTools.toolCurrencyCopier(); sendResponse({ success: true, message: 'Currency copier opened!' }); break;
-      case 'url-optimizer': SEOTools.toolOptimizeUrl(); sendResponse({ success: true, message: 'URL optimized!' }); break;
-      case 'title-generator': SEOTools.toolGenerateTitles(); sendResponse({ success: true, message: 'Titles generated!' }); break;
-      case 'pubdate-checker': SEOTools.toolCheckPublicationDate(); sendResponse({ success: true, message: 'Date checked!' }); break;
-      case 'mobile-usability': SEOTools.toolTestMobileUsability(); sendResponse({ success: true, message: 'Mobile test complete!' }); break;
-      case 'ai-meta-generator': SEOTools.toolGenerateAIMeta(); sendResponse({ success: true, message: 'AI meta generated!' }); break;
-      case 'alt-generator': SEOTools.toolGenerateAltText(); sendResponse({ success: true, message: 'Alt text generated!' }); break;
-      case 'ai-topic-generator': SEOTools.toolGenerateAITopics(); sendResponse({ success: true, message: 'AI topics generated!' }); break;
-      case 'link-prospects': SEOTools.toolFindLinkProspects(); sendResponse({ success: true, message: 'Prospects found!' }); break;
-      case 'resource-pages': SEOTools.toolFindResourcePages(); sendResponse({ success: true, message: 'Resource pages found!' }); break;
-      case 'local-keyword-finder': SEOTools.toolFindLocalKeywords(); sendResponse({ success: true, message: 'Local keywords found!' }); break;
-      case 'hreflang-generator': SEOTools.toolGenerateHreflang(); sendResponse({ success: true, message: 'Hreflang generated!' }); break;
-      case 'duplicate-content': SEOTools.toolFindDuplicateContent(); sendResponse({ success: true, message: 'Duplicate check complete!' }); break;
-      case 'content-analyzer': SEOTools.toolContentAnalyzer(); sendResponse({ success: true, message: 'Content analyzed!' }); break;
-      case 'seo-audit-checklist': SEOTools.toolSEOAuditChecklist(); sendResponse({ success: true, message: 'Audit complete!' }); break;
-      case 'audit-checklist': SEOTools.toolAuditChecklist(); sendResponse({ success: true, message: 'Checklist opened!' }); break;
-      case 'seo-dashboard': SEOTools.toolSEODashboard(); sendResponse({ success: true, message: 'Dashboard opened!' }); break;
-      case 'citation-finder': SEOTools.toolFindLocalCitations(); sendResponse({ success: true, message: 'Citations found!' }); break;
-      
-      // Legacy support for original tool names (if original seo-tools.js is also loaded)
-      case 'structured-data': SEOTools.toolShowMetrics ? SEOTools.toolShowMetrics() : null; sendResponse({ success: true, message: 'Opened!' }); break;
-      case 'export-seo-data': SEOTools.toolSEODashboard ? SEOTools.toolSEODashboard() : null; sendResponse({ success: true, message: 'Dashboard opened!' }); break;
-    // ==================== EXTERNAL LINK WIRING ====================
-      case 'advsearch':
-        chrome.runtime.sendMessage({ action: 'openUrl', url: 'https://www.google.com/advanced_search' });
-        sendResponse({ success: true, message: 'Opening Advanced Search...' });
-        break;  
-       
-        // ==================== DESIGN TOOLS WIRING ====================
-      case 'extract-fonts': 
-        SEOTools.toolExtractTypography(); 
-        sendResponse({ success: true, message: 'Typography extracted!' }); 
-        break;
-          case 'extract-colors': 
-        SEOTools.toolExtractColorTheme(); 
-        sendResponse({ success: true, message: 'Color theme extracted!' }); 
-        break;
-      
-      // ==================== ADVANCED TOOLS WIRING ====================
-      case 'advanced-text-compare':
-        SEOTools.advancedSEOCompare();
-        sendResponse({ success: true, message: 'Advanced Text Compare opened!' });
-        break;
-        case 'bulk-currency': SEOTools.toolBulkCurrencyConverter(); sendResponse({ success: true, message: 'Currency converter opened!' }); break;
-      case 'image-toolkit':
-        SEOTools.advancedImageToolkit();
-        sendResponse({ success: true, message: 'Image Toolkit opened!' });
-        break;
-        
-      case 'maps-scraper':
-        SEOTools.scrapeGoogleMaps();
-        sendResponse({ success: true, message: 'Google Maps Scraper opened!' });
-        break;
-        
-      case 'keyword-rank-tracker':
-        SEOTools.keywordRankTracker();
-        sendResponse({ success: true, message: 'Keyword Rank Tracker opened!' });
-        break;
-        case 'site-structure':
-        SEOTools.visualizeSiteStructure();
-        sendResponse({ success: true, message: 'Site Structure Visualizer opened!' });
-        break;
-        case 'social-preview': 
-        SEOTools.toolSocialCardPreview(); 
-        sendResponse({ success: true, message: 'Social preview generated!' }); 
-        break;
-      case 'image-downloader': 
-        SEOTools.toolImageDownloader(); 
-        sendResponse({ success: true, message: 'Image downloader opened!' }); 
-        break;
-      case 'clear-site-data': 
-        SEOTools.toolClearSiteData(); 
-        sendResponse({ success: true, message: 'Clearing site data...' }); 
-        break;
-        case 'multi-device': 
-        SEOTools.toolMultiDeviceTester(); 
-        sendResponse({ success: true, message: 'Opening device emulators...' }); 
-        break;
-        case 'generate-topics': 
-        SEOTools.toolGenerateAITopics(); 
-        sendResponse({ success: true, message: 'Opening AI Topic Generator...' }); 
-        break;
-        case 'image-ocr': SEOTools.toolImageOCR(); sendResponse({ success: true, message: 'OCR Tool opened!' }); break;
-      default:
-        console.warn('Unknown action:', action);
-        sendResponse({ success: false, message: 'Unknown action: ' + action });
-    }
-  } catch (error) {
-    console.error('Tool error:', error);
-    sendResponse({ success: false, message: error.message });
-  }
-  
-  return true;
-});
+(function() {
+  'use strict';
 
-console.log('🚀 SEO Tools Pro v4.0 - Content Script Ready');
-console.log('📦 Tools loaded:', Object.keys(window.SEOTools || {}).length);
+  // Wait for dependencies to be ready
+  const MAX_WAIT_TIME = 10000; // 10 seconds
+  const CHECK_INTERVAL = 100;
+  let waitTime = 0;
+
+  function waitForDependencies(callback) {
+    const check = () => {
+      waitTime += CHECK_INTERVAL;
+      
+      if (window.SEOTools && Object.keys(window.SEOTools).length > 10) {
+        callback();
+        return;
+      }
+      
+      if (waitTime >= MAX_WAIT_TIME) {
+        console.error('SEO Tools Pro: Dependencies failed to load in time');
+        // Try one more time - maybe seo-tools.js is still parsing
+        if (typeof window.SEOTools !== 'undefined') {
+          callback();
+        }
+        return;
+      }
+      
+      setTimeout(check, CHECK_INTERVAL);
+    };
+    
+    check();
+  }
+
+  function initializeRouter() {
+    // Apply saved theme if available
+    try {
+      chrome.storage.sync.get({ 
+        themePrimary: '#2563EB', 
+        themeAccent: '#F59E0B', 
+        darkMode: false 
+      }, (settings) => {
+        if (window.GDI && window.GDI.ThemeEngine) {
+          if (settings.themePrimary) {
+            window.GDI.ThemeEngine.applyCustomColors(settings.themePrimary, settings.themeAccent);
+          }
+          if (settings.darkMode !== undefined) {
+            window.GDI.ThemeEngine.set(settings.darkMode ? 'dark' : 'light', false);
+          }
+        }
+      });
+    } catch (e) {
+      // Storage API may not be available in all contexts
+    }
+
+    const SEOTools = window.SEOTools;
+    if (!SEOTools) {
+      console.error('SEO Tools Pro: Tools not initialized');
+      return;
+    }
+
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      const { action, settings = {}, templates = {}, contextInfo = {} } = request;
+      
+      // Theme application
+      try {
+        if (window.GDI && window.GDI.ThemeEngine) {
+          if (settings.themePrimary) {
+            window.GDI.ThemeEngine.applyCustomColors(settings.themePrimary, settings.themeAccent);
+          }
+          if (settings.darkMode !== undefined) {
+            window.GDI.ThemeEngine.set(settings.darkMode ? 'dark' : 'light', false);
+          }
+        }
+      } catch (e) {}
+      
+      // Check if advanced tools are needed
+      const advancedTools = [
+        'advanced-text-compare', 'image-toolkit', 'maps-scraper', 
+        'site-structure', 'keyword-rank-tracker', 'image-ocr'
+      ];
+      
+      if (advancedTools.includes(action) && !SEOTools.advancedImageToolkit) {
+        sendResponse({ success: false, requireAdvanced: true });
+        return true;
+      }
+      
+      try {
+        if (action.startsWith('custom-')) {
+          if (SEOTools.toolCustomTemplate) {
+            SEOTools.toolCustomTemplate(action, settings, templates);
+            sendResponse({ success: true, message: 'Custom template opened!' });
+          } else {
+            sendResponse({ success: false, message: 'Custom template tool not ready. Please refresh the page.' });
+          }
+          return true;
+        }
+
+        // Tool routing map
+        const toolMap = {
+          // Direct URL Tools (for Context Menu support)
+          'wayback': () => { window.open(`https://web.archive.org/web/*/${window.location.href}`, '_blank'); return 'Opening Wayback Machine...'; },
+          'whois': () => { window.open(`https://www.whois.com/whois/${window.location.hostname.replace(/^www\./, '')}`, '_blank'); return 'Opening WHOIS...'; },
+          'pingdom': () => { window.open(`https://tools.pingdom.com/?url=${encodeURIComponent(window.location.href)}`, '_blank'); return 'Opening Pingdom...'; },
+          'schema': () => { window.open(`https://validator.schema.org/#url=${encodeURIComponent(window.location.href)}`, '_blank'); return 'Opening Schema Validator...'; },
+          'richresults': () => { window.open(`https://search.google.com/test/rich-results?url=${encodeURIComponent(window.location.href)}`, '_blank'); return 'Opening Rich Results...'; },
+          'amp': () => { window.open(`https://search.google.com/test/amp?url=${encodeURIComponent(window.location.href)}`, '_blank'); return 'Opening AMP Test...'; },
+          'authority': () => { window.open(`https://www.semrush.com/free-tools/website-authority-checker/?url=${encodeURIComponent(window.location.hostname.replace(/^www\./, ''))}`, '_blank'); return 'Opening...'; },
+          'spamscore': () => { window.open(`https://websiteseochecker.com/spam-score-checker/?url=${encodeURIComponent(window.location.hostname.replace(/^www\./, ''))}`, '_blank'); return 'Opening...'; },
+          'domainrating': () => { window.open(`https://ahrefs.com/website-authority-checker/?input=${encodeURIComponent(window.location.hostname.replace(/^www\./, ''))}`, '_blank'); return 'Opening...'; },
+          'traffic': () => { window.open(`https://ahrefs.com/traffic-checker/?input=${encodeURIComponent(window.location.hostname.replace(/^www\./, ''))}&mode=subdomains`, '_blank'); return 'Opening...'; },
+          // Quick Utilities
+          'copy-url': () => { SEOTools.toolCopyUrl(); return 'URL copied!'; },
+          'copy-domain': () => { SEOTools.toolCopyDomain(); return 'Domain copied!'; },
+          'scroll': () => { SEOTools.toolScrollToBottom(); return 'Scrolled!'; },
+          'nextpage': () => { SEOTools.toolNextPage(); return 'Navigating...'; },
+          'full-page-capture': () => { SEOTools.toolFullPageCapture(); return 'Capturing...'; },
+          
+          // Generators
+          'urlslug': () => { SEOTools.toolUrlSlugGenerator(); return 'URL Slug opened!'; },
+          'slug': () => { SEOTools.toolUrlSlugGenerator(); return 'URL Slug opened!'; },
+          'whatsapp-link': () => { SEOTools.toolWhatsappLinkGenerator(); return 'WhatsApp link opened!'; },
+          
+          // Extractors
+          'email-extract': () => { SEOTools.toolEmailExtractor(); return 'Emails extracted!'; },
+          'social-extract': () => { SEOTools.toolExtractSocial(); return 'Social links found!'; },
+          'linkextract': () => { SEOTools.toolExtractLinks(); return 'Links extracted!'; },
+          'domainextract': () => { SEOTools.toolExtractDomains(); return 'Domains extracted!'; },
+          'googledomain': () => { SEOTools.toolExtractBulkGoogleDomains(); return 'Deep extraction started!'; },
+          'bulk-google-domains': () => { SEOTools.toolExtractBulkGoogleDomains(); return 'Deep extraction started!'; },
+          
+          // Finders
+          'blogs': () => { SEOTools.toolFindBlog(); return 'Searching blog...'; },
+          'guestpost': () => { SEOTools.toolFindGuestPost(); return 'Searching guest post...'; },
+          
+          // SEO Analysis
+          'highlight-dofollow': () => { SEOTools.toolHighlightDoFollow(); return 'Highlighted!'; },
+          'remove-highlights': () => { SEOTools.toolRemoveHighlights(); return 'Removed!'; },
+          'analyze-headings': () => { SEOTools.toolAnalyzeHeadings(); return 'Headings analyzed!'; },
+          'analyze-meta': () => { SEOTools.toolAnalyzeMeta(); return 'Meta analyzed!'; },
+          'analyze-images': () => { SEOTools.toolAnalyzeImages(); return 'Images analyzed!'; },
+          'analyze-content': () => { SEOTools.toolContentAnalyzer(); return 'Content analyzed!'; },
+          'keyword-density': () => { SEOTools.toolAnalyzeKeywordDensity(); return 'Density analyzed!'; },
+          'serp-preview': () => { SEOTools.toolShowSerpPreview(); return 'SERP preview opened!'; },
+          'broken-links': () => { SEOTools.toolCheckBrokenLinks(); return 'Checking links...'; },
+          'analyze-links': () => { SEOTools.toolAnalyzeLinks(); return 'Links analyzed!'; },
+          'pagespeed': () => { SEOTools.toolCheckPageSpeed(); return 'Opening PageSpeed...'; },
+          'robots-txt': () => { SEOTools.toolCheckRobotsTxt(); return 'Opening robots.txt...'; },
+          'sitemap': () => { SEOTools.toolCheckSitemap(); return 'Checking sitemap...'; },
+          'metrics': () => { SEOTools.toolShowMetrics(); return 'Metrics opened!'; },
+          
+          // Email Templates
+          'advance-payment': () => { SEOTools.toolPaymentForm('advance', settings); return 'Advance payment form opened!'; },
+          'payment-paypal': () => { SEOTools.toolPaymentForm('paypal', settings); return 'PayPal form opened!'; },
+          'payment-gcash': () => { SEOTools.toolPaymentForm('gcash', settings); return 'GCash form opened!'; },
+          'send-article': () => { SEOTools.toolArticleForm('full', settings); return 'Article form opened!'; },
+          'send-quick-article': () => { SEOTools.toolArticleForm('quick', settings); return 'Quick article form opened!'; },
+          'article-followup': () => { SEOTools.toolFollowupForm(1, settings); return 'Follow-up opened!'; },
+          'second-followup': () => { SEOTools.toolFollowupForm(2, settings); return '2nd follow-up opened!'; },
+          'final-notice': () => { SEOTools.toolFollowupForm('final', settings); return 'Final notice opened!'; },
+          'cancel': () => { SEOTools.toolCancelForm(settings); return 'Cancel form opened!'; },
+          'declined': () => { SEOTools.toolDeclinedResponse(); return 'Declined template copied!'; },
+          'send-invoice': () => { SEOTools.toolInvoiceForm(settings); return 'Invoice form opened!'; },
+          'email-outreach': () => { SEOTools.toolOutreachTemplates(); return 'Templates loaded!'; },
+          'nego': () => { SEOTools.toolOutreachTemplates(); return 'Templates loaded!'; },
+          'contact-form': () => { SEOTools.toolFillContactForm(settings); return 'Form filler opened!'; },
+          
+          // Search & Discovery
+          'searchoperators': () => { SEOTools.toolSearchOperators(); return 'Search operators opened!'; },
+          'bulk-url': () => { SEOTools.toolBulkUrlOpener(); return 'Bulk URL opened!'; },
+          
+          // Design Tools
+          'extract-fonts': () => { SEOTools.toolExtractTypography(); return 'Typography extracted!'; },
+          'extract-colors': () => { SEOTools.toolExtractColorTheme(); return 'Color theme extracted!'; },
+          
+          // Advanced Tools
+          'advanced-text-compare': () => { SEOTools.advancedSEOCompare(contextInfo); return 'Advanced Text Compare opened!'; },
+          'bulk-currency': () => { SEOTools.toolBulkCurrencyConverter(); return 'Currency converter opened!'; },
+          'image-toolkit': () => { SEOTools.advancedImageToolkit(); return 'Image Toolkit opened!'; },
+          'maps-scraper': () => { SEOTools.scrapeGoogleMaps(); return 'Google Maps Scraper opened!'; },
+          'keyword-rank-tracker': () => { SEOTools.keywordRankTracker(); return 'Keyword Rank Tracker opened!'; },
+          'site-structure': () => { SEOTools.visualizeSiteStructure(); return 'Site Structure Visualizer opened!'; },
+          'social-preview': () => { SEOTools.toolSocialCardPreview(); return 'Social preview generated!'; },
+          'image-downloader': () => { SEOTools.toolImageDownloader(); return 'Image downloader opened!'; },
+          'clear-site-data': () => { SEOTools.toolClearSiteData(); return 'Clearing site data...'; },
+          'multi-device': () => { SEOTools.toolMultiDeviceTester(); return 'Opening device emulators...'; },
+          'generate-topics': () => { SEOTools.toolGenerateAITopics(); return 'Opening AI Topic Generator...'; },
+          'image-ocr': () => { SEOTools.toolImageOCR(contextInfo); return 'OCR Tool opened!'; },
+          
+          // AI Tools
+          'ai-meta-generator': () => { SEOTools.toolGenerateAIMeta(); return 'AI meta generated!'; },
+          'alt-generator': () => { SEOTools.toolGenerateAltText(); return 'Alt text generated!'; },
+          'ai-topic-generator': () => { SEOTools.toolGenerateAITopics(); return 'AI topics generated!'; },
+          'title-generator': () => { SEOTools.toolGenerateTitles(); return 'Titles generated!'; },
+          
+          // More SEO Tools
+          'currency-copier': () => { SEOTools.toolCurrencyCopier(); return 'Currency copier opened!'; },
+          'url-optimizer': () => { SEOTools.toolOptimizeUrl(); return 'URL optimized!'; },
+          'pubdate-checker': () => { SEOTools.toolCheckPublicationDate(); return 'Date checked!'; },
+          'mobile-usability': () => { SEOTools.toolTestMobileUsability(); return 'Mobile test complete!'; },
+          'link-prospects': () => { SEOTools.toolFindLinkProspects(); return 'Prospects found!'; },
+          'resource-pages': () => { SEOTools.toolFindResourcePages(); return 'Resource pages found!'; },
+          'local-keyword-finder': () => { SEOTools.toolFindLocalKeywords(); return 'Local keywords found!'; },
+          'hreflang-generator': () => { SEOTools.toolGenerateHreflang(); return 'Hreflang generated!'; },
+          'duplicate-content': () => { SEOTools.toolFindDuplicateContent(); return 'Duplicate check complete!'; },
+          'content-analyzer': () => { SEOTools.toolContentAnalyzer(); return 'Content analyzed!'; },
+          'seo-audit-checklist': () => { SEOTools.toolSEOAuditChecklist(); return 'Audit complete!'; },
+          'audit-checklist': () => { SEOTools.toolAuditChecklist(); return 'Checklist opened!'; },
+          'seo-dashboard': () => { SEOTools.toolSEODashboard(); return 'Dashboard opened!'; },
+          'citation-finder': () => { SEOTools.toolFindLocalCitations(); return 'Citations found!'; },
+          
+          // Legacy support
+          'structured-data': () => { SEOTools.toolShowMetrics ? SEOTools.toolShowMetrics() : null; return 'Opened!'; },
+          'export-seo-data': () => { SEOTools.toolSEODashboard ? SEOTools.toolSEODashboard() : null; return 'Dashboard opened!'; },
+          'advsearch': () => {
+            try { chrome.runtime.sendMessage({ action: 'openUrl', url: 'https://www.google.com/advanced_search' }); } catch(e) {}
+            return 'Opening Advanced Search...';
+          },
+        };
+
+        const toolAction = toolMap[action];
+        if (toolAction) {
+          const msg = toolAction();
+          sendResponse({ success: true, message: msg });
+        } else {
+          console.warn('Unknown action:', action);
+          sendResponse({ success: false, message: 'Unknown action: ' + action });
+        }
+      } catch (error) {
+        console.error('Tool error:', error);
+        sendResponse({ success: false, message: error.message });
+      }
+      
+      return true;
+    });
+
+    console.log('🚀 SEO Tools Pro v4.0 - Content Script Ready');
+    console.log('🛠️ Tools loaded:', Object.keys(SEOTools || {}).length);
+  }
+
+  // Start initialization
+  waitForDependencies(initializeRouter);
+
+})();

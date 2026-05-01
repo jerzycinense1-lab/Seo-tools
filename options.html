@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO Tools Pro - Options & Templates</title>
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    body {
+      width: 100% !important;
+      min-height: 100vh;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px;
+      background: var(--surface-secondary);
+    }
+    .options-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+    }
+    .options-header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .options-container {
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      padding: 30px;
+    }
+    .template-manager {
+      min-height: 600px;
+    }
+  </style>
+</head>
+<body>
+  <div class="options-header">
+    <div style="width: 48px; height: 48px; background: var(--primary-gradient); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; box-shadow: var(--shadow-md);">🛠️</div>
+    <h1>Options & Template Manager</h1>
+  </div>
+
+  <div class="options-container">
+    <div class="template-manager">
+      <div class="template-sidebar">
+        <h3>📋 Your Templates</h3>
+        <div class="template-search">
+          <input 
+            type="text" 
+            id="templateSearch" 
+            placeholder="🔍 Search templates..."
+            autocomplete="off"
+          >
+        </div>
+        <div class="template-list" id="templateList" role="listbox">
+          <!-- Populated by JS -->
+        </div>
+        <button id="addNewTemplate" class="btn-secondary full-width">
+          ➕ Add New Template
+        </button>
+        <div style="margin-top: 10px; display: flex; gap: 8px;">
+            <button id="exportTemplates" class="btn-secondary" style="flex:1">📤 Export</button>
+            <button id="importTemplates" class="btn-secondary" style="flex:1">📥 Import</button>
+        </div>
+      </div>
+      
+      <div class="template-editor">
+        <div class="editor-header">
+          <h3 id="editorTitle">Select a Template</h3>
+          <div class="editor-actions">
+            <button id="previewTemplate" class="btn-secondary">👁️ Preview</button>
+            <button id="resetTemplate" class="btn-secondary">🔄 Reset</button>
+            <button id="saveTemplate" class="btn-primary">💾 Save Changes</button>
+          </div>
+        </div>
+        <div class="editor-fields">
+          <div class="setting-field">
+            <label for="templateName">Template Name</label>
+            <input type="text" id="templateName" placeholder="e.g., Advance Payment Request">
+          </div>
+          <div class="setting-field">
+            <label for="templateCategory">Category</label>
+            <select id="templateCategory">
+              <option value="payment">💰 Payment Requests</option>
+              <option value="article">📝 Article Communication</option>
+              <option value="outreach">🤝 Outreach & Negotiation</option>
+              <option value="custom">📋 Custom</option>
+            </select>
+          </div>
+          <div class="setting-field">
+            <label for="templateDescription">Description</label>
+            <input type="text" id="templateDescription" placeholder="Brief description of this template">
+          </div>
+          <div class="setting-field full-height">
+            <label for="templateContent">Template Content</label>
+            <textarea 
+              id="templateContent" 
+              placeholder="Enter your email template here..."
+              rows="15"
+              style="min-height: 300px; font-family: var(--font-mono); font-size: 14px;"
+            ></textarea>
+            <div class="variable-hints">
+              <span class="hint-title">📌 Available Variables (click to insert):</span>
+              <div class="variable-tags">
+                <span class="var-tag">{{yourName}}</span>
+                <span class="var-tag">{{webmaster}}</span>
+                <span class="var-tag">{{website}}</span>
+                <span class="var-tag">{{amount}}</span>
+                <span class="var-tag">{{currency}}</span>
+                <span class="var-tag">{{articleTitle}}</span>
+                <span class="var-tag">{{clientAccount}}</span>
+                <span class="var-tag">{{publishedLink}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="previewModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="previewTitle">👁️ Template Preview</h2>
+        <button class="modal-close" aria-label="Close Preview">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-field">
+          <label>Sample Output:</label>
+          <div id="templatePreview" class="preview-box" aria-live="polite" style="max-height: 400px;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="copyPreview" class="btn-primary">📋 Copy Preview</button>
+        <button id="closePreview" class="btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="notification" class="notification" role="alert" aria-live="assertive">
+    <span class="notification-message"></span>
+    <button class="notification-close" aria-label="Close notification">×</button>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

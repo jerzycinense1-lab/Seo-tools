@@ -11,7 +11,8 @@
     <div class="header-top">
       <h1>🛠️ SEO Tools Pro</h1>
       <div class="header-actions">
-        <button id="templatesBtn" class="icon-btn" title="Template Manager (Ctrl+T)" aria-label="Open Template Manager">📝</button>
+        <button id="viewToggleBtn" class="icon-btn" title="Toggle Compact View" aria-label="Toggle View">🔲</button>
+        <button id="templatesBtn" class="icon-btn" title="Options & Templates (Ctrl+T)" aria-label="Open Options">📝</button>
         <button id="settingsBtn" class="icon-btn" title="Settings (Ctrl+S)" aria-label="Open Settings">⚙️</button>
       </div>
     </div>
@@ -33,6 +34,7 @@
     >
     <span class="shortcut-hint" aria-hidden="true">/</span>
   </div>
+  <div id="recentlyUsedRow" class="recently-used-row" style="display:none;"></div>
 
   <nav class="tabs" role="tablist" aria-label="Main Tool Categories">
     <button class="tab-btn active" data-tab="favorites" role="tab" aria-selected="true">⭐ Favs</button>
@@ -158,6 +160,11 @@
 
     <div id="email" class="tab-content" role="tabpanel">
       
+      <div class="tool-group" id="custom-templates-group" style="display: none;">
+        <h3>📋 Custom Templates</h3>
+        <div class="tool-grid" id="custom-templates-grid"></div>
+      </div>
+
       <div class="tool-group">
         <h3>💰 Payment Requests</h3>
         <div class="tool-grid">
@@ -240,7 +247,6 @@
       <div class="tool-group">
         <h3>🎨 Display Options</h3>
         <div class="tool-grid">
-          <button class="tool-btn" id="toggleDarkMode" title="Toggle Extension Theme">🌙 Toggle Dark Mode</button>
           <button class="tool-btn" id="clearCache" title="Clear extension memory">🗑️ Clear Cached Data</button>
         </div>
       </div>
@@ -318,7 +324,28 @@
         </div>
 
         <div class="setting-group">
-          <h3>🎨 Appearance</h3>
+          <h3>🎨 Custom Theme Builder</h3>
+          <div class="setting-field" style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+              <label for="themePrimary">Primary Color</label>
+              <input type="color" id="themePrimary" value="#2563EB" style="width: 100%; padding: 2px; height: 36px; cursor: pointer; border-radius: 4px; border: 1px solid var(--border);">
+            </div>
+            <div style="flex: 1;">
+              <label for="themeAccent">Accent Color</label>
+              <input type="color" id="themeAccent" value="#F59E0B" style="width: 100%; padding: 2px; height: 36px; cursor: pointer; border-radius: 4px; border: 1px solid var(--border);">
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>🌓 Appearance</h3>
+          <div class="setting-field">
+            <label for="enableWidget">Floating Mini-Widget (On Page)</label>
+            <label class="switch" aria-label="Toggle Mini-Widget">
+              <input type="checkbox" id="enableWidget">
+              <span class="slider"></span>
+            </label>
+          </div>
           <div class="setting-field">
             <label for="darkMode">Dark Mode</label>
             <label class="switch" aria-label="Toggle Dark Mode">
@@ -354,110 +381,6 @@
     </div>
   </div>
 
-  <div id="templateManagerModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="templateTitle">
-    <div class="modal-content modal-large">
-      <div class="modal-header">
-        <h2 id="templateTitle">📝 Template Manager</h2>
-        <button class="modal-close" aria-label="Close Template Manager">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="template-manager">
-          <div class="template-sidebar">
-            <h3>📋 Templates</h3>
-            <div class="template-search">
-              <input 
-                type="text" 
-                id="templateSearch" 
-                placeholder="🔍 Search templates..."
-                autocomplete="off"
-              >
-            </div>
-            <div class="template-list" id="templateList" role="listbox">
-              </div>
-            <button id="addNewTemplate" class="btn-secondary full-width">
-              ➕ Add New Template
-            </button>
-          </div>
-          
-          <div class="template-editor">
-            <div class="editor-header">
-              <h3 id="editorTitle">Select a Template</h3>
-              <div class="editor-actions">
-                <button id="previewTemplate" class="btn-secondary">👁️ Preview</button>
-                <button id="resetTemplate" class="btn-secondary">🔄 Reset</button>
-                <button id="saveTemplate" class="btn-primary">💾 Save</button>
-              </div>
-            </div>
-            <div class="editor-fields">
-              <div class="setting-field">
-                <label for="templateName">Template Name</label>
-                <input type="text" id="templateName" placeholder="e.g., Advance Payment Request">
-              </div>
-              <div class="setting-field">
-                <label for="templateCategory">Category</label>
-                <select id="templateCategory">
-                  <option value="payment">💰 Payment Requests</option>
-                  <option value="article">📝 Article Communication</option>
-                  <option value="outreach">🤝 Outreach & Negotiation</option>
-                  <option value="custom">📋 Custom</option>
-                </select>
-              </div>
-              <div class="setting-field">
-                <label for="templateDescription">Description</label>
-                <input type="text" id="templateDescription" placeholder="Brief description of this template">
-              </div>
-              <div class="setting-field full-height">
-                <label for="templateContent">Template Content</label>
-                <textarea 
-                  id="templateContent" 
-                  placeholder="Enter your email template here..."
-                  rows="8"
-                ></textarea>
-                <div class="variable-hints">
-                  <span class="hint-title">📌 Available Variables (click to insert):</span>
-                  <div class="variable-tags">
-                    <span class="var-tag">{{yourName}}</span>
-                    <span class="var-tag">{{webmaster}}</span>
-                    <span class="var-tag">{{website}}</span>
-                    <span class="var-tag">{{amount}}</span>
-                    <span class="var-tag">{{currency}}</span>
-                    <span class="var-tag">{{articleTitle}}</span>
-                    <span class="var-tag">{{clientAccount}}</span>
-                    <span class="var-tag">{{publishedLink}}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button id="exportTemplates" class="btn-secondary">📤 Export All</button>
-        <button id="importTemplates" class="btn-secondary">📥 Import</button>
-        <button id="closeTemplateManager" class="btn-primary">✅ Done</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="previewModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="previewTitle">👁️ Template Preview</h2>
-        <button class="modal-close" aria-label="Close Preview">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="setting-field">
-          <label>Sample Output:</label>
-          <div id="templatePreview" class="preview-box" aria-live="polite"></div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button id="copyPreview" class="btn-primary">📋 Copy Preview</button>
-        <button id="closePreview" class="btn-secondary">Close</button>
-      </div>
-    </div>
-  </div>
-
   <div id="bulkUrlModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkUrlTitle">
     <div class="modal-content">
       <div class="modal-header">
@@ -486,6 +409,8 @@
     </div>
   </div>
 
+  <script src="utils.js"></script>
+  <script src="seo-tools.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

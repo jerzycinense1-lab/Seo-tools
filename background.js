@@ -19,6 +19,8 @@ chrome.runtime.onInstalled.addListener((details) => {
       defaultCurrency: '',
       defaultAmount: '',
       darkMode: false,
+      themePrimary: '#2563EB',
+      themeAccent: '#F59E0B',
       favorites: [],
       customTemplates: {}
     });
@@ -54,16 +56,16 @@ loadFavoritesAndCreateMenu();
 // Load favorites and create context menu
 async function loadFavoritesAndCreateMenu() {
   try {
-    const result = await chrome.storage.sync.get({ favorites: [] });
+    const result = await chrome.storage.sync.get({ favorites: [], customTemplates: {} });
     currentFavorites = result.favorites || [];
-    await rebuildContextMenu();
+    await rebuildContextMenu(result.customTemplates || {});
   } catch (error) {
     console.error('Failed to load favorites:', error);
   }
 }
 
 // Rebuild context menu
-async function rebuildContextMenu() {
+async function rebuildContextMenu(customTemplates = {}) {
   if (isRebuildingMenu) return;
   isRebuildingMenu = true;
 
@@ -112,7 +114,7 @@ async function rebuildContextMenu() {
       });
     } else {
       currentFavorites.forEach((actionId) => {
-        const toolInfo = getToolInfo(actionId);
+        const toolInfo = getToolInfo(actionId, customTemplates);
         if (toolInfo) {
           chrome.contextMenus.create({
             id: `fav-${actionId}`,
@@ -132,25 +134,32 @@ async function rebuildContextMenu() {
       contexts: ['page', 'selection', 'link', 'image']
     });
     
-    // Quick Actions
-    chrome.contextMenus.create({
-      id: 'quick-actions-header',
-      parentId: 'seoToolsPro',
-      title: '⚡ QUICK ACTIONS',
-      enabled: false,
-      contexts: ['page', 'selection', 'link', 'image']
-    });
-    
+    // --- Context: Page ---
+    chrome.contextMenus.create({ id: 'page-header', parentId: 'seoToolsPro', title: '📄 PAGE ACTIONS', enabled: false, contexts: ['page'] });
     chrome.contextMenus.create({ id: 'copy-url', parentId: 'seoToolsPro', title: '📋 Copy Current URL', contexts: ['page'] });
     chrome.contextMenus.create({ id: 'copy-domain', parentId: 'seoToolsPro', title: '🌐 Copy Domain', contexts: ['page'] });
-    chrome.contextMenus.create({ id: 'scroll-bottom', parentId: 'seoToolsPro', title: '⬇️ Scroll to Bottom', contexts: ['page'] });
     chrome.contextMenus.create({ id: 'full-page-capture', parentId: 'seoToolsPro', title: '📸 Full Page Capture', contexts: ['page'] });
-    chrome.contextMenus.create({ id: 'urlslug-selection', parentId: 'seoToolsPro', title: '🔗 Generate URL Slug', contexts: ['selection'] });
-    chrome.contextMenus.create({ id: 'whatsapp-selection', parentId: 'seoToolsPro', title: '💬 WhatsApp Link', contexts: ['selection'] });
-    chrome.contextMenus.create({ id: 'search-selection', parentId: 'seoToolsPro', title: '🔍 Search Google for Selection', contexts: ['selection'] });
     chrome.contextMenus.create({ id: 'extract-links', parentId: 'seoToolsPro', title: '🔗 Extract All Links', contexts: ['page'] });
-    chrome.contextMenus.create({ id: 'highlight-dofollow', parentId: 'seoToolsPro', title: '✅ Highlight Do-Follow Links', contexts: ['page'] });
+    chrome.contextMenus.create({ id: 'highlight-dofollow', parentId: 'seoToolsPro', title: '✅ Highlight Do-Follow', contexts: ['page'] });
     chrome.contextMenus.create({ id: 'remove-highlights', parentId: 'seoToolsPro', title: '🗑️ Remove Highlights', contexts: ['page'] });
+
+    // --- Context: Selection ---
+    chrome.contextMenus.create({ id: 'sel-header', parentId: 'seoToolsPro', title: '📝 SELECTION ACTIONS', enabled: false, contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'sel-compare', parentId: 'seoToolsPro', title: '✨ Advanced Text Compare', contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'sel-urlslug', parentId: 'seoToolsPro', title: '🔗 Generate URL Slug', contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'sel-whatsapp', parentId: 'seoToolsPro', title: '💬 WhatsApp Link', contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'sel-search', parentId: 'seoToolsPro', title: '🔍 Search Google', contexts: ['selection'] });
+
+    // --- Context: Link ---
+    chrome.contextMenus.create({ id: 'link-header', parentId: 'seoToolsPro', title: '🔗 LINK ACTIONS', enabled: false, contexts: ['link'] });
+    chrome.contextMenus.create({ id: 'link-broken', parentId: 'seoToolsPro', title: '🚨 Check Broken Links', contexts: ['link'] });
+    chrome.contextMenus.create({ id: 'link-domain', parentId: 'seoToolsPro', title: '🌐 Extract Domains', contexts: ['link'] });
+
+    // --- Context: Image ---
+    chrome.contextMenus.create({ id: 'img-header', parentId: 'seoToolsPro', title: '🖼️ IMAGE ACTIONS', enabled: false, contexts: ['image'] });
+    chrome.contextMenus.create({ id: 'img-ocr', parentId: 'seoToolsPro', title: '👁️ Extract Text (OCR)', contexts: ['image'] });
+    chrome.contextMenus.create({ id: 'img-analyze', parentId: 'seoToolsPro', title: '📊 Analyze Alt Text', contexts: ['image'] });
+    chrome.contextMenus.create({ id: 'img-download', parentId: 'seoToolsPro', title: '⬇️ Bulk Image Downloader', contexts: ['image'] });
     
     chrome.contextMenus.create({ id: 'seoToolsPro-separator-3', parentId: 'seoToolsPro', type: 'separator', contexts: ['page', 'selection', 'link', 'image'] });
     chrome.contextMenus.create({ id: 'open-popup', parentId: 'seoToolsPro', title: '🚀 Open Full Toolbox', contexts: ['page', 'selection', 'link', 'image'] });
@@ -167,7 +176,10 @@ async function rebuildContextMenu() {
 }
 
 // Get tool display name
-function getToolInfo(actionId) {
+function getToolInfo(actionId, customTemplates = {}) {
+  if (actionId.startsWith('custom-') && customTemplates[actionId]) {
+    return { name: '📝 ' + customTemplates[actionId].name };
+  }
   const toolMap = {
     'wayback': { name: '📜 Wayback Machine' },
     'whois': { name: '🔎 WHOIS Lookup' },
@@ -212,48 +224,46 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     return;
   }
   
-  switch (menuId) {
-    case 'copy-url':
-      await executeToolAction(tabId, 'copy-url', info);
-      break;
-    case 'copy-domain':
-      await executeToolAction(tabId, 'copy-domain', info);
-      break;
-    case 'scroll-bottom':
-      await executeToolAction(tabId, 'scroll', info);
-      break;
-    case 'full-page-capture':
-      await executeToolAction(tabId, 'full-page-capture', info);
-      break;
-    case 'urlslug-selection':
-      await executeToolAction(tabId, 'urlslug', info);
-      break;
-    case 'whatsapp-selection':
-      await executeToolAction(tabId, 'whatsapp-link', info);
-      break;
-    case 'search-selection':
-      if (info.selectionText) {
-        chrome.tabs.create({ url: `https://www.google.com/search?q=${encodeURIComponent(info.selectionText)}` });
-      }
-      break;
-    case 'extract-links':
-      await executeToolAction(tabId, 'linkextract', info);
-      break;
-    case 'highlight-dofollow':
-      await executeToolAction(tabId, 'highlight-dofollow', info);
-      break;
-    case 'remove-highlights':
-      await executeToolAction(tabId, 'remove-highlights', info);
-      break;
-    case 'open-popup':
-      chrome.action.openPopup();
-      break;
-    case 'open-settings':
-      chrome.action.openPopup();
-      setTimeout(() => {
-        chrome.runtime.sendMessage({ action: 'openSettings' }).catch(() => {});
-      }, 500);
-      break;
+  const actionMap = {
+    'copy-url': 'copy-url',
+    'copy-domain': 'copy-domain',
+    'full-page-capture': 'full-page-capture',
+    'extract-links': 'linkextract',
+    'highlight-dofollow': 'highlight-dofollow',
+    'remove-highlights': 'remove-highlights',
+    'sel-urlslug': 'urlslug',
+    'sel-whatsapp': 'whatsapp-link',
+    'sel-compare': 'advanced-text-compare',
+    'link-broken': 'broken-links',
+    'link-domain': 'domainextract',
+    'img-ocr': 'image-ocr',
+    'img-analyze': 'analyze-images',
+    'img-download': 'image-downloader'
+  };
+
+  if (menuId === 'sel-search') {
+    if (info.selectionText) {
+      chrome.tabs.create({ url: `https://www.google.com/search?q=${encodeURIComponent(info.selectionText)}` });
+    }
+    return;
+  }
+
+  if (menuId === 'open-popup') {
+    chrome.action.openPopup();
+    return;
+  }
+
+  if (menuId === 'open-settings') {
+    if (chrome.runtime.openOptionsPage) {
+      chrome.runtime.openOptionsPage();
+    } else {
+      window.open(chrome.runtime.getURL('options.html'));
+    }
+    return;
+  }
+
+  if (actionMap[menuId]) {
+    await executeToolAction(tabId, actionMap[menuId], info);
   }
 });
 
@@ -266,7 +276,9 @@ async function executeToolAction(tabId, action, contextInfo = {}) {
       userPhone: '9928524796',
       userLinkedin: 'https://linkedin.com/in/jonathan-harris',
       defaultCurrency: 'USD',
-      defaultAmount: '50'
+      defaultAmount: '50',
+      themePrimary: '#2563EB',
+      themeAccent: '#F59E0B'
     });
     
     const templates = await chrome.storage.sync.get({ customTemplates: {} });
@@ -278,18 +290,36 @@ async function executeToolAction(tabId, action, contextInfo = {}) {
       contextInfo: {
         selectionText: contextInfo.selectionText || '',
         linkUrl: contextInfo.linkUrl || '',
-        pageUrl: contextInfo.pageUrl || ''
+        pageUrl: contextInfo.pageUrl || '',
+        srcUrl: contextInfo.srcUrl || ''
       }
     };
 
     try {
-      await chrome.tabs.sendMessage(tabId, messagePayload);
+      let response = await chrome.tabs.sendMessage(tabId, messagePayload);
+      
+      // If content script is active but missing advanced tools
+      if (response && response.requireAdvanced) {
+         await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            files: ['tools-advanced.js']
+         });
+         await new Promise(resolve => setTimeout(resolve, 50));
+         await chrome.tabs.sendMessage(tabId, messagePayload);
+      }
     } catch (injectionError) {
       console.log('Content script not active. Injecting dynamically...');
       
+      const advancedTools = ['advanced-text-compare', 'image-toolkit', 'maps-scraper', 'site-structure', 'keyword-rank-tracker', 'image-ocr'];
+      const filesToInject = ['utils.js', 'seo-tools.js'];
+      if (advancedTools.includes(action)) {
+          filesToInject.push('tools-advanced.js');
+      }
+      filesToInject.push('content.js');
+      
       await chrome.scripting.executeScript({
         target: { tabId: tabId },
-        files: ['utils.js', 'seo-tools.js', 'content.js']
+        files: filesToInject
       });
       
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -343,9 +373,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // >>> ADD THIS NEW BLOCK FOR OCR <<<
   if (request.action === 'performOCR') {
-    const formData = new FormData();
-    formData.append('base64Image', request.base64Image);
-    formData.append('language', 'eng');
+  const formData = new FormData();
+  formData.append('base64Image', request.base64Image);
+  formData.append('language', request.language || 'eng'); // <-- Uses payload
 
     fetch('https://api.ocr.space/parse/image', {
       method: 'POST',

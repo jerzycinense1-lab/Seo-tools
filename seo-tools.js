@@ -15,19 +15,33 @@
 
 if (typeof window.SEOTools === 'undefined') {
   (function() {
-    'use strict';
+        'use strict';
     
-    const GDI = window.GDI || {};
-    const { 
-      DESIGN_TOKENS: DT, 
-      createElement, $, $$, escapeHtml, cleanText, debounce, formatFileSize,
-      hashString, //
-      copyToClipboard, showNotification, createModal,
-      createInputField, createTextarea, createButton, createBadge,
-      createProgressBar, createScoreRing, createStatCard, createDataTable
-    } = GDI;
+    window.GDI = window.GDI || {};
+    
+    // ──────────────────────────────────────────────
+    // 🔧 FIX: Create $GDI for querying the PAGE DOM
+    // (Not the Shadow DOM - used for scraping page content)
+    // ──────────────────────────────────────────────
+    window.$GDI = {
+      $(selector, scope = document) {
+        try { return scope.querySelector(selector); } catch (e) { return null; }
+      },
+      $$(selector, scope = document) {
+        try { return Array.from(scope.querySelectorAll(selector)); } catch (e) { return []; }
+      },
+      id(id) { return document.getElementById(id); },
+      matches(el, selector) {
+        try { return el && el.matches && el.matches(selector); } catch (e) { return false; }
+      },
+      closest(el, selector) {
+        try { return el && el.closest ? el.closest(selector) : null; } catch (e) { return null; }
+      }
+    };
+    // ──────────────────────────────────────────────
 
     window.SEOTools = {};
+    const DT = window.DESIGN_TOKENS || {};
 
 // ==================== COMMON PATTERNS ====================
 
@@ -38,22 +52,22 @@ if (typeof window.SEOTools === 'undefined') {
  * @param {string} [gradient] - Custom gradient
  * @returns {HTMLElement}
  */
-function createToolHeader(title, subtitle, gradient = DT.colors.primaryGradient) {
-  return createElement('div', {
+GDI.createToolHeader = function(title, subtitle, gradient = window.DESIGN_TOKENS.colors.primaryGradient) {
+  return GDI.createElement('div', {
     styles: {
       background: gradient,
       color: '#FFFFFF',
       padding: '24px',
-      borderRadius: DT.radii.xl,
+      borderRadius: window.DESIGN_TOKENS.radii.xl,
       marginBottom: '24px',
-      boxShadow: `0 8px 24px ${DT.colors.primary}30`,
+      boxShadow: `0 8px 24px ${window.DESIGN_TOKENS.colors.primary}30`,
     },
     children: [
-      createElement('h3', {
+      GDI.createElement('h3', {
         styles: { margin: '0 0 8px', fontSize: DT.typography.sizes.xl, fontWeight: DT.typography.weights.bold },
         text: title,
       }),
-      createElement('p', {
+      GDI.createElement('p', {
         styles: { margin: '0', opacity: '0.9', fontSize: DT.typography.sizes.base },
         text: subtitle,
       }),
@@ -68,14 +82,14 @@ function createToolHeader(title, subtitle, gradient = DT.colors.primaryGradient)
  * @param {Object} [options]
  * @returns {HTMLElement}
  */
-function createSection(title, content, options = {}) {
+GDI.createSection = function(title, content, options = {}) {
   const { padding = '20px', marginBottom = '16px' } = options;
   
-  const section = createElement('div', {
+  const section = GDI.createElement('div', {
     styles: {
-      background: DT.colors.surface,
-      border: `1px solid ${DT.colors.border}`,
-      borderRadius: DT.radii.xl,
+      background: 'var(--gdi-surface)',
+      border: `1px solid ${'var(--gdi-border)'}`,
+      borderRadius: window.DESIGN_TOKENS.radii.xl,
       padding: padding,
       marginBottom: marginBottom,
       boxShadow: DT.shadows.xs,
@@ -83,12 +97,12 @@ function createSection(title, content, options = {}) {
   });
   
   if (title) {
-    const heading = createElement('h4', {
+    const heading = GDI.createElement('h4', {
       styles: {
         margin: '0 0 14px',
         fontSize: DT.typography.sizes.md,
         fontWeight: DT.typography.weights.bold,
-        color: DT.colors.textPrimary,
+        color: 'var(--gdi-text-primary)',
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
@@ -110,18 +124,18 @@ function createSection(title, content, options = {}) {
  * @returns {HTMLElement}
  */
 function createStatGrid(stats = []) {
-  return createElement('div', {
+  return GDI.createElement('div', {
     styles: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
       gap: '12px',
       marginBottom: '20px',
     },
-    children: stats.map(stat => createStatCard({
+    children: stats.map(stat => GDI.createStatCard({
       label: stat.label,
       value: stat.value,
       icon: stat.icon || '📊',
-      color: stat.color || DT.colors.primary,
+      color: stat.color || window.DESIGN_TOKENS.colors.primary,
     })),
   });
 }
@@ -133,8 +147,8 @@ function createStatGrid(stats = []) {
  */
 function toolCopyUrl() {
   const url = window.location.href;
-  copyToClipboard(url).then(success => {
-    showNotification(success ? '✅ URL copied to clipboard!' : '❌ Failed to copy URL', 
+  GDI.copyToClipboard(url).then(success => {
+    GDI.showNotification(success ? '✅ URL copied to clipboard!' : '❌ Failed to copy URL', 
       success ? 'success' : 'error');
   });
 }
@@ -144,8 +158,8 @@ function toolCopyUrl() {
  */
 function toolCopyDomain() {
   const domain = window.location.hostname.replace(/^www\./, '');
-  copyToClipboard(domain).then(success => {
-    showNotification(success ? `✅ Domain copied: ${domain}` : '❌ Failed to copy domain',
+  GDI.copyToClipboard(domain).then(success => {
+    GDI.showNotification(success ? `✅ Domain copied: ${domain}` : '❌ Failed to copy domain',
       success ? 'success' : 'error');
   });
 }
@@ -168,22 +182,22 @@ function toolScrollToBottom() {
     behavior: 'smooth' 
   });
   
-  showNotification('⬇️ Scrolled to bottom', 'success');
+  GDI.showNotification('⬇️ Scrolled to bottom', 'success');
 }
 
 // ==================== TOOL: URL SLUG GENERATOR ====================
 
 function toolUrlSlugGenerator() {
-  const content = createElement('div', { styles: { padding: '0' } });
+  const content = GDI.createElement('div', { styles: { padding: '0' } });
   
   // Header
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🔗 URL Slug Generator',
     'Convert text into a clean, SEO-friendly URL slug with live preview'
   ));
   
   // Input field
-  const { wrapper: inputWrapper, input: slugInput } = createInputField({
+  const { wrapper: inputWrapper, input: slugInput } = GDI.createInputField({
     label: '📝 Enter Text',
     id: 'slug-input',
     placeholder: 'Enter your blog post title or text here... ✍️',
@@ -193,10 +207,10 @@ function toolUrlSlugGenerator() {
   });
   
   // Character count
-  const charCount = createElement('div', {
+  const charCount = GDI.createElement('div', {
     styles: {
       fontSize: DT.typography.sizes.xs,
-      color: DT.colors.textMuted,
+      color: 'var(--gdi-text-muted)',
       textAlign: 'right',
       marginTop: '4px',
     },
@@ -205,7 +219,7 @@ function toolUrlSlugGenerator() {
   inputWrapper.appendChild(charCount);
   
   // Options
-  const optionsGrid = createElement('div', {
+  const optionsGrid = GDI.createElement('div', {
     styles: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
@@ -223,19 +237,19 @@ function toolUrlSlugGenerator() {
   const optionStates = {};
   
   options.forEach(opt => {
-    const label = createElement('label', {
+    const label = GDI.createElement('label', {
       styles: {
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
         fontSize: DT.typography.sizes.base,
         fontWeight: DT.typography.weights.medium,
-        color: DT.colors.textSecondary,
+        color: 'var(--gdi-text-secondary)',
         cursor: 'pointer',
       },
     });
     
-    const checkbox = createElement('input', {
+    const checkbox = GDI.createElement('input', {
       attrs: { type: 'checkbox', id: opt.id },
     });
     checkbox.checked = opt.checked;
@@ -246,7 +260,7 @@ function toolUrlSlugGenerator() {
       updateSlug();
     });
     
-    const text = createElement('span', { text: opt.label });
+    const text = GDI.createElement('span', { text: opt.label });
     
     label.appendChild(checkbox);
     label.appendChild(text);
@@ -254,7 +268,7 @@ function toolUrlSlugGenerator() {
   });
   
   // Output field
-  const { wrapper: outputWrapper, input: slugOutput } = createInputField({
+  const { wrapper: outputWrapper, input: slugOutput } = GDI.createInputField({
     label: '🎯 Generated Slug',
     id: 'slug-output',
     placeholder: 'your-slug-will-appear-here',
@@ -262,11 +276,11 @@ function toolUrlSlugGenerator() {
   });
   
   // Preview URL
-  const previewBox = createElement('div', {
+  const previewBox = GDI.createElement('div', {
     styles: {
-      background: DT.colors.surfaceSecondary,
-      border: `1px dashed ${DT.colors.border}`,
-      borderRadius: DT.radii.lg,
+      background: 'var(--gdi-surface-secondary)',
+      border: `1px dashed ${'var(--gdi-border)'}`,
+      borderRadius: window.DESIGN_TOKENS.radii.lg,
       padding: '14px',
       marginBottom: '16px',
       fontFamily: DT.typography.fontMono,
@@ -274,13 +288,13 @@ function toolUrlSlugGenerator() {
     },
   });
   
-  const previewPrefix = createElement('span', {
-    styles: { color: DT.colors.textMuted },
+  const previewPrefix = GDI.createElement('span', {
+    styles: { color: 'var(--gdi-text-muted)' },
     text: 'https://example.com/blog/',
   });
   
-  const previewSlug = createElement('span', {
-    styles: { color: DT.colors.primary, fontWeight: DT.typography.weights.bold },
+  const previewSlug = GDI.createElement('span', {
+    styles: { color: window.DESIGN_TOKENS.colors.primary, fontWeight: DT.typography.weights.bold },
     text: '',
   });
   
@@ -288,17 +302,17 @@ function toolUrlSlugGenerator() {
   previewBox.appendChild(previewSlug);
   
   // Buttons
-  const buttonRow = createElement('div', {
+  const buttonRow = GDI.createElement('div', {
     styles: { display: 'flex', gap: '10px', marginTop: '16px' },
   });
   
-  const copyBtn = createButton('📋 Copy Slug', () => {
+  const copyBtn = GDI.createButton('📋 Copy Slug', () => {
     const slug = slugOutput.value;
     if (!slug) {
-      showNotification('Nothing to copy! Generate a slug first.', 'warning');
+      GDI.showNotification('Nothing to copy! Generate a slug first.', 'warning');
       return;
     }
-    copyToClipboard(slug).then(() => showNotification('✅ Slug copied!', 'success'));
+    GDI.copyToClipboard(slug).then(() => GDI.showNotification('✅ Slug copied!', 'success'));
   }, { variant: 'success', fullWidth: true });
   
   buttonRow.appendChild(copyBtn);
@@ -359,15 +373,15 @@ function toolUrlSlugGenerator() {
     charCount.textContent = `${text.length} / 200 characters`;
     
     // Color coding
-    if (text.length > 180) charCount.style.color = DT.colors.warning;
-    if (text.length >= 200) charCount.style.color = DT.colors.error;
-    if (text.length <= 180) charCount.style.color = DT.colors.textMuted;
+    if (text.length > 180) charCount.style.color = window.DESIGN_TOKENS.colors.warning;
+    if (text.length >= 200) charCount.style.color = window.DESIGN_TOKENS.colors.error;
+    if (text.length <= 180) charCount.style.color = 'var(--gdi-text-muted)';
   }
   
   slugInput.addEventListener('input', updateSlug);
   
   // Assemble
-  const section = createSection('', [
+  const section = GDI.createSection('', [
     inputWrapper,
     optionsGrid,
     outputWrapper,
@@ -381,7 +395,7 @@ function toolUrlSlugGenerator() {
   updateSlug();
   
   // Show modal
-  const { close } = createModal('URL Slug Generator', content, { width: '580px' });
+  const { close } = GDI.createModal('URL Slug Generator', content, { width: '580px' });
   
   // Focus input
   setTimeout(() => slugInput.focus(), 150);
@@ -390,12 +404,12 @@ function toolUrlSlugGenerator() {
 // ==================== TOOL: WHATSAPP LINK GENERATOR ====================
 
 function toolWhatsappLinkGenerator() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '💬 WhatsApp Link Generator',
     'Create a direct chat link for any phone number',
-    'linear-gradient(135deg, #25D366 0%, #128C7E 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // Get selected text if any
@@ -403,7 +417,7 @@ function toolWhatsappLinkGenerator() {
   const cleanNumber = selection.replace(/\D/g, '');
   
   // Phone input
-  const { wrapper: phoneWrapper, input: phoneInput } = createInputField({
+  const { wrapper: phoneWrapper, input: phoneInput } = GDI.createInputField({
     label: '📱 Phone Number (with country code)',
     id: 'wa-phone',
     placeholder: 'e.g., 14155552671',
@@ -412,18 +426,18 @@ function toolWhatsappLinkGenerator() {
   });
   
   // Preview box
-  const previewBox = createElement('div', {
+  const previewBox = GDI.createElement('div', {
     styles: {
       background: '#F0FDF4',
       border: '1px solid #BBF7D0',
-      borderRadius: DT.radii.lg,
+      borderRadius: window.DESIGN_TOKENS.radii.lg,
       padding: '16px',
       marginBottom: '16px',
       display: 'none',
     },
   });
   
-  const previewLabel = createElement('div', {
+  const previewLabel = GDI.createElement('div', {
     styles: {
       fontSize: DT.typography.sizes.xs,
       fontWeight: DT.typography.weights.bold,
@@ -435,7 +449,7 @@ function toolWhatsappLinkGenerator() {
     text: 'Your WhatsApp Link:',
   });
   
-  const previewLink = createElement('a', {
+  const previewLink = GDI.createElement('a', {
     attrs: { target: '_blank', rel: 'noopener noreferrer' },
     styles: {
       fontSize: DT.typography.sizes.base,
@@ -450,11 +464,11 @@ function toolWhatsappLinkGenerator() {
   previewBox.appendChild(previewLink);
   
   // Buttons
-  const buttonRow = createElement('div', {
+  const buttonRow = GDI.createElement('div', {
     styles: { display: 'flex', gap: '10px', marginTop: '16px' },
   });
   
-  const openBtn = createButton('🚀 Open Chat', () => {
+  const openBtn = GDI.createButton('🚀 Open Chat', () => {
     const num = phoneInput.value.replace(/\D/g, '');
     if (validatePhone(num)) {
       const url = `https://api.whatsapp.com/send?phone=${num}`;
@@ -462,11 +476,11 @@ function toolWhatsappLinkGenerator() {
     }
   }, { variant: 'success', fullWidth: true });
   
-  const copyBtn = createButton('📋 Copy Link', () => {
+  const copyBtn = GDI.createButton('📋 Copy Link', () => {
     const num = phoneInput.value.replace(/\D/g, '');
     if (validatePhone(num)) {
       const url = `https://api.whatsapp.com/send?phone=${num}`;
-      copyToClipboard(url).then(() => showNotification('✅ Link copied!', 'success'));
+      GDI.copyToClipboard(url).then(() => GDI.showNotification('✅ Link copied!', 'success'));
     }
   }, { variant: 'primary', fullWidth: true });
   
@@ -476,7 +490,7 @@ function toolWhatsappLinkGenerator() {
   // Validation
   function validatePhone(num) {
     if (num.length < 5 || num.length > 15) {
-      showNotification('Enter a valid phone number (5–15 digits).', 'warning');
+      GDI.showNotification('Enter a valid phone number (5–15 digits).', 'warning');
       return false;
     }
     return true;
@@ -498,17 +512,17 @@ function toolWhatsappLinkGenerator() {
   updatePreview();
   
   // Assemble
-  const section = createSection('', [phoneWrapper, previewBox, buttonRow]);
+  const section = GDI.createSection('', [phoneWrapper, previewBox, buttonRow]);
   content.appendChild(section);
   
-  const { close } = createModal('WhatsApp Link Generator', content, { width: '520px' });
+  const { close } = GDI.createModal('WhatsApp Link Generator', content, { width: '520px' });
   setTimeout(() => phoneInput.focus(), 150);
 }
 
 // ==================== TOOL: EMAIL EXTRACTOR ====================
 
 function toolEmailExtractor() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   // Extract emails
   const emailRegex = /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}/g;
@@ -520,7 +534,7 @@ function toolEmailExtractor() {
   (pageText.match(emailRegex) || []).forEach(e => emails.add(e.toLowerCase()));
   
   // Method 2: Scan mailto: links
-  $$('a[href^="mailto:"]').forEach(a => {
+  $GDI.$$('a[href^="mailto:"]').forEach(a => {
     const email = decodeURIComponent(a.getAttribute('href'))
       .replace(/^mailto:/i, '')
       .split('?')[0]
@@ -530,7 +544,7 @@ function toolEmailExtractor() {
   });
   
   // Method 3: Input fields
-  $$('input[type="email"], input[name*="email"]').forEach(input => {
+  $GDI.$$('input[type="email"], input[name*="email"]').forEach(input => {
     const value = input.value || input.placeholder || '';
     (value.match(emailRegex) || []).forEach(e => emails.add(e.toLowerCase()));
   });
@@ -545,26 +559,26 @@ function toolEmailExtractor() {
     .sort();
   
   // Header
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📧 Email Extractor',
     `Found ${filteredEmails.length} unique email address${filteredEmails.length !== 1 ? 'es' : ''}`,
-    DT.colors.infoGradient
+    window.DESIGN_TOKENS.colors.infoGradient
   ));
   
   // Stats
   content.appendChild(createStatGrid([
-    { label: 'Total Found', value: filteredEmails.length, icon: '📊', color: DT.colors.info },
+    { label: 'Total Found', value: filteredEmails.length, icon: '📊', color: window.DESIGN_TOKENS.colors.info },
     { label: 'From Text', value: (pageText.match(emailRegex) || []).length, icon: '📝' },
-    { label: 'From mailto:', value: $$('a[href^="mailto:"]').length, icon: '🔗' },
+    { label: 'From mailto:', value: $GDI.$$('a[href^="mailto:"]').length, icon: '🔗' },
   ]));
   
   if (filteredEmails.length === 0) {
-    content.appendChild(createSection('', [
-      createElement('div', {
+    content.appendChild(GDI.createSection('', [
+      GDI.createElement('div', {
         styles: {
           textAlign: 'center',
           padding: '40px',
-          color: DT.colors.textMuted,
+          color: 'var(--gdi-text-muted)',
           fontSize: DT.typography.sizes.md,
         },
         text: 'No emails found on this page.',
@@ -572,7 +586,7 @@ function toolEmailExtractor() {
     ]));
   } else {
     // Email list
-    const emailList = createElement('div', {
+    const emailList = GDI.createElement('div', {
       styles: {
         display: 'flex',
         flexDirection: 'column',
@@ -583,39 +597,39 @@ function toolEmailExtractor() {
     });
     
     filteredEmails.forEach((email, index) => {
-      const row = createElement('div', {
+      const row = GDI.createElement('div', {
         styles: {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '12px 16px',
-          background: index % 2 === 0 ? DT.colors.surface : DT.colors.surfaceSecondary,
-          border: `1px solid ${DT.colors.border}`,
-          borderRadius: DT.radii.md,
+          background: index % 2 === 0 ? 'var(--gdi-surface)' : 'var(--gdi-surface-secondary)',
+          border: `1px solid ${'var(--gdi-border)'}`,
+          borderRadius: window.DESIGN_TOKENS.radii.md,
           transition: `all ${DT.transitions.fast}`,
         },
       });
       
       row.addEventListener('mouseenter', () => {
-        row.style.borderColor = DT.colors.primary;
+        row.style.borderColor = window.DESIGN_TOKENS.colors.primary;
         row.style.transform = 'translateX(4px)';
       });
       
       row.addEventListener('mouseleave', () => {
-        row.style.borderColor = DT.colors.border;
+        row.style.borderColor = 'var(--gdi-border)';
         row.style.transform = 'translateX(0)';
       });
       
-      const emailInfo = createElement('div', {
+      const emailInfo = GDI.createElement('div', {
         styles: { display: 'flex', alignItems: 'center', gap: '12px', flex: '1' },
       });
       
-      const indexBadge = createElement('span', {
+      const indexBadge = GDI.createElement('span', {
         styles: {
           width: '28px',
           height: '28px',
-          borderRadius: DT.radii.full,
-          background: DT.colors.primary,
+          borderRadius: window.DESIGN_TOKENS.radii.full,
+          background: window.DESIGN_TOKENS.colors.primary,
           color: '#FFFFFF',
           display: 'flex',
           alignItems: 'center',
@@ -627,7 +641,7 @@ function toolEmailExtractor() {
         text: String(index + 1),
       });
       
-      const emailText = createElement('span', {
+      const emailText = GDI.createElement('span', {
         styles: {
           fontFamily: DT.typography.fontMono,
           fontSize: DT.typography.sizes.base,
@@ -640,8 +654,8 @@ function toolEmailExtractor() {
       emailInfo.appendChild(indexBadge);
       emailInfo.appendChild(emailText);
       
-      const copyBtn = createButton('Copy', () => {
-        copyToClipboard(email).then(() => showNotification('✅ Email copied!', 'success'));
+      const copyBtn = GDI.createButton('Copy', () => {
+        GDI.copyToClipboard(email).then(() => GDI.showNotification('✅ Email copied!', 'success'));
       }, { variant: 'secondary', fullWidth: false, size: 'sm' });
       
       row.appendChild(emailInfo);
@@ -650,56 +664,56 @@ function toolEmailExtractor() {
       // Click row to copy
       row.addEventListener('click', (e) => {
         if (e.target.closest('button')) return;
-        copyToClipboard(email).then(() => showNotification('✅ Email copied!', 'success'));
+        GDI.copyToClipboard(email).then(() => GDI.showNotification('✅ Email copied!', 'success'));
       });
       
       emailList.appendChild(row);
     });
     
-    content.appendChild(createSection('📋 Extracted Emails', [emailList]));
+    content.appendChild(GDI.createSection('📋 Extracted Emails', [emailList]));
     
     // Action buttons
-    const buttonRow = createElement('div', {
+    const buttonRow = GDI.createElement('div', {
       styles: { display: 'flex', gap: '10px', marginTop: '16px' },
     });
     
-    buttonRow.appendChild(createButton('📋 Copy All Emails', () => {
-      copyToClipboard(filteredEmails.join('\n')).then(() => 
-        showNotification(`✅ ${filteredEmails.length} emails copied!`, 'success')
+    buttonRow.appendChild(GDI.createButton('📋 Copy All Emails', () => {
+      GDI.copyToClipboard(filteredEmails.join('\n')).then(() => 
+        GDI.showNotification(`✅ ${filteredEmails.length} emails copied!`, 'success')
       );
     }, { variant: 'primary' }));
     
-    buttonRow.appendChild(createButton('📊 Export CSV', () => {
+    buttonRow.appendChild(GDI.createButton('📊 Export CSV', () => {
       const csv = 'Email\n' + filteredEmails.map(e => `"${e}"`).join('\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = GDI.createElement('a');
       a.href = url;
       a.download = `emails-${new Date().toISOString().slice(0,10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      showNotification('✅ CSV exported!', 'success');
+      GDI.showNotification('✅ CSV exported!', 'success');
     }, { variant: 'secondary' }));
     
     content.appendChild(buttonRow);
   }
   
-  const { close } = createModal('Email Extractor', content, { width: '650px' });
+  const { close } = GDI.createModal('Email Extractor', content, { width: '650px' });
 }
 
 // ==================== TOOL: DO-FOLLOW HIGHLIGHTER ====================
 
 function toolHighlightDoFollow() {
   // Check if already highlighted
-  const existing = $$('.gdi-dofollow-highlight, .gdi-nofollow-highlight');
+  const existing = $GDI.$$('.gdi-dofollow-highlight, .gdi-nofollow-highlight');
   if (existing.length > 0) {
     toolRemoveHighlights();
     return;
   }
   
   // Inject styles
-  if (!$('#gdi-highlight-styles')) {
-    const style = createElement('style', { attrs: { id: 'gdi-highlight-styles' } });
+  if (!GDI.$('#gdi-highlight-styles')) {
+    const style = GDI.createElement('style', { attrs: { id: 'gdi-highlight-styles' } });
     style.textContent = `
       .gdi-dofollow-highlight {
         background: #DCFCE7 !important;
@@ -726,7 +740,7 @@ function toolHighlightDoFollow() {
     document.head.appendChild(style);
   }
   
-  const links = $$('a[href]');
+  const links = $GDI.$$('a[href]');
   let doFollowCount = 0;
   let noFollowCount = 0;
   
@@ -753,14 +767,14 @@ function toolHighlightDoFollow() {
     }
   });
   
-  showNotification(
+  GDI.showNotification(
     `✅ Highlighted ${doFollowCount} do-follow & ${noFollowCount} no-follow links`,
     'success'
   );
 }
 
 function toolRemoveHighlights() {
-  const highlighted = $$('.gdi-dofollow-highlight, .gdi-nofollow-highlight');
+  const highlighted = $GDI.$$('.gdi-dofollow-highlight, .gdi-nofollow-highlight');
   
   highlighted.forEach(link => {
     link.classList.remove('gdi-dofollow-highlight', 'gdi-nofollow-highlight');
@@ -778,22 +792,22 @@ function toolRemoveHighlights() {
   });
   
   // Remove style element
-  const styleEl = $('#gdi-highlight-styles');
+  const styleEl = GDI.$('#gdi-highlight-styles');
   if (styleEl) styleEl.remove();
   
-  showNotification('✅ All highlights removed', 'success');
+  GDI.showNotification('✅ All highlights removed', 'success');
 }
 
 // ==================== TOOL: HEADING STRUCTURE ANALYZER ====================
 
 function toolAnalyzeHeadings() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   // Collect headings
   const headingData = {};
   for (let i = 1; i <= 6; i++) {
     headingData[`h${i}`] = Array.from(document.querySelectorAll(`h${i}`)).map(h => ({
-      text: cleanText(h.textContent).substring(0, 100),
+      text: GDI.cleanText(h.textContent).substring(0, 100),
       element: h,
     }));
   }
@@ -826,20 +840,20 @@ function toolAnalyzeHeadings() {
   const overallScore = Math.round((h1Score + structureScore) / 2);
   
   // Header
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📑 Heading Structure Analysis',
     `${totalHeadings} headings found across 6 levels`
   ));
   
   // Score ring
-  const scoreRow = createElement('div', {
+  const scoreRow = GDI.createElement('div', {
     styles: {
       display: 'flex',
       justifyContent: 'center',
       marginBottom: '20px',
     },
   });
-  scoreRow.appendChild(createScoreRing(overallScore, 100));
+  scoreRow.appendChild(GDI.createScoreRing(overallScore, 100));
   content.appendChild(scoreRow);
   
   // Stats grid
@@ -850,7 +864,7 @@ function toolAnalyzeHeadings() {
         label: `H${i} Tags`,
         value: headingData[`h${i}`].length,
         icon: i === 1 ? '📌' : '📎',
-        color: i === 1 ? DT.colors.primary : DT.colors.textSecondary,
+        color: i === 1 ? window.DESIGN_TOKENS.colors.primary : 'var(--gdi-text-secondary)',
       });
     }
   }
@@ -858,17 +872,17 @@ function toolAnalyzeHeadings() {
   
   // Issues
   if (issues.length > 0) {
-    const issuesSection = createSection('⚠️ Issues Found', [
-      createElement('div', {
+    const issuesSection = GDI.createSection('⚠️ Issues Found', [
+      GDI.createElement('div', {
         styles: { display: 'flex', flexDirection: 'column', gap: '8px' },
         children: issues.map(issue => {
           const isError = issue.severity === 'error';
-          return createElement('div', {
+          return GDI.createElement('div', {
             styles: {
               padding: '10px 14px',
-              background: isError ? DT.colors.errorLight : DT.colors.warningLight,
-              borderLeft: `4px solid ${isError ? DT.colors.error : DT.colors.warning}`,
-              borderRadius: DT.radii.md,
+              background: isError ? window.DESIGN_TOKENS.colors.errorLight : window.DESIGN_TOKENS.colors.warningLight,
+              borderLeft: `4px solid ${isError ? window.DESIGN_TOKENS.colors.error : window.DESIGN_TOKENS.colors.warning}`,
+              borderRadius: window.DESIGN_TOKENS.radii.md,
               fontSize: DT.typography.sizes.base,
               color: isError ? '#991B1B' : '#92400E',
               fontWeight: DT.typography.weights.medium,
@@ -885,7 +899,7 @@ function toolAnalyzeHeadings() {
   }
   
   // Heading list
-  const headingList = createElement('div', {
+  const headingList = GDI.createElement('div', {
     styles: {
       display: 'flex',
       flexDirection: 'column',
@@ -898,26 +912,26 @@ function toolAnalyzeHeadings() {
   Object.entries(headingData).forEach(([level, headings]) => {
     headings.forEach((h, idx) => {
       const lvl = parseInt(level[1]);
-      headingList.appendChild(createElement('div', {
+      headingList.appendChild(GDI.createElement('div', {
         styles: {
           padding: '8px 12px',
-          background: lvl === 1 ? DT.colors.infoLight : DT.colors.surfaceSecondary,
-          borderLeft: `3px solid ${lvl === 1 ? DT.colors.info : DT.colors.border}`,
-          borderRadius: DT.radii.sm,
+          background: lvl === 1 ? window.DESIGN_TOKENS.colors.infoLight : 'var(--gdi-surface-secondary)',
+          borderLeft: `3px solid ${lvl === 1 ? window.DESIGN_TOKENS.colors.info : 'var(--gdi-border)'}`,
+          borderRadius: window.DESIGN_TOKENS.radii.sm,
           fontSize: DT.typography.sizes.base,
           marginLeft: `${(lvl - 1) * 16}px`,
         },
         children: [
-          createElement('span', {
+          GDI.createElement('span', {
             styles: {
               fontWeight: DT.typography.weights.bold,
-              color: lvl === 1 ? DT.colors.info : DT.colors.textMuted,
+              color: lvl === 1 ? window.DESIGN_TOKENS.colors.info : 'var(--gdi-text-muted)',
               marginRight: '8px',
             },
             text: level.toUpperCase(),
           }),
-          createElement('span', {
-            styles: { color: DT.colors.textPrimary },
+          GDI.createElement('span', {
+            styles: { color: 'var(--gdi-text-primary)' },
             text: h.text || '(empty)',
           }),
         ],
@@ -925,15 +939,15 @@ function toolAnalyzeHeadings() {
     });
   });
   
-  content.appendChild(createSection('📋 Heading Hierarchy', [headingList]));
+  content.appendChild(GDI.createSection('📋 Heading Hierarchy', [headingList]));
   
-  const { close } = createModal('Heading Structure Analysis', content, { width: '650px' });
+  const { close } = GDI.createModal('Heading Structure Analysis', content, { width: '650px' });
 }
 
 // ==================== TOOL: META TAGS ANALYZER ====================
 
 function toolAnalyzeMeta() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   // Collect meta data
   const metaData = {
@@ -979,21 +993,21 @@ function toolAnalyzeMeta() {
   );
   
   // Header
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🏷️ Meta Tags Analysis',
     `${Object.values(scores).filter(s => s === 100).length} of ${Object.keys(scores).length} checks passed`,
-    DT.colors.primaryGradient
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // Score
-  const scoreRow = createElement('div', {
+  const scoreRow = GDI.createElement('div', {
     styles: { display: 'flex', justifyContent: 'center', marginBottom: '20px' },
   });
-  scoreRow.appendChild(createScoreRing(overallScore, 90));
+  scoreRow.appendChild(GDI.createScoreRing(overallScore, 90));
   content.appendChild(scoreRow);
   
   // Score bars
-  const scoreBars = createElement('div', { styles: { marginBottom: '20px' } });
+  const scoreBars = GDI.createElement('div', { styles: { marginBottom: '20px' } });
   
   [
     { label: 'Title Tag', score: scores.title, detail: `${metaData.titleLength} chars${!scores.title ? ' (Missing)' : ''}` },
@@ -1003,12 +1017,12 @@ function toolAnalyzeMeta() {
     { label: 'Viewport', score: scores.viewport },
     { label: 'Canonical', score: scores.canonical },
   ].forEach(item => {
-    const color = item.score === 100 ? DT.colors.success : 
-                  item.score === 50 ? DT.colors.warning : DT.colors.error;
+    const color = item.score === 100 ? window.DESIGN_TOKENS.colors.success : 
+                  item.score === 50 ? window.DESIGN_TOKENS.colors.warning : window.DESIGN_TOKENS.colors.error;
     
-    const bar = createElement('div', { styles: { marginBottom: '10px' } });
+    const bar = GDI.createElement('div', { styles: { marginBottom: '10px' } });
     
-    const barHeader = createElement('div', {
+    const barHeader = GDI.createElement('div', {
       styles: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -1017,19 +1031,19 @@ function toolAnalyzeMeta() {
       },
     });
     
-    barHeader.appendChild(createElement('span', {
-      styles: { fontWeight: DT.typography.weights.medium, color: DT.colors.textPrimary },
+    barHeader.appendChild(GDI.createElement('span', {
+      styles: { fontWeight: DT.typography.weights.medium, color: 'var(--gdi-text-primary)' },
       text: item.label,
     }));
     
-    const scoreBadge = createElement('span', {
+    const scoreBadge = GDI.createElement('span', {
       styles: { fontWeight: DT.typography.weights.bold, color },
       text: `${item.score}%`,
     });
     
     if (item.detail) {
-      scoreBadge.appendChild(createElement('span', {
-        styles: { color: DT.colors.textMuted, marginLeft: '6px', fontWeight: DT.typography.weights.normal },
+      scoreBadge.appendChild(GDI.createElement('span', {
+        styles: { color: 'var(--gdi-text-muted)', marginLeft: '6px', fontWeight: DT.typography.weights.normal },
         text: `(${item.detail})`,
       }));
     }
@@ -1037,16 +1051,16 @@ function toolAnalyzeMeta() {
     barHeader.appendChild(scoreBadge);
     bar.appendChild(barHeader);
     
-    const { container: progressBar } = createProgressBar(item.score, color, 6);
+    const { container: progressBar } = GDI.createProgressBar(item.score, color, 6);
     bar.appendChild(progressBar);
     
     scoreBars.appendChild(bar);
   });
   
-  content.appendChild(createSection('📊 Score Breakdown', [scoreBars]));
+  content.appendChild(GDI.createSection('📊 Score Breakdown', [scoreBars]));
   
   // Meta details
-  const detailsGrid = createElement('div', {
+  const detailsGrid = GDI.createElement('div', {
     styles: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
@@ -1064,24 +1078,24 @@ function toolAnalyzeMeta() {
     { label: 'OG Image', value: metaData.ogImage || 'Not set', status: metaData.ogImage ? 'good' : 'warn' },
     { label: 'Twitter Card', value: metaData.twitterCard || 'Not set', status: metaData.twitterCard ? 'good' : 'warn' },
   ].forEach(item => {
-    const colorMap = { good: DT.colors.success, warn: DT.colors.warning, error: DT.colors.error, neutral: DT.colors.textSecondary };
+    const colorMap = { good: window.DESIGN_TOKENS.colors.success, warn: window.DESIGN_TOKENS.colors.warning, error: window.DESIGN_TOKENS.colors.error, neutral: 'var(--gdi-text-secondary)' };
     
-    detailsGrid.appendChild(createElement('div', {
+    detailsGrid.appendChild(GDI.createElement('div', {
       styles: {
         padding: '12px 14px',
-        background: DT.colors.surface,
-        border: `1px solid ${DT.colors.border}`,
-        borderRadius: DT.radii.md,
+        background: 'var(--gdi-surface)',
+        border: `1px solid ${'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.md,
       },
       children: [
-        createElement('div', {
-          styles: { fontSize: DT.typography.sizes.xs, color: DT.colors.textMuted, marginBottom: '4px', fontWeight: DT.typography.weights.semibold, textTransform: 'uppercase' },
+        GDI.createElement('div', {
+          styles: { fontSize: DT.typography.sizes.xs, color: 'var(--gdi-text-muted)', marginBottom: '4px', fontWeight: DT.typography.weights.semibold, textTransform: 'uppercase' },
           text: item.label,
         }),
-        createElement('div', {
+        GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.base,
-            color: item.value === 'Missing' || item.value === 'Not set' ? DT.colors.error : colorMap[item.status],
+            color: item.value === 'Missing' || item.value === 'Not set' ? window.DESIGN_TOKENS.colors.error : colorMap[item.status],
             fontWeight: DT.typography.weights.medium,
             wordBreak: 'break-word',
           },
@@ -1091,19 +1105,19 @@ function toolAnalyzeMeta() {
     }));
   });
   
-  content.appendChild(createSection('📋 Meta Tag Details', [detailsGrid]));
+  content.appendChild(GDI.createSection('📋 Meta Tag Details', [detailsGrid]));
   
-  const { close } = createModal('Meta Tags Analysis', content, { width: '700px' });
+  const { close } = GDI.createModal('Meta Tags Analysis', content, { width: '700px' });
 }
 
 // ==================== TOOL: LINK EXTRACTOR & ANALYZER ====================
 
 function toolExtractLinks() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   // Collect link data
   const currentDomain = window.location.hostname;
-  const links = $$('a[href]');
+  const links = $GDI.$$('a[href]');
   const linkData = [];
   
   let internalCount = 0, externalCount = 0, nofollowCount = 0, dofollowCount = 0;
@@ -1113,7 +1127,7 @@ function toolExtractLinks() {
     if (!href || href.startsWith('javascript:') || href === '#' || 
         href.startsWith('mailto:') || href.startsWith('tel:')) return;
     
-    const text = cleanText(anchor.textContent).substring(0, 150) || '[No Anchor Text]';
+    const text = GDI.cleanText(anchor.textContent).substring(0, 150) || '[No Anchor Text]';
     const rel = (anchor.getAttribute('rel') || '').toLowerCase();
     const isNofollow = rel.includes('nofollow');
     const isSponsored = rel.includes('sponsored');
@@ -1156,23 +1170,23 @@ function toolExtractLinks() {
     .slice(0, 10);
   
   // Header
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🔗 Link Extractor & Analyzer',
     `${linkData.length} links found • ${internalCount} internal • ${externalCount} external`
   ));
   
   // Stats grid
   content.appendChild(createStatGrid([
-    { label: 'Total Links', value: linkData.length, icon: '🔗', color: DT.colors.primary },
-    { label: 'Internal', value: internalCount, icon: '🏠', color: DT.colors.success },
-    { label: 'External', value: externalCount, icon: '🌐', color: DT.colors.info },
-    { label: 'DoFollow', value: dofollowCount, icon: '✅', color: DT.colors.success },
-    { label: 'NoFollow', value: nofollowCount, icon: '🚫', color: DT.colors.warning },
-    { label: 'Sponsored', value: linkData.filter(l => l.isSponsored).length, icon: '💰', color: DT.colors.error },
+    { label: 'Total Links', value: linkData.length, icon: '🔗', color: window.DESIGN_TOKENS.colors.primary },
+    { label: 'Internal', value: internalCount, icon: '🏠', color: window.DESIGN_TOKENS.colors.success },
+    { label: 'External', value: externalCount, icon: '🌐', color: window.DESIGN_TOKENS.colors.info },
+    { label: 'DoFollow', value: dofollowCount, icon: '✅', color: window.DESIGN_TOKENS.colors.success },
+    { label: 'NoFollow', value: nofollowCount, icon: '🚫', color: window.DESIGN_TOKENS.colors.warning },
+    { label: 'Sponsored', value: linkData.filter(l => l.isSponsored).length, icon: '💰', color: window.DESIGN_TOKENS.colors.error },
   ]));
   
   // Filter bar
-  const filterBar = createElement('div', {
+  const filterBar = GDI.createElement('div', {
     styles: {
       display: 'flex',
       gap: '8px',
@@ -1192,13 +1206,13 @@ function toolExtractLinks() {
   let activeFilter = 'all';
   
   filterBtns.forEach(btn => {
-    const filterBtn = createElement('button', {
+    const filterBtn = GDI.createElement('button', {
       styles: {
         padding: '6px 14px',
-        border: `1px solid ${btn.active ? DT.colors.primary : DT.colors.border}`,
-        borderRadius: DT.radii.full,
-        background: btn.active ? DT.colors.primary : DT.colors.surface,
-        color: btn.active ? '#FFFFFF' : DT.colors.textSecondary,
+        border: `1px solid ${btn.active ? window.DESIGN_TOKENS.colors.primary : 'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.full,
+        background: btn.active ? window.DESIGN_TOKENS.colors.primary : 'var(--gdi-surface)',
+        color: btn.active ? '#FFFFFF' : 'var(--gdi-text-secondary)',
         fontSize: DT.typography.sizes.sm,
         fontWeight: DT.typography.weights.semibold,
         cursor: 'pointer',
@@ -1210,13 +1224,13 @@ function toolExtractLinks() {
     filterBtn.addEventListener('click', () => {
       activeFilter = btn.filter;
       filterBar.querySelectorAll('button').forEach(b => {
-        b.style.background = DT.colors.surface;
-        b.style.color = DT.colors.textSecondary;
-        b.style.borderColor = DT.colors.border;
+        b.style.background = 'var(--gdi-surface)';
+        b.style.color = 'var(--gdi-text-secondary)';
+        b.style.borderColor = 'var(--gdi-border)';
       });
-      filterBtn.style.background = DT.colors.primary;
+      filterBtn.style.background = window.DESIGN_TOKENS.colors.primary;
       filterBtn.style.color = '#FFFFFF';
-      filterBtn.style.borderColor = DT.colors.primary;
+      filterBtn.style.borderColor = window.DESIGN_TOKENS.colors.primary;
       
       filterLinks();
     });
@@ -1227,12 +1241,12 @@ function toolExtractLinks() {
   content.appendChild(filterBar);
   
   // Link list container
-  const linkList = createElement('div', {
+  const linkList = GDI.createElement('div', {
     styles: {
       maxHeight: '400px',
       overflowY: 'auto',
-      border: `1px solid ${DT.colors.border}`,
-      borderRadius: DT.radii.lg,
+      border: `1px solid ${'var(--gdi-border)'}`,
+      borderRadius: window.DESIGN_TOKENS.radii.lg,
     },
   });
   
@@ -1240,10 +1254,10 @@ function toolExtractLinks() {
     linkList.innerHTML = '';
     
     filteredLinks.forEach((link, idx) => {
-      const row = createElement('div', {
+      const row = GDI.createElement('div', {
         styles: {
           padding: '12px 16px',
-          borderBottom: `1px solid ${DT.colors.borderLight}`,
+          borderBottom: `1px solid ${'var(--gdi-border-light)'}`,
           display: 'flex',
           alignItems: 'flex-start',
           gap: '12px',
@@ -1252,7 +1266,7 @@ function toolExtractLinks() {
       });
       
       row.addEventListener('mouseenter', () => {
-        row.style.background = DT.colors.surfaceSecondary;
+        row.style.background = 'var(--gdi-surface-secondary)';
       });
       
       row.addEventListener('mouseleave', () => {
@@ -1260,18 +1274,18 @@ function toolExtractLinks() {
       });
       
       // Type badge
-      const typeBadge = createBadge(
+      const typeBadge = GDI.createBadge(
         link.isExternal ? 'External' : 'Internal',
         link.isExternal ? 'info' : 'success'
       );
       
       // Follow badge
-      const followBadge = createBadge(
+      const followBadge = GDI.createBadge(
         link.isNofollow ? 'NoFollow' : 'DoFollow',
         link.isNofollow ? 'warning' : 'success'
       );
       
-      const badges = createElement('div', {
+      const badges = GDI.createElement('div', {
         styles: {
           display: 'flex',
           flexDirection: 'column',
@@ -1284,19 +1298,19 @@ function toolExtractLinks() {
       badges.appendChild(followBadge);
       
       if (link.isSponsored) {
-        badges.appendChild(createBadge('Sponsored', 'warning'));
+        badges.appendChild(GDI.createBadge('Sponsored', 'warning'));
       }
       
       // Link info
-      const info = createElement('div', {
+      const info = GDI.createElement('div', {
         styles: { flex: '1', minWidth: '0' },
       });
       
-      const anchorText = createElement('div', {
+      const anchorText = GDI.createElement('div', {
         styles: {
           fontSize: DT.typography.sizes.base,
           fontWeight: DT.typography.weights.semibold,
-          color: DT.colors.textPrimary,
+          color: 'var(--gdi-text-primary)',
           marginBottom: '4px',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -1305,10 +1319,10 @@ function toolExtractLinks() {
         text: link.text,
       });
       
-      const urlText = createElement('div', {
+      const urlText = GDI.createElement('div', {
         styles: {
           fontSize: DT.typography.sizes.sm,
-          color: DT.colors.primary,
+          color: window.DESIGN_TOKENS.colors.primary,
           fontFamily: DT.typography.fontMono,
           wordBreak: 'break-all',
           overflow: 'hidden',
@@ -1322,8 +1336,8 @@ function toolExtractLinks() {
       info.appendChild(urlText);
       
       // Copy button
-      const copyBtn = createButton('Copy', () => {
-        copyToClipboard(link.url).then(() => showNotification('✅ URL copied!', 'success'));
+      const copyBtn = GDI.createButton('Copy', () => {
+        GDI.copyToClipboard(link.url).then(() => GDI.showNotification('✅ URL copied!', 'success'));
       }, { variant: 'secondary', fullWidth: false, size: 'sm' });
       
       row.appendChild(badges);
@@ -1369,29 +1383,29 @@ function toolExtractLinks() {
   
   // Top domains section
   if (topDomains.length > 0) {
-    const domainSection = createSection('🌐 Top External Domains', [
-      createElement('div', {
+    const domainSection = GDI.createSection('🌐 Top External Domains', [
+      GDI.createElement('div', {
         styles: { display: 'flex', flexDirection: 'column', gap: '8px' },
         children: topDomains.map(([domain, count], i) => {
           const maxCount = topDomains[0][1];
           const barWidth = (count / maxCount) * 100;
           
-          return createElement('div', {
+          return GDI.createElement('div', {
             styles: {
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
               padding: '8px 12px',
-              background: DT.colors.surfaceSecondary,
-              borderRadius: DT.radii.md,
+              background: 'var(--gdi-surface-secondary)',
+              borderRadius: window.DESIGN_TOKENS.radii.md,
             },
             children: [
-              createElement('span', {
+              GDI.createElement('span', {
                 styles: {
                   width: '24px',
                   height: '24px',
-                  borderRadius: DT.radii.full,
-                  background: DT.colors.primary,
+                  borderRadius: window.DESIGN_TOKENS.radii.full,
+                  background: window.DESIGN_TOKENS.colors.primary,
                   color: '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
@@ -1402,35 +1416,35 @@ function toolExtractLinks() {
                 },
                 text: String(i + 1),
               }),
-              createElement('span', {
+              GDI.createElement('span', {
                 styles: {
                   flex: '1',
                   fontSize: DT.typography.sizes.base,
                   fontWeight: DT.typography.weights.medium,
-                  color: DT.colors.textPrimary,
+                  color: 'var(--gdi-text-primary)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                 },
                 text: domain,
               }),
-              createElement('div', {
+              GDI.createElement('div', {
                 styles: { flex: '1', maxWidth: '150px' },
                 children: [
-                  createElement('div', {
+                  GDI.createElement('div', {
                     styles: {
                       height: '6px',
-                      background: DT.colors.surfaceTertiary,
-                      borderRadius: DT.radii.full,
+                      background: 'var(--gdi-surface-tertiary)',
+                      borderRadius: window.DESIGN_TOKENS.radii.full,
                       overflow: 'hidden',
                     },
                     children: [
-                      createElement('div', {
+                      GDI.createElement('div', {
                         styles: {
                           width: `${barWidth}%`,
                           height: '100%',
-                          background: DT.colors.primaryGradient,
-                          borderRadius: DT.radii.full,
+                          background: window.DESIGN_TOKENS.colors.primaryGradient,
+                          borderRadius: window.DESIGN_TOKENS.radii.full,
                           transition: 'width 0.5s ease',
                         },
                       }),
@@ -1438,11 +1452,11 @@ function toolExtractLinks() {
                   }),
                 ],
               }),
-              createElement('span', {
+              GDI.createElement('span', {
                 styles: {
                   fontSize: DT.typography.sizes.sm,
                   fontWeight: DT.typography.weights.bold,
-                  color: DT.colors.primary,
+                  color: window.DESIGN_TOKENS.colors.primary,
                   minWidth: '40px',
                   textAlign: 'right',
                 },
@@ -1458,7 +1472,7 @@ function toolExtractLinks() {
   }
   
   // Export button
-  const exportBtn = createButton('📊 Export as CSV', () => {
+  const exportBtn = GDI.createButton('📊 Export as CSV', () => {
     let csv = 'Index,Type,Follow,Anchor Text,URL\n';
     linkData.forEach(l => {
       csv += `"${l.index}","${l.isExternal ? 'External' : 'Internal'}","${l.isNofollow ? 'NoFollow' : 'DoFollow'}","${l.text.replace(/"/g, '""')}","${l.url}"\n`;
@@ -1466,26 +1480,26 @@ function toolExtractLinks() {
     
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = GDI.createElement('a');
     a.href = url;
     a.download = `links-${currentDomain.replace(/\./g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showNotification('✅ CSV exported!', 'success');
+    GDI.showNotification('✅ CSV exported!', 'success');
   }, { variant: 'secondary' });
   
-  content.appendChild(createElement('div', {
+  content.appendChild(GDI.createElement('div', {
     styles: { marginTop: '16px' },
     children: [exportBtn],
   }));
   
-  const { close } = createModal('Link Extractor & Analyzer', content, { width: '800px' });
+  const { close } = GDI.createModal('Link Extractor & Analyzer', content, { width: '800px' });
 }
 
 // ==================== TOOL: DOMAIN EXTRACTOR ====================
 
 function toolExtractDomains() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const currentDomain = window.location.hostname.replace(/^www\./, '');
   
@@ -1501,7 +1515,7 @@ function toolExtractDomains() {
   // Collect domains
   const domainMap = new Map();
   
-  $$('a[href]').forEach(anchor => {
+  $GDI.$$('a[href]').forEach(anchor => {
     try {
       const url = new URL(anchor.href);
       const domain = url.hostname.replace(/^www\./, '').toLowerCase();
@@ -1521,7 +1535,7 @@ function toolExtractDomains() {
       
       const entry = domainMap.get(domain);
       entry.count++;
-      entry.texts.add(cleanText(anchor.textContent).substring(0, 80));
+      entry.texts.add(GDI.cleanText(anchor.textContent).substring(0, 80));
     } catch (e) {}
   });
   
@@ -1529,10 +1543,10 @@ function toolExtractDomains() {
     .sort((a, b) => b.count - a.count);
   
   // Header
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🌐 External Domain Extractor',
     `${sortedDomains.length} unique domains found • ${sortedDomains.reduce((s, d) => s + d.count, 0)} total references`,
-    'linear-gradient(135deg, #E65100 0%, #FF6F00 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // Stats
@@ -1544,15 +1558,15 @@ function toolExtractDomains() {
   ]));
   
   if (sortedDomains.length === 0) {
-    content.appendChild(createSection('', [
-      createElement('div', {
-        styles: { textAlign: 'center', padding: '40px', color: DT.colors.textMuted },
+    content.appendChild(GDI.createSection('', [
+      GDI.createElement('div', {
+        styles: { textAlign: 'center', padding: '40px', color: 'var(--gdi-text-muted)' },
         text: 'No external domains found on this page.',
       }),
     ]));
   } else {
     // Search/filter
-    const { wrapper: searchWrapper, input: searchInput } = createInputField({
+    const { wrapper: searchWrapper, input: searchInput } = GDI.createInputField({
       label: '🔍 Filter Domains',
       id: 'domain-filter',
       placeholder: 'Filter by domain name...',
@@ -1560,12 +1574,12 @@ function toolExtractDomains() {
     });
     searchWrapper.style.marginBottom = '16px';
     
-    const domainList = createElement('div', {
+    const domainList = GDI.createElement('div', {
       styles: {
         maxHeight: '400px',
         overflowY: 'auto',
-        border: `1px solid ${DT.colors.border}`,
-        borderRadius: DT.radii.lg,
+        border: `1px solid ${'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.lg,
       },
     });
     
@@ -1577,10 +1591,10 @@ function toolExtractDomains() {
       domainList.innerHTML = '';
       
       filtered.forEach((item, i) => {
-        const row = createElement('div', {
+        const row = GDI.createElement('div', {
           styles: {
             padding: '12px 16px',
-            borderBottom: `1px solid ${DT.colors.borderLight}`,
+            borderBottom: `1px solid ${'var(--gdi-border-light)'}`,
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
@@ -1589,7 +1603,7 @@ function toolExtractDomains() {
         });
         
         row.addEventListener('mouseenter', () => {
-          row.style.background = DT.colors.surfaceSecondary;
+          row.style.background = 'var(--gdi-surface-secondary)';
         });
         
         row.addEventListener('mouseleave', () => {
@@ -1597,13 +1611,13 @@ function toolExtractDomains() {
         });
         
         // Rank
-        row.appendChild(createElement('span', {
+        row.appendChild(GDI.createElement('span', {
           styles: {
             width: '28px',
             height: '28px',
-            borderRadius: DT.radii.full,
-            background: i < 3 ? '#E65100' : DT.colors.surfaceTertiary,
-            color: i < 3 ? '#FFFFFF' : DT.colors.textSecondary,
+            borderRadius: window.DESIGN_TOKENS.radii.full,
+            background: i < 3 ? '#E65100' : 'var(--gdi-surface-tertiary)',
+            color: i < 3 ? '#FFFFFF' : 'var(--gdi-text-secondary)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1615,24 +1629,24 @@ function toolExtractDomains() {
         }));
         
         // Domain info
-        const info = createElement('div', { styles: { flex: '1', minWidth: '0' } });
+        const info = GDI.createElement('div', { styles: { flex: '1', minWidth: '0' } });
         
-        info.appendChild(createElement('div', {
+        info.appendChild(GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.md,
             fontWeight: DT.typography.weights.bold,
             fontFamily: DT.typography.fontMono,
-            color: DT.colors.textPrimary,
+            color: 'var(--gdi-text-primary)',
             marginBottom: '4px',
           },
           text: item.domain,
         }));
         
         if (item.texts.size > 0) {
-          info.appendChild(createElement('div', {
+          info.appendChild(GDI.createElement('div', {
             styles: {
               fontSize: DT.typography.sizes.xs,
-              color: DT.colors.textMuted,
+              color: 'var(--gdi-text-muted)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -1642,10 +1656,10 @@ function toolExtractDomains() {
         }
         
         // Count badge
-        const countBadge = createElement('span', {
+        const countBadge = GDI.createElement('span', {
           styles: {
             padding: '4px 12px',
-            borderRadius: DT.radii.full,
+            borderRadius: window.DESIGN_TOKENS.radii.full,
             background: '#FFF3E0',
             color: '#E65100',
             fontSize: DT.typography.sizes.sm,
@@ -1656,8 +1670,8 @@ function toolExtractDomains() {
         });
         
         // Copy button
-        const copyBtn = createButton('Copy', () => {
-          copyToClipboard(item.domain).then(() => showNotification('✅ Domain copied!', 'success'));
+        const copyBtn = GDI.createButton('Copy', () => {
+          GDI.copyToClipboard(item.domain).then(() => GDI.showNotification('✅ Domain copied!', 'success'));
         }, { variant: 'secondary', fullWidth: false, size: 'sm' });
         
         row.appendChild(info);
@@ -1670,7 +1684,7 @@ function toolExtractDomains() {
     
     renderDomains();
     
-    searchInput.addEventListener('input', debounce(() => {
+    searchInput.addEventListener('input', GDI.debounce(() => {
       renderDomains(searchInput.value);
     }, 200));
     
@@ -1678,17 +1692,17 @@ function toolExtractDomains() {
     content.appendChild(domainList);
     
     // Export buttons
-    const buttonRow = createElement('div', {
+    const buttonRow = GDI.createElement('div', {
       styles: { display: 'flex', gap: '10px', marginTop: '16px' },
     });
     
-    buttonRow.appendChild(createButton('📋 Copy All Domains', () => {
-      copyToClipboard(sortedDomains.map(d => d.domain).join('\n')).then(() =>
-        showNotification(`✅ ${sortedDomains.length} domains copied!`, 'success')
+    buttonRow.appendChild(GDI.createButton('📋 Copy All Domains', () => {
+      GDI.copyToClipboard(sortedDomains.map(d => d.domain).join('\n')).then(() =>
+        GDI.showNotification(`✅ ${sortedDomains.length} domains copied!`, 'success')
       );
     }, { variant: 'primary' }));
     
-    buttonRow.appendChild(createButton('📊 Export CSV', () => {
+    buttonRow.appendChild(GDI.createButton('📊 Export CSV', () => {
       let csv = 'Rank,Domain,References,First URL\n';
       sortedDomains.forEach((d, i) => {
         csv += `"${i + 1}","${d.domain}","${d.count}","${d.firstUrl}"\n`;
@@ -1696,24 +1710,24 @@ function toolExtractDomains() {
       
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = GDI.createElement('a');
       a.href = url;
       a.download = `domains-${currentDomain}-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      showNotification('✅ CSV exported!', 'success');
+      GDI.showNotification('✅ CSV exported!', 'success');
     }, { variant: 'secondary' }));
     
     content.appendChild(buttonRow);
   }
   
-  const { close } = createModal('Domain Extractor', content, { width: '750px' });
+  const { close } = GDI.createModal('Domain Extractor', content, { width: '750px' });
 }
 
 // ==================== TOOL: SOCIAL MEDIA EXTRACTOR ====================
 
 function toolExtractSocial() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   // Social platform database
   const socialPlatforms = {
@@ -1738,7 +1752,7 @@ function toolExtractSocial() {
   // Collect social links
   const socialLinks = new Map();
   
-  $$('a[href]').forEach(anchor => {
+  $GDI.$$('a[href]').forEach(anchor => {
     try {
       const url = new URL(anchor.href);
       const domain = url.hostname.replace(/^www\./, '').toLowerCase();
@@ -1750,7 +1764,7 @@ function toolExtractSocial() {
             socialLinks.set(anchor.href, {
               ...platform,
               url: anchor.href,
-              text: cleanText(anchor.textContent) || platform.name,
+              text: GDI.cleanText(anchor.textContent) || platform.name,
             });
           }
         }
@@ -1761,9 +1775,9 @@ function toolExtractSocial() {
   // Also check for social media icons in class names
   const socialIconPatterns = ['facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'tiktok', 'github'];
   
-  $$('a[href]').forEach(anchor => {
-    const classes = (anchor.className || '').toLowerCase();
-    const parentClasses = (anchor.parentElement?.className || '').toLowerCase();
+  $GDI.$$('a[href]').forEach(anchor => {
+    const classes = (typeof anchor.className === 'string' ? anchor.className : '').toLowerCase();
+    const parentClasses = (typeof anchor.parentElement?.className === 'string' ? anchor.parentElement.className : '').toLowerCase();
     const allClasses = classes + ' ' + parentClasses;
     
     socialIconPatterns.forEach(pattern => {
@@ -1779,7 +1793,7 @@ function toolExtractSocial() {
               socialLinks.set(anchor.href, {
                 ...matchingPlatform[1],
                 url: anchor.href,
-                text: cleanText(anchor.textContent) || matchingPlatform[1].name,
+                text: GDI.cleanText(anchor.textContent) || matchingPlatform[1].name,
               });
             }
           }
@@ -1798,10 +1812,10 @@ function toolExtractSocial() {
   });
   
   // Header
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📱 Social Media Extractor',
     `${uniqueLinks.length} social profiles found across ${Object.keys(byCategory).length} categories`,
-    'linear-gradient(135deg, #7B1FA2 0%, #E91E63 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // Stats
@@ -1812,38 +1826,38 @@ function toolExtractSocial() {
   ]));
   
   if (uniqueLinks.length === 0) {
-    content.appendChild(createSection('', [
-      createElement('div', {
-        styles: { textAlign: 'center', padding: '40px', color: DT.colors.textMuted },
+    content.appendChild(GDI.createSection('', [
+      GDI.createElement('div', {
+        styles: { textAlign: 'center', padding: '40px', color: 'var(--gdi-text-muted)' },
         text: 'No social media links found on this page.',
       }),
     ]));
   } else {
     // Render by category
     Object.entries(byCategory).sort(([a], [b]) => a.localeCompare(b)).forEach(([category, links]) => {
-      const categorySection = createSection(`📁 ${category} (${links.length})`, [
-        createElement('div', {
+      const categorySection = GDI.createSection(`📁 ${category} (${links.length})`, [
+        GDI.createElement('div', {
           styles: { display: 'grid', gap: '10px' },
           children: links.map(link => {
-            const card = createElement('div', {
+            const card = GDI.createElement('div', {
               styles: {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
                 padding: '14px',
-                background: DT.colors.surface,
-                border: `1px solid ${DT.colors.border}`,
-                borderRadius: DT.radii.lg,
+                background: 'var(--gdi-surface)',
+                border: `1px solid ${'var(--gdi-border)'}`,
+                borderRadius: window.DESIGN_TOKENS.radii.lg,
                 cursor: 'pointer',
                 transition: `all ${DT.transitions.fast}`,
               },
               children: [
                 // Platform icon
-                createElement('div', {
+                GDI.createElement('div', {
                   styles: {
                     width: '44px',
                     height: '44px',
-                    borderRadius: DT.radii.lg,
+                    borderRadius: window.DESIGN_TOKENS.radii.lg,
                     background: link.color,
                     color: '#FFFFFF',
                     display: 'flex',
@@ -1855,22 +1869,22 @@ function toolExtractSocial() {
                   text: link.icon,
                 }),
                 // Info
-                createElement('div', {
+                GDI.createElement('div', {
                   styles: { flex: '1', minWidth: '0' },
                   children: [
-                    createElement('div', {
+                    GDI.createElement('div', {
                       styles: {
                         fontSize: DT.typography.sizes.md,
                         fontWeight: DT.typography.weights.bold,
-                        color: DT.colors.textPrimary,
+                        color: 'var(--gdi-text-primary)',
                         marginBottom: '2px',
                       },
                       text: link.name,
                     }),
-                    createElement('div', {
+                    GDI.createElement('div', {
                       styles: {
                         fontSize: DT.typography.sizes.sm,
-                        color: DT.colors.primary,
+                        color: window.DESIGN_TOKENS.colors.primary,
                         fontFamily: DT.typography.fontMono,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -1881,9 +1895,9 @@ function toolExtractSocial() {
                   ],
                 }),
                 // Copy button
-                createButton('Copy', (e) => {
+                GDI.createButton('Copy', (e) => {
                   e.stopPropagation();
-                  copyToClipboard(link.url).then(() => showNotification('✅ Link copied!', 'success'));
+                  GDI.copyToClipboard(link.url).then(() => GDI.showNotification('✅ Link copied!', 'success'));
                 }, { variant: 'secondary', fullWidth: false, size: 'sm' }),
               ],
             });
@@ -1901,19 +1915,19 @@ function toolExtractSocial() {
     });
     
     // Copy all button
-    content.appendChild(createButton('📋 Copy All Social Links', () => {
+    content.appendChild(GDI.createButton('📋 Copy All Social Links', () => {
       const text = uniqueLinks.map(l => `${l.name}: ${l.url}`).join('\n');
-      copyToClipboard(text).then(() => showNotification('✅ All links copied!', 'success'));
+      GDI.copyToClipboard(text).then(() => GDI.showNotification('✅ All links copied!', 'success'));
     }, { variant: 'primary' }));
   }
   
-  const { close } = createModal('Social Media Extractor', content, { width: '700px' });
+  const { close } = GDI.createModal('Social Media Extractor', content, { width: '700px' });
 }
 
 // ==================== TOOL: BLOG PAGE FINDER ====================
 
 function toolFindBlog() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   const baseUrl = window.location.origin;
   
   // Blog path candidates
@@ -1933,20 +1947,20 @@ function toolFindBlog() {
   const blogKeywords = ['blog', 'article', 'post', 'news', 'story'];
   
   // Search loading state
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📰 Blog Page Finder',
     'Searching for blog pages on this site...'
   ));
   
   // Loading indicator
-  const loadingSection = createSection('🔍 Searching...', [
-    createElement('div', {
+  const loadingSection = GDI.createSection('🔍 Searching...', [
+    GDI.createElement('div', {
       styles: {
         textAlign: 'center',
         padding: '40px',
       },
       children: [
-        createElement('div', {
+        GDI.createElement('div', {
           styles: {
             fontSize: '40px',
             marginBottom: '16px',
@@ -1954,8 +1968,8 @@ function toolFindBlog() {
           },
           text: '🔍',
         }),
-        createElement('div', {
-          styles: { color: DT.colors.textMuted, fontSize: DT.typography.sizes.md },
+        GDI.createElement('div', {
+          styles: { color: 'var(--gdi-text-muted)', fontSize: DT.typography.sizes.md },
           text: 'Scanning common blog paths...',
         }),
       ],
@@ -1965,23 +1979,23 @@ function toolFindBlog() {
   content.appendChild(loadingSection);
   
   // Results container (hidden initially)
-  const resultsContainer = createElement('div', { styles: { display: 'none' } });
-  const resultsList = createElement('div', {
+  const resultsContainer = GDI.createElement('div', { styles: { display: 'none' } });
+  const resultsList = GDI.createElement('div', {
     styles: { display: 'grid', gap: '12px' },
   });
   
-  resultsContainer.appendChild(createSection('📋 Results', [resultsList]));
+  resultsContainer.appendChild(GDI.createSection('📋 Results', [resultsList]));
   content.appendChild(resultsContainer);
   
-  const { close } = createModal('Blog Page Finder', content, { width: '600px' });
+  const { close } = GDI.createModal('Blog Page Finder', content, { width: '600px' });
   
   // Scan for blog links on page
   function scanPageForBlogLinks() {
     const foundLinks = [];
     
-    $$('a[href]').forEach(anchor => {
+    $GDI.$$('a[href]').forEach(anchor => {
       const href = anchor.getAttribute('href') || '';
-      const text = cleanText(anchor.textContent).toLowerCase();
+      const text = GDI.cleanText(anchor.textContent).toLowerCase();
       
       blogKeywords.forEach(keyword => {
         if (text.includes(keyword) || href.toLowerCase().includes(keyword)) {
@@ -1992,7 +2006,7 @@ function toolFindBlog() {
           if (!foundLinks.find(l => l.url === url)) {
             foundLinks.push({
               url,
-              text: cleanText(anchor.textContent) || href,
+              text: GDI.cleanText(anchor.textContent) || href,
               keyword,
               source: 'Page Link',
             });
@@ -2074,26 +2088,26 @@ function toolFindBlog() {
     resultsContainer.style.display = 'block';
     
     if (results.length === 0) {
-      resultsList.appendChild(createElement('div', {
+      resultsList.appendChild(GDI.createElement('div', {
         styles: {
           textAlign: 'center',
           padding: '40px',
-          color: DT.colors.textMuted,
+          color: 'var(--gdi-text-muted)',
           fontSize: DT.typography.sizes.md,
         },
         text: 'No blog pages found. Try checking the navigation menu or footer for blog links.',
       }));
     } else {
       results.forEach((result, i) => {
-        const card = createElement('div', {
+        const card = GDI.createElement('div', {
           styles: {
             display: 'flex',
             alignItems: 'center',
             gap: '14px',
             padding: '16px',
-            background: i === 0 ? DT.colors.successLight : DT.colors.surface,
-            border: `2px solid ${i === 0 ? DT.colors.success : DT.colors.border}`,
-            borderRadius: DT.radii.lg,
+            background: i === 0 ? window.DESIGN_TOKENS.colors.successLight : 'var(--gdi-surface)',
+            border: `2px solid ${i === 0 ? window.DESIGN_TOKENS.colors.success : 'var(--gdi-border)'}`,
+            borderRadius: window.DESIGN_TOKENS.radii.lg,
             cursor: 'pointer',
             transition: `all ${DT.transitions.fast}`,
           },
@@ -2114,12 +2128,12 @@ function toolFindBlog() {
         });
         
         // Rank badge
-        card.appendChild(createElement('span', {
+        card.appendChild(GDI.createElement('span', {
           styles: {
             width: '36px',
             height: '36px',
-            borderRadius: DT.radii.full,
-            background: i === 0 ? DT.colors.success : DT.colors.primary,
+            borderRadius: window.DESIGN_TOKENS.radii.full,
+            background: i === 0 ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.primary,
             color: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
@@ -2132,13 +2146,13 @@ function toolFindBlog() {
         }));
         
         // Info
-        const info = createElement('div', { styles: { flex: '1', minWidth: '0' } });
+        const info = GDI.createElement('div', { styles: { flex: '1', minWidth: '0' } });
         
-        info.appendChild(createElement('div', {
+        info.appendChild(GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.md,
             fontWeight: DT.typography.weights.bold,
-            color: DT.colors.textPrimary,
+            color: 'var(--gdi-text-primary)',
             marginBottom: '4px',
             fontFamily: DT.typography.fontMono,
             overflow: 'hidden',
@@ -2148,21 +2162,21 @@ function toolFindBlog() {
           text: result.url,
         }));
         
-        info.appendChild(createElement('div', {
+        info.appendChild(GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.sm,
-            color: DT.colors.textMuted,
+            color: 'var(--gdi-text-muted)',
             display: 'flex',
             gap: '10px',
           },
           children: [
-            createElement('span', { text: `Source: ${result.source}` }),
-            createElement('span', { text: `Score: ${result.score}` }),
+            GDI.createElement('span', { text: `Source: ${result.source}` }),
+            GDI.createElement('span', { text: `Score: ${result.score}` }),
           ],
         }));
         
         // Visit button
-        card.appendChild(createButton('Visit →', () => {
+        card.appendChild(GDI.createButton('Visit →', () => {
           window.location.href = result.url;
         }, { variant: 'primary', fullWidth: false }));
         
@@ -2174,12 +2188,12 @@ function toolFindBlog() {
       // Auto-redirect message
       const bestResult = results[0];
       if (bestResult.score >= 8) {
-        const redirectMsg = createElement('div', {
+        const redirectMsg = GDI.createElement('div', {
           styles: {
             marginTop: '16px',
             padding: '14px',
-            background: DT.colors.infoLight,
-            borderRadius: DT.radii.md,
+            background: window.DESIGN_TOKENS.colors.infoLight,
+            borderRadius: window.DESIGN_TOKENS.radii.md,
             fontSize: DT.typography.sizes.base,
             color: '#1E40AF',
             textAlign: 'center',
@@ -2195,7 +2209,7 @@ function toolFindBlog() {
 // ==================== TOOL: GUEST POST FINDER ====================
 
 function toolFindGuestPost() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   const baseUrl = window.location.origin;
   
   // Guest post path candidates
@@ -2225,23 +2239,23 @@ function toolFindGuestPost() {
   // Negative keywords
   const negativeKeywords = ['no guest posts', 'not accepting', 'submissions closed'];
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '✍️ Guest Post Finder',
     'Searching for guest posting opportunities...',
-    'linear-gradient(135deg, #F093FB 0%, #F5576C 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // Loading
-  const loadingSection = createSection('🔍 Searching...', [
-    createElement('div', {
+  const loadingSection = GDI.createSection('🔍 Searching...', [
+    GDI.createElement('div', {
       styles: { textAlign: 'center', padding: '40px' },
       children: [
-        createElement('div', {
+        GDI.createElement('div', {
           styles: { fontSize: '40px', marginBottom: '16px', animation: 'gdi-pulse 1.5s infinite' },
           text: '🔍',
         }),
-        createElement('div', {
-          styles: { color: DT.colors.textMuted },
+        GDI.createElement('div', {
+          styles: { color: 'var(--gdi-text-muted)' },
           text: 'Scanning for guest post pages on this site...',
         }),
       ],
@@ -2251,15 +2265,15 @@ function toolFindGuestPost() {
   content.appendChild(loadingSection);
   
   // Results container
-  const resultsContainer = createElement('div', { styles: { display: 'none' } });
-  const resultsList = createElement('div', {
+  const resultsContainer = GDI.createElement('div', { styles: { display: 'none' } });
+  const resultsList = GDI.createElement('div', {
     styles: { display: 'grid', gap: '12px' },
   });
   
-  resultsContainer.appendChild(createSection('📋 Opportunities Found', [resultsList]));
+  resultsContainer.appendChild(GDI.createSection('📋 Opportunities Found', [resultsList]));
   content.appendChild(resultsContainer);
   
-  const { close } = createModal('Guest Post Finder', content, { width: '750px' });
+  const { close } = GDI.createModal('Guest Post Finder', content, { width: '750px' });
   
   async function checkUrl(url, timeout = 4000) {
     const controller = new AbortController();
@@ -2353,8 +2367,8 @@ function toolFindGuestPost() {
     resultsContainer.style.display = 'block';
     
     if (results.length === 0) {
-      resultsList.appendChild(createElement('div', {
-        styles: { textAlign: 'center', padding: '40px', color: DT.colors.textMuted, fontSize: DT.typography.sizes.md },
+      resultsList.appendChild(GDI.createElement('div', {
+        styles: { textAlign: 'center', padding: '40px', color: 'var(--gdi-text-muted)', fontSize: DT.typography.sizes.md },
         text: 'No guest post opportunities found on this site.',
       }));
     } else {
@@ -2363,19 +2377,19 @@ function toolFindGuestPost() {
                                 result.confidence >= 40 ? 'medium' : 'low';
         
         const confidenceColors = {
-          high: { border: DT.colors.success, bg: DT.colors.successLight, badge: { bg: DT.colors.success, text: 'HIGH' } },
-          medium: { border: DT.colors.warning, bg: DT.colors.warningLight, badge: { bg: DT.colors.warning, text: 'MED' } },
-          low: { border: DT.colors.textMuted, bg: DT.colors.surfaceSecondary, badge: { bg: DT.colors.textMuted, text: 'LOW' } },
+          high: { border: window.DESIGN_TOKENS.colors.success, bg: window.DESIGN_TOKENS.colors.successLight, badge: { bg: window.DESIGN_TOKENS.colors.success, text: 'HIGH' } },
+          medium: { border: window.DESIGN_TOKENS.colors.warning, bg: window.DESIGN_TOKENS.colors.warningLight, badge: { bg: window.DESIGN_TOKENS.colors.warning, text: 'MED' } },
+          low: { border: 'var(--gdi-text-muted)', bg: 'var(--gdi-surface-secondary)', badge: { bg: 'var(--gdi-text-muted)', text: 'LOW' } },
         };
         
         const style = confidenceColors[confidenceLevel];
         
-        const card = createElement('div', {
+        const card = GDI.createElement('div', {
           styles: {
             padding: '18px',
             background: style.bg,
             border: `2px solid ${style.border}`,
-            borderRadius: DT.radii.lg,
+            borderRadius: window.DESIGN_TOKENS.radii.lg,
             transition: `all ${DT.transitions.fast}`,
           },
         });
@@ -2391,7 +2405,7 @@ function toolFindGuestPost() {
         });
         
         // Header row
-        const headerRow = createElement('div', {
+        const headerRow = GDI.createElement('div', {
           styles: {
             display: 'flex',
             justifyContent: 'space-between',
@@ -2402,17 +2416,17 @@ function toolFindGuestPost() {
           },
         });
         
-        headerRow.appendChild(createElement('div', {
+        headerRow.appendChild(GDI.createElement('div', {
           styles: { display: 'flex', alignItems: 'center', gap: '8px' },
           children: [
-            createBadge(`#${i + 1}`, 'primary'),
-            createBadge(result.confidence >= 70 ? 'HIGH' : result.confidence >= 40 ? 'MED' : 'LOW',
+            GDI.createBadge(`#${i + 1}`, 'primary'),
+            GDI.createBadge(result.confidence >= 70 ? 'HIGH' : result.confidence >= 40 ? 'MED' : 'LOW',
               result.confidence >= 70 ? 'success' : result.confidence >= 40 ? 'warning' : 'info'),
-            createBadge(result.status, result.status === 'Likely' ? 'success' : 'warning'),
+            GDI.createBadge(result.status, result.status === 'Likely' ? 'success' : 'warning'),
           ],
         }));
         
-        const visitBtn = createButton('Visit Page →', () => {
+        const visitBtn = GDI.createButton('Visit Page →', () => {
           window.open(result.url, '_blank');
         }, { variant: 'primary', fullWidth: false });
         
@@ -2421,11 +2435,11 @@ function toolFindGuestPost() {
         card.appendChild(headerRow);
         
         // URL
-        card.appendChild(createElement('div', {
+        card.appendChild(GDI.createElement('div', {
           styles: {
             fontFamily: DT.typography.fontMono,
             fontSize: DT.typography.sizes.base,
-            color: DT.colors.primary,
+            color: window.DESIGN_TOKENS.colors.primary,
             wordBreak: 'break-all',
             marginBottom: '8px',
           },
@@ -2434,18 +2448,18 @@ function toolFindGuestPost() {
         
         // Details
         if (result.matchedKeywords?.length > 0) {
-          const kwRow = createElement('div', {
+          const kwRow = GDI.createElement('div', {
             styles: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' },
           });
           
           result.matchedKeywords.forEach(kw => {
-            kwRow.appendChild(createElement('span', {
+            kwRow.appendChild(GDI.createElement('span', {
               styles: {
                 padding: '3px 8px',
-                background: DT.colors.surfaceTertiary,
-                borderRadius: DT.radii.full,
+                background: 'var(--gdi-surface-tertiary)',
+                borderRadius: window.DESIGN_TOKENS.radii.full,
                 fontSize: DT.typography.sizes.xs,
-                color: DT.colors.textSecondary,
+                color: 'var(--gdi-text-secondary)',
               },
               text: kw,
             }));
@@ -2455,19 +2469,19 @@ function toolFindGuestPost() {
         }
         
         // Meta info
-        const metaRow = createElement('div', {
+        const metaRow = GDI.createElement('div', {
           styles: {
             display: 'flex',
             gap: '12px',
             fontSize: DT.typography.sizes.sm,
-            color: DT.colors.textMuted,
+            color: 'var(--gdi-text-muted)',
             flexWrap: 'wrap',
           },
           children: [
-            createElement('span', { text: `🎯 Confidence: ${result.confidence}%` }),
-            result.hasForm ? createElement('span', { text: '📝 Has Form' }) : null,
-            result.emails?.length > 0 ? createElement('span', { text: '📧 Has Email' }) : null,
-            createElement('span', { text: `📂 ${result.category}` }),
+            GDI.createElement('span', { text: `🎯 Confidence: ${result.confidence}%` }),
+            result.hasForm ? GDI.createElement('span', { text: '📝 Has Form' }) : null,
+            result.emails?.length > 0 ? GDI.createElement('span', { text: '📧 Has Email' }) : null,
+            GDI.createElement('span', { text: `📂 ${result.category}` }),
           ].filter(Boolean),
         });
         
@@ -2475,17 +2489,17 @@ function toolFindGuestPost() {
         
         // Email chips
         if (result.emails?.length > 0) {
-          const emailRow = createElement('div', {
+          const emailRow = GDI.createElement('div', {
             styles: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' },
           });
           
           result.emails.forEach(email => {
-            const chip = createElement('span', {
+            const chip = GDI.createElement('span', {
               styles: {
                 padding: '4px 10px',
                 background: '#DBEAFE',
                 color: '#1E40AF',
-                borderRadius: DT.radii.full,
+                borderRadius: window.DESIGN_TOKENS.radii.full,
                 fontSize: DT.typography.sizes.xs,
                 fontFamily: DT.typography.fontMono,
                 cursor: 'pointer',
@@ -2495,7 +2509,7 @@ function toolFindGuestPost() {
             
             chip.addEventListener('click', (e) => {
               e.stopPropagation();
-              copyToClipboard(email).then(() => showNotification('✅ Email copied!', 'success'));
+              GDI.copyToClipboard(email).then(() => GDI.showNotification('✅ Email copied!', 'success'));
             });
             
             emailRow.appendChild(chip);
@@ -2508,7 +2522,7 @@ function toolFindGuestPost() {
       });
       
       // Export button
-      resultsContainer.appendChild(createButton('📊 Export Results as CSV', () => {
+      resultsContainer.appendChild(GDI.createButton('📊 Export Results as CSV', () => {
         let csv = 'Rank,URL,Confidence,Status,Category,Has Form,Emails\n';
         results.forEach((r, i) => {
           csv += `"${i + 1}","${r.url}","${r.confidence}%","${r.status}","${r.category}","${r.hasForm}","${(r.emails || []).join('; ')}"\n`;
@@ -2516,12 +2530,12 @@ function toolFindGuestPost() {
         
         const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = GDI.createElement('a');
         a.href = url;
         a.download = `guest-posts-${window.location.hostname}-${new Date().toISOString().slice(0, 10)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        showNotification('✅ CSV exported!', 'success');
+        GDI.showNotification('✅ CSV exported!', 'success');
       }, { variant: 'secondary' }));
     }
   });
@@ -2530,7 +2544,7 @@ function toolFindGuestPost() {
 // ==================== TOOL: CONTACT FORM FILLER ====================
 
 function toolFillContactForm(settings = {}) {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   // Extract site information
   let siteName = '';
@@ -2566,7 +2580,7 @@ function toolFillContactForm(settings = {}) {
     };
     
     const headings = Array.from(document.querySelectorAll('h1, h2, h3'))
-      .map(h => cleanText(h.textContent))
+      .map(h => GDI.cleanText(h.textContent))
       .filter(h => h.length > 10 && h.length < 200)
       .slice(0, 5);
     
@@ -2759,39 +2773,39 @@ ${settings.userName || 'Your Name'}`;
   const fillPercentage = totalFields > 0 ? Math.round((filledCount / totalFields) * 100) : 0;
   
   // Build UI
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📝 Contact Form Filler',
     `Filled ${filledCount} of ${totalFields} fields (${fillPercentage}%)`,
-    DT.colors.successGradient
+    window.DESIGN_TOKENS.colors.successGradient
   ));
   
   // Stats
   content.appendChild(createStatGrid([
-    { label: 'Site', value: siteName, icon: '🌐', color: DT.colors.primary },
-    { label: 'Fields Filled', value: `${filledCount}/${totalFields}`, icon: '📝', color: DT.colors.success },
-    { label: 'Success Rate', value: `${fillPercentage}%`, icon: '📊', color: fillPercentage > 50 ? DT.colors.success : DT.colors.warning },
-    { label: 'Content Type', value: siteAnalysis.contentType, icon: '📂', color: DT.colors.info },
+    { label: 'Site', value: siteName, icon: '🌐', color: window.DESIGN_TOKENS.colors.primary },
+    { label: 'Fields Filled', value: `${filledCount}/${totalFields}`, icon: '📝', color: window.DESIGN_TOKENS.colors.success },
+    { label: 'Success Rate', value: `${fillPercentage}%`, icon: '📊', color: fillPercentage > 50 ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.warning },
+    { label: 'Content Type', value: siteAnalysis.contentType, icon: '📂', color: window.DESIGN_TOKENS.colors.info },
   ]));
   
   // Preview section
-  const previewSection = createSection('📋 Filled Data Preview', [
-    createElement('div', {
+  const previewSection = GDI.createSection('📋 Filled Data Preview', [
+    GDI.createElement('div', {
       styles: { display: 'flex', flexDirection: 'column', gap: '12px' },
       children: Object.entries(formData).map(([key, value]) => {
-        const fieldCard = createElement('div', {
+        const fieldCard = GDI.createElement('div', {
           styles: {
             padding: '14px',
-            background: DT.colors.surface,
-            border: `1px solid ${DT.colors.border}`,
-            borderRadius: DT.radii.md,
+            background: 'var(--gdi-surface)',
+            border: `1px solid ${'var(--gdi-border)'}`,
+            borderRadius: window.DESIGN_TOKENS.radii.md,
           },
         });
         
-        const keyLabel = createElement('div', {
+        const keyLabel = GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.xs,
             fontWeight: DT.typography.weights.bold,
-            color: DT.colors.textMuted,
+            color: 'var(--gdi-text-muted)',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
             marginBottom: '4px',
@@ -2799,10 +2813,10 @@ ${settings.userName || 'Your Name'}`;
           text: key === 'subject' ? '📧 Subject' : key === 'message' ? '💬 Message' : `👤 ${key.charAt(0).toUpperCase() + key.slice(1)}`,
         });
         
-        const valueText = createElement('div', {
+        const valueText = GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.base,
-            color: DT.colors.textPrimary,
+            color: 'var(--gdi-text-primary)',
             lineHeight: '1.5',
             wordBreak: 'break-word',
             maxHeight: key === 'message' ? '120px' : 'none',
@@ -2825,12 +2839,12 @@ ${settings.userName || 'Your Name'}`;
   
   // Message section
   if (filledCount === 0) {
-    content.appendChild(createSection('', [
-      createElement('div', {
+    content.appendChild(GDI.createSection('', [
+      GDI.createElement('div', {
         styles: {
           padding: '20px',
-          background: DT.colors.warningLight,
-          borderRadius: DT.radii.md,
+          background: window.DESIGN_TOKENS.colors.warningLight,
+          borderRadius: window.DESIGN_TOKENS.radii.md,
           textAlign: 'center',
           color: '#92400E',
           fontSize: DT.typography.sizes.base,
@@ -2839,7 +2853,7 @@ ${settings.userName || 'Your Name'}`;
       }),
     ]));
   } else {
-    content.appendChild(createButton('📤 Find Submit Button', () => {
+    content.appendChild(GDI.createButton('📤 Find Submit Button', () => {
       const submitBtn = document.querySelector(
         'button[type="submit"], input[type="submit"], button:contains("Submit"), button:contains("Send"), button:contains("Contact")'
       );
@@ -2851,17 +2865,17 @@ ${settings.userName || 'Your Name'}`;
         setTimeout(() => {
           submitBtn.style.boxShadow = '';
         }, 3000);
-        showNotification('✅ Submit button highlighted in green!', 'success');
+        GDI.showNotification('✅ Submit button highlighted in green!', 'success');
       } else {
-        showNotification('No submit button found. Please review the form manually.', 'warning');
+        GDI.showNotification('No submit button found. Please review the form manually.', 'warning');
       }
     }, { variant: 'primary' }));
   }
   
   // Tips
-  content.appendChild(createSection('💡 Tips', [
-    createElement('div', {
-      styles: { fontSize: DT.typography.sizes.base, color: DT.colors.textSecondary, lineHeight: '1.6' },
+  content.appendChild(GDI.createSection('💡 Tips', [
+    GDI.createElement('div', {
+      styles: { fontSize: DT.typography.sizes.base, color: 'var(--gdi-text-secondary)', lineHeight: '1.6' },
       html: `
         <ul style="margin: 0; padding-left: 20px;">
           <li>Review all filled fields before submitting</li>
@@ -2873,13 +2887,13 @@ ${settings.userName || 'Your Name'}`;
     }),
   ]));
   
-  const { close } = createModal('Contact Form Filler', content, { width: '600px' });
+  const { close } = GDI.createModal('Contact Form Filler', content, { width: '600px' });
 }
 
 // ==================== TOOL: SEARCH OPERATORS ====================
 
 function toolSearchOperators() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const currentSite = window.location.hostname;
   
@@ -2922,21 +2936,21 @@ function toolSearchOperators() {
   ];
   
   // Header
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🔍 Advanced Search Operators',
     `Build powerful search queries for ${currentSite}`,
-    'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // Search builder
-  const searchBuilder = createSection('🔨 Search Builder', [
-    createElement('div', {
+  const searchBuilder = GDI.createSection('🔨 Search Builder', [
+    GDI.createElement('div', {
       styles: { display: 'flex', flexDirection: 'column', gap: '16px' },
     }),
   ]);
   
   // Operator select
-  const { wrapper: operatorWrapper, input: operatorSelect } = createInputField({
+  const { wrapper: operatorWrapper, input: operatorSelect } = GDI.createInputField({
     label: 'Search Operator',
     id: 'operator-select',
     type: 'text',
@@ -2944,24 +2958,24 @@ function toolSearchOperators() {
   });
   
   // Replace input with select
-  const select = createElement('select', {
+  const select = GDI.createElement('select', {
     attrs: { id: 'operator-select' },
     styles: {
       width: '100%',
       padding: '12px 16px',
-      border: `1.5px solid ${DT.colors.border}`,
-      borderRadius: DT.radii.lg,
+      border: `1.5px solid ${'var(--gdi-border)'}`,
+      borderRadius: window.DESIGN_TOKENS.radii.lg,
       fontSize: DT.typography.sizes.md,
       fontFamily: DT.typography.fontFamily,
       outline: 'none',
-      background: DT.colors.surface,
-      color: DT.colors.textPrimary,
+      background: 'var(--gdi-surface)',
+      color: 'var(--gdi-text-primary)',
       cursor: 'pointer',
     },
   });
   
   operatorReference.forEach(op => {
-    const option = createElement('option', {
+    const option = GDI.createElement('option', {
       attrs: { value: op.operator },
       text: `${op.operator} - ${op.description}`,
     });
@@ -2971,22 +2985,22 @@ function toolSearchOperators() {
   operatorWrapper.querySelector('input').replaceWith(select);
   
   // Query input
-  const { wrapper: queryWrapper, input: queryInput } = createInputField({
+  const { wrapper: queryWrapper, input: queryInput } = GDI.createInputField({
     label: 'Search Query',
     id: 'search-query',
     placeholder: 'e.g., "write for us", guest post guidelines...',
   });
   
   // Preview
-  const previewBox = createElement('div', {
+  const previewBox = GDI.createElement('div', {
     styles: {
       padding: '14px',
-      background: DT.colors.surfaceSecondary,
-      border: `1px solid ${DT.colors.border}`,
-      borderRadius: DT.radii.md,
+      background: 'var(--gdi-surface-secondary)',
+      border: `1px solid ${'var(--gdi-border)'}`,
+      borderRadius: window.DESIGN_TOKENS.radii.md,
       fontFamily: DT.typography.fontMono,
       fontSize: DT.typography.sizes.base,
-      color: DT.colors.primary,
+      color: window.DESIGN_TOKENS.colors.primary,
       minHeight: '40px',
       wordBreak: 'break-all',
       marginBottom: '16px',
@@ -3000,7 +3014,7 @@ function toolSearchOperators() {
     
     if (!query && !operator.startsWith('site:')) {
       previewBox.textContent = 'Enter a search query to see preview...';
-      previewBox.style.color = DT.colors.textMuted;
+      previewBox.style.color = 'var(--gdi-text-muted)';
       return;
     }
     
@@ -3014,7 +3028,7 @@ function toolSearchOperators() {
     }
     
     previewBox.textContent = fullQuery.trim();
-    previewBox.style.color = DT.colors.primary;
+    previewBox.style.color = window.DESIGN_TOKENS.colors.primary;
   }
   
   select.addEventListener('change', updatePreview);
@@ -3025,11 +3039,11 @@ function toolSearchOperators() {
   searchBuilder.querySelector('div').appendChild(previewBox);
   
   // Action buttons
-  const buttonRow = createElement('div', {
+  const buttonRow = GDI.createElement('div', {
     styles: { display: 'flex', gap: '10px', marginTop: '10px' },
   });
   
-  buttonRow.appendChild(createButton('🔍 Search Google', () => {
+  buttonRow.appendChild(GDI.createButton('🔍 Search Google', () => {
     const operator = select.value;
     let query = queryInput.value.trim();
     let fullQuery = '';
@@ -3043,7 +3057,7 @@ function toolSearchOperators() {
     window.open(`https://www.google.com/search?q=${encodeURIComponent(fullQuery.trim())}`, '_blank');
   }, { variant: 'primary' }));
   
-  buttonRow.appendChild(createButton('🦆 DuckDuckGo', () => {
+  buttonRow.appendChild(GDI.createButton('🦆 DuckDuckGo', () => {
     const operator = select.value;
     let query = queryInput.value.trim();
     let fullQuery = '';
@@ -3062,20 +3076,20 @@ function toolSearchOperators() {
   content.appendChild(searchBuilder);
   
   // Quick templates
-  const templatesSection = createSection('📋 Quick Templates', [
-    createElement('div', {
+  const templatesSection = GDI.createSection('📋 Quick Templates', [
+    GDI.createElement('div', {
       styles: { display: 'flex', flexDirection: 'column', gap: '16px' },
     }),
   ]);
   
   Object.entries(searchTemplates).forEach(([category, templates]) => {
-    const catDiv = createElement('div');
+    const catDiv = GDI.createElement('div');
     
-    catDiv.appendChild(createElement('div', {
+    catDiv.appendChild(GDI.createElement('div', {
       styles: {
         fontSize: DT.typography.sizes.sm,
         fontWeight: DT.typography.weights.bold,
-        color: DT.colors.textSecondary,
+        color: 'var(--gdi-text-secondary)',
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
         marginBottom: '8px',
@@ -3084,15 +3098,15 @@ function toolSearchOperators() {
     }));
     
     templates.forEach(tmpl => {
-      const chip = createElement('div', {
+      const chip = GDI.createElement('div', {
         styles: {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '10px 14px',
-          background: DT.colors.surface,
-          border: `1px solid ${DT.colors.border}`,
-          borderRadius: DT.radii.md,
+          background: 'var(--gdi-surface)',
+          border: `1px solid ${'var(--gdi-border)'}`,
+          borderRadius: window.DESIGN_TOKENS.radii.md,
           marginBottom: '6px',
           cursor: 'pointer',
           transition: `all ${DT.transitions.fast}`,
@@ -3107,28 +3121,28 @@ function toolSearchOperators() {
       });
       
       chip.addEventListener('mouseenter', () => {
-        chip.style.borderColor = DT.colors.primary;
-        chip.style.background = DT.colors.infoLight;
+        chip.style.borderColor = window.DESIGN_TOKENS.colors.primary;
+        chip.style.background = window.DESIGN_TOKENS.colors.infoLight;
       });
       
       chip.addEventListener('mouseleave', () => {
-        chip.style.borderColor = DT.colors.border;
-        chip.style.background = DT.colors.surface;
+        chip.style.borderColor = 'var(--gdi-border)';
+        chip.style.background = 'var(--gdi-surface)';
       });
       
-      chip.appendChild(createElement('div', {
+      chip.appendChild(GDI.createElement('div', {
         styles: {
           fontSize: DT.typography.sizes.base,
           fontWeight: DT.typography.weights.medium,
-          color: DT.colors.textPrimary,
+          color: 'var(--gdi-text-primary)',
         },
         text: tmpl.name,
       }));
       
-      chip.appendChild(createElement('div', {
+      chip.appendChild(GDI.createElement('div', {
         styles: {
           fontSize: DT.typography.sizes.xs,
-          color: DT.colors.textMuted,
+          color: 'var(--gdi-text-muted)',
           fontFamily: DT.typography.fontMono,
           maxWidth: '200px',
           overflow: 'hidden',
@@ -3147,18 +3161,18 @@ function toolSearchOperators() {
   content.appendChild(templatesSection);
   
   // Operator reference
-  const referenceSection = createSection('📖 Operator Reference', [
-    createElement('div', {
+  const referenceSection = GDI.createSection('📖 Operator Reference', [
+    GDI.createElement('div', {
       styles: { display: 'flex', flexDirection: 'column', gap: '6px' },
       children: operatorReference.map(op => {
-        const row = createElement('div', {
+        const row = GDI.createElement('div', {
           styles: {
             display: 'flex',
             alignItems: 'center',
             padding: '10px 14px',
-            background: DT.colors.surface,
-            border: `1px solid ${DT.colors.border}`,
-            borderRadius: DT.radii.md,
+            background: 'var(--gdi-surface)',
+            border: `1px solid ${'var(--gdi-border)'}`,
+            borderRadius: window.DESIGN_TOKENS.radii.md,
             gap: '12px',
             cursor: 'pointer',
           },
@@ -3170,30 +3184,30 @@ function toolSearchOperators() {
           queryInput.focus();
         });
         
-        row.appendChild(createElement('span', {
+        row.appendChild(GDI.createElement('span', {
           styles: {
             fontFamily: DT.typography.fontMono,
             fontSize: DT.typography.sizes.base,
             fontWeight: DT.typography.weights.bold,
-            color: DT.colors.primary,
+            color: window.DESIGN_TOKENS.colors.primary,
             minWidth: '100px',
           },
           text: op.operator,
         }));
         
-        row.appendChild(createElement('span', {
+        row.appendChild(GDI.createElement('span', {
           styles: {
             flex: '1',
             fontSize: DT.typography.sizes.base,
-            color: DT.colors.textSecondary,
+            color: 'var(--gdi-text-secondary)',
           },
           text: op.description,
         }));
         
-        row.appendChild(createElement('span', {
+        row.appendChild(GDI.createElement('span', {
           styles: {
             fontSize: DT.typography.sizes.xs,
-            color: DT.colors.textMuted,
+            color: 'var(--gdi-text-muted)',
             fontFamily: DT.typography.fontMono,
             fontStyle: 'italic',
           },
@@ -3207,13 +3221,13 @@ function toolSearchOperators() {
   
   content.appendChild(referenceSection);
   
-  const { close } = createModal('Advanced Search Operators', content, { width: '750px' });
+  const { close } = GDI.createModal('Advanced Search Operators', content, { width: '750px' });
 }
 
 // ==================== TOOL: PAYMENT FORM GENERATOR ====================
 
 function toolPaymentForm(type, settings = {}) {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const defaults = {
     currency: settings.defaultCurrency || 'USD',
@@ -3228,15 +3242,15 @@ function toolPaymentForm(type, settings = {}) {
   };
   
   const gradients = {
-    'advance': 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
-    'paypal': 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-    'gcash': 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+    'advance': window.DESIGN_TOKENS.colors.primaryGradient,
+    'paypal': window.DESIGN_TOKENS.colors.primaryGradient,
+    'gcash': window.DESIGN_TOKENS.colors.primaryGradient,
   };
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     `💰 ${titles[type] || 'Payment Request'}`,
     'Fill in the details to generate your email template',
-    gradients[type] || DT.colors.primaryGradient
+    gradients[type] || window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // Form fields based on type
@@ -3281,14 +3295,14 @@ function toolPaymentForm(type, settings = {}) {
   const inputs = {};
   
   // Render form fields
-  const formSection = createSection('📝 Payment Details', [
-    createElement('div', {
+  const formSection = GDI.createSection('📝 Payment Details', [
+    GDI.createElement('div', {
       styles: { display: 'flex', flexDirection: 'column', gap: '12px' },
     }),
   ]);
   
   fields.forEach(field => {
-    const { wrapper, input } = createInputField({
+    const { wrapper, input } = GDI.createInputField({
       label: field.label,
       id: field.id,
       placeholder: field.placeholder,
@@ -3303,19 +3317,19 @@ function toolPaymentForm(type, settings = {}) {
   content.appendChild(formSection);
   
   // Preview section
-  const previewSection = createSection('👁️ Email Preview', [
-    createElement('div', {
-      id: 'email-preview',
+  const previewSection = GDI.createSection('👁️ Email Preview', [
+    GDI.createElement('div', {
+      attrs: { id: 'email-preview' },
       styles: {
         padding: '16px',
-        background: DT.colors.surfaceSecondary,
-        border: `1px solid ${DT.colors.border}`,
-        borderRadius: DT.radii.md,
+        background: 'var(--gdi-surface-secondary)',
+        border: `1px solid ${'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.md,
         fontFamily: DT.typography.fontFamily,
         fontSize: DT.typography.sizes.base,
         whiteSpace: 'pre-wrap',
         lineHeight: '1.6',
-        color: DT.colors.textPrimary,
+        color: 'var(--gdi-text-primary)',
         minHeight: '100px',
       },
       text: 'Fill in the fields above to generate your email...',
@@ -3385,7 +3399,7 @@ ${getVal('yourName')}`;
   }
   
   function updatePreview() {
-    const preview = $('#email-preview');
+    const preview = content.querySelector('#email-preview');
     if (preview) {
       const email = generateEmail();
       preview.textContent = email;
@@ -3401,32 +3415,32 @@ ${getVal('yourName')}`;
   setTimeout(updatePreview, 100);
   
   // Action buttons
-  const buttonRow = createElement('div', {
+  const buttonRow = GDI.createElement('div', {
     styles: { display: 'flex', gap: '10px', marginTop: '16px' },
   });
   
-  buttonRow.appendChild(createButton('📋 Copy Email', () => {
+  buttonRow.appendChild(GDI.createButton('📋 Copy Email', () => {
     const email = generateEmail();
-    copyToClipboard(email).then(() => showNotification('✅ Email copied to clipboard!', 'success'));
+    GDI.copyToClipboard(email).then(() => GDI.showNotification('✅ Email copied to clipboard!', 'success'));
   }, { variant: 'primary' }));
   
-  buttonRow.appendChild(createButton('🔄 Reset Fields', () => {
+  buttonRow.appendChild(GDI.createButton('🔄 Reset Fields', () => {
     Object.values(inputs).forEach(input => {
       input.value = input.defaultValue || '';
     });
     updatePreview();
-    showNotification('Fields reset!', 'info');
+    GDI.showNotification('Fields reset!', 'info');
   }, { variant: 'secondary' }));
   
   content.appendChild(buttonRow);
   
-  const { close } = createModal(titles[type] || 'Payment Request', content, { width: '600px' });
+  const { close } = GDI.createModal(titles[type] || 'Payment Request', content, { width: '600px' });
 }
 
 // ==================== TOOL: ARTICLE FORM GENERATOR ====================
 
 function toolArticleForm(type, settings = {}) {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const defaults = {
     yourName: settings.userName || 'Your Name',
@@ -3434,10 +3448,10 @@ function toolArticleForm(type, settings = {}) {
   
   const title = type === 'full' ? 'Sending Article (Detailed)' : 'Quick Article';
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     `📤 ${title}`,
     'Generate professional article submission emails',
-    'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   const inputs = {};
@@ -3460,14 +3474,14 @@ function toolArticleForm(type, settings = {}) {
   }
   
   // Form fields
-  const formSection = createSection('📝 Article Details', [
-    createElement('div', {
+  const formSection = GDI.createSection('📝 Article Details', [
+    GDI.createElement('div', {
       styles: { display: 'flex', flexDirection: 'column', gap: '12px' },
     }),
   ]);
   
   fields.forEach(field => {
-    const { wrapper, input } = createInputField({
+    const { wrapper, input } = GDI.createInputField({
       label: field.label,
       id: field.id,
       placeholder: field.placeholder,
@@ -3482,18 +3496,18 @@ function toolArticleForm(type, settings = {}) {
   content.appendChild(formSection);
   
   // Preview
-  const previewSection = createSection('👁️ Email Preview', [
-    createElement('div', {
-      id: 'article-preview',
+  const previewSection = GDI.createSection('👁️ Email Preview', [
+    GDI.createElement('div', {
+      attrs: { id: 'article-preview' },
       styles: {
         padding: '16px',
-        background: DT.colors.surfaceSecondary,
-        border: `1px solid ${DT.colors.border}`,
-        borderRadius: DT.radii.md,
+        background: 'var(--gdi-surface-secondary)',
+        border: `1px solid ${'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.md,
         whiteSpace: 'pre-wrap',
         lineHeight: '1.6',
         fontSize: DT.typography.sizes.base,
-        color: DT.colors.textPrimary,
+        color: 'var(--gdi-text-primary)',
         minHeight: '100px',
       },
       text: 'Fill in the fields above to generate your email...',
@@ -3545,7 +3559,7 @@ ${getVal('yourName')}`;
   }
   
   function updatePreview() {
-    const preview = $('#article-preview');
+    const preview = content.querySelector('#article-preview');
     if (preview) {
       preview.textContent = generateEmail();
     }
@@ -3558,23 +3572,23 @@ ${getVal('yourName')}`;
   setTimeout(updatePreview, 100);
   
   // Buttons
-  const buttonRow = createElement('div', {
+  const buttonRow = GDI.createElement('div', {
     styles: { display: 'flex', gap: '10px', marginTop: '16px' },
   });
   
-  buttonRow.appendChild(createButton('📋 Copy Email', () => {
-    copyToClipboard(generateEmail()).then(() => showNotification('✅ Email copied!', 'success'));
+  buttonRow.appendChild(GDI.createButton('📋 Copy Email', () => {
+    GDI.copyToClipboard(generateEmail()).then(() => GDI.showNotification('✅ Email copied!', 'success'));
   }, { variant: 'primary' }));
   
   content.appendChild(buttonRow);
   
-  const { close } = createModal(title, content, { width: '600px' });
+  const { close } = GDI.createModal(title, content, { width: '600px' });
 }
 
 // ==================== TOOL: FOLLOW-UP GENERATOR ====================
 
 function toolFollowupForm(type, settings = {}) {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const titles = {
     1: 'Article Follow-up (1st)',
@@ -3604,35 +3618,35 @@ If I don't hear back from you within the next 12 hours, I'll assume you're no lo
 Please let me know your decision ASAP.`,
   };
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     `📞 ${titles[type] || 'Follow-up'}`,
     'Generate follow-up email for article submission',
-    'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // Website input
-  const { wrapper, input } = createInputField({
+  const { wrapper, input } = GDI.createInputField({
     label: 'Website',
     id: 'followup-website',
     placeholder: 'example.com',
     required: true,
   });
   
-  content.appendChild(createSection('📝 Details', [wrapper]));
+  content.appendChild(GDI.createSection('📝 Details', [wrapper]));
   
   // Preview
-  const previewSection = createSection('👁️ Message Preview', [
-    createElement('div', {
-      id: 'followup-preview',
+  const previewSection = GDI.createSection('👁️ Message Preview', [
+    GDI.createElement('div', {
+      attrs: { id: 'followup-preview' },
       styles: {
         padding: '16px',
-        background: DT.colors.surfaceSecondary,
-        border: `1px solid ${DT.colors.border}`,
-        borderRadius: DT.radii.md,
+        background: 'var(--gdi-surface-secondary)',
+        border: `1px solid ${'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.md,
         whiteSpace: 'pre-wrap',
         lineHeight: '1.6',
         fontSize: DT.typography.sizes.base,
-        color: DT.colors.textPrimary,
+        color: 'var(--gdi-text-primary)',
         minHeight: '80px',
       },
       text: templates[type].replace('{{website}}', '[Website]'),
@@ -3643,31 +3657,31 @@ Please let me know your decision ASAP.`,
   
   function updatePreview() {
     const website = input.value.trim() || '[Website]';
-    $('#followup-preview').textContent = templates[type].replace('{{website}}', website);
+    content.querySelector('#followup-preview').textContent = templates[type].replace('{{website}}', website);
   }
   
   input.addEventListener('input', updatePreview);
   
   // Copy button
-  content.appendChild(createButton('📋 Copy Message', () => {
+  content.appendChild(GDI.createButton('📋 Copy Message', () => {
     const website = input.value.trim() || '[Website]';
     const message = templates[type].replace('{{website}}', website);
-    copyToClipboard(message).then(() => showNotification('✅ Message copied!', 'success'));
+    GDI.copyToClipboard(message).then(() => GDI.showNotification('✅ Message copied!', 'success'));
   }, { variant: 'primary' }));
   
-  const { close } = createModal(titles[type] || 'Follow-up', content, { width: '550px' });
+  const { close } = GDI.createModal(titles[type] || 'Follow-up', content, { width: '550px' });
 }
 
 // ==================== TOOL: OUTREACH TEMPLATES ====================
 
 function toolOutreachTemplates() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const templates = [
     {
       name: 'Standard Outreach',
       icon: '📧',
-      color: DT.colors.primary,
+      color: window.DESIGN_TOKENS.colors.primary,
       template: `Hi {{webmaster}} team,
 
 I hope you're doing well! I'm reaching out to see if you're accepting guest post contributions on your website.
@@ -3679,7 +3693,7 @@ Looking forward to your response!`,
     {
       name: 'Professional Outreach',
       icon: '💼',
-      color: DT.colors.info,
+      color: window.DESIGN_TOKENS.colors.info,
       template: `Hi {{webmaster}} team,
 
 I'm reaching out to ask if you currently accept guest contributions on your website. I'd be happy to provide original, well-researched content that aligns with your audience's interests.
@@ -3691,7 +3705,7 @@ Looking forward to hearing from you. Thanks!`,
     {
       name: 'Casual Outreach',
       icon: '👋',
-      color: DT.colors.success,
+      color: window.DESIGN_TOKENS.colors.success,
       template: `Hey {{webmaster}} team,
 
 Love what you're doing with the site! I was wondering if you accept guest posts? I've got some great ideas I think your readers would really enjoy.
@@ -3704,7 +3718,7 @@ Let me know if you're open to it!`,
     {
       name: 'Standard Negotiation',
       icon: '💬',
-      color: DT.colors.warning,
+      color: window.DESIGN_TOKENS.colors.warning,
       template: `Hi,
 
 Thank you for your response.
@@ -3716,7 +3730,7 @@ Looking forward to your kind response. Thank you!`,
     {
       name: 'Polite Negotiation',
       icon: '🤝',
-      color: DT.colors.primary,
+      color: window.DESIGN_TOKENS.colors.primary,
       template: `Hi,
 
 Thank you for getting back to me.
@@ -3727,13 +3741,13 @@ I appreciate your consideration either way!`,
     },
   ];
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📧 Outreach & Negotiation Templates',
     'Pre-written templates for guest post outreach and price negotiation'
   ));
   
   // Prompts for webmaster name
-  const { wrapper: promptWrapper, input: webmasterInput } = createInputField({
+  const { wrapper: promptWrapper, input: webmasterInput } = GDI.createInputField({
     label: "Webmaster's Name",
     id: 'webmaster-name',
     placeholder: 'Enter webmaster name (e.g., John)',
@@ -3744,58 +3758,58 @@ I appreciate your consideration either way!`,
   content.appendChild(promptWrapper);
   
   // Outreach templates
-  content.appendChild(createSection('📧 Outreach Templates', [
-    createElement('div', {
+  content.appendChild(GDI.createSection('📧 Outreach Templates', [
+    GDI.createElement('div', {
       styles: { display: 'grid', gap: '12px' },
       children: templates.map(tmpl => {
-        const card = createElement('div', {
+        const card = GDI.createElement('div', {
           styles: {
-            background: DT.colors.surface,
-            border: `1px solid ${DT.colors.border}`,
-            borderRadius: DT.radii.lg,
+            background: 'var(--gdi-surface)',
+            border: `1px solid ${'var(--gdi-border)'}`,
+            borderRadius: window.DESIGN_TOKENS.radii.lg,
             overflow: 'hidden',
           },
         });
         
         // Header
-        const header = createElement('div', {
+        const header = GDI.createElement('div', {
           styles: {
             padding: '12px 16px',
             background: tmpl.color + '15',
-            borderBottom: `1px solid ${DT.colors.border}`,
+            borderBottom: `1px solid ${'var(--gdi-border)'}`,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
           },
           children: [
-            createElement('span', {
+            GDI.createElement('span', {
               styles: {
                 fontSize: DT.typography.sizes.md,
                 fontWeight: DT.typography.weights.bold,
-                color: DT.colors.textPrimary,
+                color: 'var(--gdi-text-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
               },
-              html: `${tmpl.icon} ${escapeHtml(tmpl.name)}`,
+              html: `${tmpl.icon} ${GDI.escapeHtml(tmpl.name)}`,
             }),
-            createButton('Copy', (e) => {
+            GDI.createButton('Copy', (e) => {
               const name = webmasterInput.value.trim() || 'Webmaster';
               const text = tmpl.template.replace(/\{\{webmaster\}\}/g, name);
-              copyToClipboard(text).then(() => showNotification('✅ Template copied!', 'success'));
+              GDI.copyToClipboard(text).then(() => GDI.showNotification('✅ Template copied!', 'success'));
             }, { variant: 'secondary', fullWidth: false, size: 'sm' }),
           ],
         });
         
         // Content
-        const body = createElement('div', {
+        const body = GDI.createElement('div', {
           styles: {
             padding: '14px 16px',
             whiteSpace: 'pre-wrap',
             lineHeight: '1.6',
             fontSize: DT.typography.sizes.base,
-            color: DT.colors.textSecondary,
-            background: DT.colors.surfaceSecondary,
+            color: 'var(--gdi-text-secondary)',
+            background: 'var(--gdi-surface-secondary)',
           },
           text: tmpl.template,
         });
@@ -3809,54 +3823,54 @@ I appreciate your consideration either way!`,
   ]));
   
   // Negotiation templates
-  content.appendChild(createSection('💬 Negotiation Templates', [
-    createElement('div', {
+  content.appendChild(GDI.createSection('💬 Negotiation Templates', [
+    GDI.createElement('div', {
       styles: { display: 'grid', gap: '12px' },
       children: negoTemplates.map(tmpl => {
-        const card = createElement('div', {
+        const card = GDI.createElement('div', {
           styles: {
-            background: DT.colors.surface,
-            border: `1px solid ${DT.colors.border}`,
-            borderRadius: DT.radii.lg,
+            background: 'var(--gdi-surface)',
+            border: `1px solid ${'var(--gdi-border)'}`,
+            borderRadius: window.DESIGN_TOKENS.radii.lg,
             overflow: 'hidden',
           },
         });
         
-        const header = createElement('div', {
+        const header = GDI.createElement('div', {
           styles: {
             padding: '12px 16px',
             background: tmpl.color + '15',
-            borderBottom: `1px solid ${DT.colors.border}`,
+            borderBottom: `1px solid ${'var(--gdi-border)'}`,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
           },
           children: [
-            createElement('span', {
+            GDI.createElement('span', {
               styles: {
                 fontSize: DT.typography.sizes.md,
                 fontWeight: DT.typography.weights.bold,
-                color: DT.colors.textPrimary,
+                color: 'var(--gdi-text-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
               },
-              html: `${tmpl.icon} ${escapeHtml(tmpl.name)}`,
+              html: `${tmpl.icon} ${GDI.escapeHtml(tmpl.name)}`,
             }),
-            createButton('Copy', () => {
-              copyToClipboard(tmpl.template).then(() => showNotification('✅ Template copied!', 'success'));
+            GDI.createButton('Copy', () => {
+              GDI.copyToClipboard(tmpl.template).then(() => GDI.showNotification('✅ Template copied!', 'success'));
             }, { variant: 'secondary', fullWidth: false, size: 'sm' }),
           ],
         });
         
-        const body = createElement('div', {
+        const body = GDI.createElement('div', {
           styles: {
             padding: '14px 16px',
             whiteSpace: 'pre-wrap',
             lineHeight: '1.6',
             fontSize: DT.typography.sizes.base,
-            color: DT.colors.textSecondary,
-            background: DT.colors.surfaceSecondary,
+            color: 'var(--gdi-text-secondary)',
+            background: 'var(--gdi-surface-secondary)',
           },
           text: tmpl.template,
         });
@@ -3869,49 +3883,49 @@ I appreciate your consideration either way!`,
     }),
   ]));
   
-  const { close } = createModal('Outreach & Negotiation Templates', content, { width: '700px' });
+  const { close } = GDI.createModal('Outreach & Negotiation Templates', content, { width: '700px' });
 }
 
 // ==================== TOOL: CANCEL FORM ====================
 
 function toolCancelForm(settings = {}) {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '❌ Cancellation Notice',
     'Generate a professional cancellation email',
-    DT.colors.errorGradient
+    window.DESIGN_TOKENS.colors.errorGradient
   ));
   
-  const { wrapper: w1, input: websiteInput } = createInputField({
+  const { wrapper: w1, input: websiteInput } = GDI.createInputField({
     label: 'Website',
     id: 'cancel-website',
     placeholder: 'example.com',
     required: true,
   });
   
-  const { wrapper: w2, input: reasonInput } = createInputField({
+  const { wrapper: w2, input: reasonInput } = GDI.createInputField({
     label: 'Reason (Optional)',
     id: 'cancel-reason',
     placeholder: 'due to lack of response',
     defaultValue: 'due to lack of response',
   });
   
-  content.appendChild(createSection('📝 Cancellation Details', [w1, w2]));
+  content.appendChild(GDI.createSection('📝 Cancellation Details', [w1, w2]));
   
   // Preview
-  const previewSection = createSection('👁️ Email Preview', [
-    createElement('div', {
-      id: 'cancel-preview',
+  const previewSection = GDI.createSection('👁️ Email Preview', [
+    GDI.createElement('div', {
+      attrs: { id: 'cancel-preview' },
       styles: {
         padding: '16px',
-        background: DT.colors.surfaceSecondary,
-        border: `1px solid ${DT.colors.border}`,
-        borderRadius: DT.radii.md,
+        background: 'var(--gdi-surface-secondary)',
+        border: `1px solid ${'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.md,
         whiteSpace: 'pre-wrap',
         lineHeight: '1.6',
         fontSize: DT.typography.sizes.base,
-        color: DT.colors.textPrimary,
+        color: 'var(--gdi-text-primary)',
       },
       text: 'Fill in the fields above...',
     }),
@@ -3937,18 +3951,18 @@ Best regards,`;
   }
   
   function updatePreview() {
-    $('#cancel-preview').textContent = generateEmail();
+    content.querySelector('#cancel-preview').textContent = generateEmail();
   }
   
   websiteInput.addEventListener('input', updatePreview);
   reasonInput.addEventListener('input', updatePreview);
   setTimeout(updatePreview, 100);
   
-  content.appendChild(createButton('📋 Copy Cancellation Email', () => {
-    copyToClipboard(generateEmail()).then(() => showNotification('✅ Email copied!', 'success'));
+  content.appendChild(GDI.createButton('📋 Copy Cancellation Email', () => {
+    GDI.copyToClipboard(generateEmail()).then(() => GDI.showNotification('✅ Email copied!', 'success'));
   }, { variant: 'danger' }));
   
-  const { close } = createModal('Cancellation Notice', content, { width: '550px' });
+  const { close } = GDI.createModal('Cancellation Notice', content, { width: '550px' });
 }
 
 // ==================== TOOL: GO TO NEXT PAGE ====================
@@ -3967,16 +3981,16 @@ function toolNextPage() {
   let nextButton = null;
   for (const selector of nextSelectors) {
     try {
-      nextButton = $(selector);
+      nextButton = GDI.$(selector);
       if (nextButton) break;
     } catch (e) {}
   }
   
   if (nextButton) {
     nextButton.click();
-    showNotification('➡️ Navigating to next page...', 'success');
+    GDI.showNotification('➡️ Navigating to next page...', 'success');
   } else {
-    showNotification('❌ No next page button found', 'error');
+    GDI.showNotification('❌ No next page button found', 'error');
   }
 }
 
@@ -3993,28 +4007,28 @@ Any leads or suggestions would be incredibly helpful and greatly appreciated.
 
 Thanks again for your time.`;
   
-  copyToClipboard(template).then(() => showNotification('✅ Declined response template copied!', 'success'));
+  GDI.copyToClipboard(template).then(() => GDI.showNotification('✅ Declined response template copied!', 'success'));
 }
 
 // ==================== TOOL: INVOICE FORM ====================
 
 function toolInvoiceForm(settings = {}) {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📄 Send Invoice',
     'Generate invoice confirmation email',
-    'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
-  const { wrapper: w1, input: webmasterInput } = createInputField({
+  const { wrapper: w1, input: webmasterInput } = GDI.createInputField({
     label: "Webmaster's Name",
     id: 'invoice-webmaster',
     placeholder: 'Webmaster Name',
     required: true,
   });
   
-  const { wrapper: w2, input: yourNameInput } = createInputField({
+  const { wrapper: w2, input: yourNameInput } = GDI.createInputField({
     label: 'Your Name',
     id: 'invoice-yourname',
     placeholder: 'Your Name',
@@ -4022,21 +4036,21 @@ function toolInvoiceForm(settings = {}) {
     defaultValue: settings.userName || 'Your Name',
   });
   
-  content.appendChild(createSection('📝 Details', [w1, w2]));
+  content.appendChild(GDI.createSection('📝 Details', [w1, w2]));
   
   // Preview
-  const previewSection = createSection('👁️ Email Preview', [
-    createElement('div', {
-      id: 'invoice-preview',
+  const previewSection = GDI.createSection('👁️ Email Preview', [
+    GDI.createElement('div', {
+      attrs: { id: 'invoice-preview' },
       styles: {
         padding: '16px',
-        background: DT.colors.surfaceSecondary,
-        border: `1px solid ${DT.colors.border}`,
-        borderRadius: DT.radii.md,
+        background: 'var(--gdi-surface-secondary)',
+        border: `1px solid ${'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.md,
         whiteSpace: 'pre-wrap',
         lineHeight: '1.6',
         fontSize: DT.typography.sizes.base,
-        color: DT.colors.textPrimary,
+        color: 'var(--gdi-text-primary)',
       },
     }),
   ]);
@@ -4060,46 +4074,46 @@ ${yourName}`;
   }
   
   function updatePreview() {
-    $('#invoice-preview').textContent = generateEmail();
+    content.querySelector('#invoice-preview').textContent = generateEmail();
   }
   
   webmasterInput.addEventListener('input', updatePreview);
   yourNameInput.addEventListener('input', updatePreview);
   setTimeout(updatePreview, 100);
   
-  content.appendChild(createButton('📋 Copy Email', () => {
-    copyToClipboard(generateEmail()).then(() => showNotification('✅ Email copied!', 'success'));
+  content.appendChild(GDI.createButton('📋 Copy Email', () => {
+    GDI.copyToClipboard(generateEmail()).then(() => GDI.showNotification('✅ Email copied!', 'success'));
   }, { variant: 'success' }));
   
-  const { close } = createModal('Send Invoice', content, { width: '550px' });
+  const { close } = GDI.createModal('Send Invoice', content, { width: '550px' });
 }
 
 // ==================== TOOL: BULK URL OPENER ====================
 
 function toolBulkUrlOpener() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📂 Bulk URL Opener',
     'Paste a list of URLs to open them all at once',
-    'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // URL input
-  const { wrapper: textareaWrapper, textarea: urlTextarea } = createTextarea({
+  const { wrapper: textareaWrapper, textarea: urlTextarea } = GDI.createTextarea({
     label: 'Enter URLs (one per line)',
     id: 'bulk-urls',
     placeholder: 'example.com\nhttps://google.com\nsearchworks.ph',
     rows: 8,
   });
   
-  content.appendChild(createSection('📝 URL List', [textareaWrapper]));
+  content.appendChild(GDI.createSection('📝 URL List', [textareaWrapper]));
   
   // URL count
-  const urlCount = createElement('div', {
+  const urlCount = GDI.createElement('div', {
     styles: {
       fontSize: DT.typography.sizes.sm,
-      color: DT.colors.textMuted,
+      color: 'var(--gdi-text-muted)',
       marginBottom: '16px',
       textAlign: 'center',
     },
@@ -4135,15 +4149,15 @@ function toolBulkUrlOpener() {
   urlTextarea.addEventListener('input', () => {
     const urls = processUrls(urlTextarea.value);
     urlCount.textContent = `${urls.length} valid URL${urls.length !== 1 ? 's' : ''} entered`;
-    urlCount.style.color = urls.length > 15 ? DT.colors.warning : urls.length > 0 ? DT.colors.success : DT.colors.textMuted;
+    urlCount.style.color = urls.length > 15 ? window.DESIGN_TOKENS.colors.warning : urls.length > 0 ? window.DESIGN_TOKENS.colors.success : 'var(--gdi-text-muted)';
   });
   
   // Warning for many URLs
-  const warningBox = createElement('div', {
+  const warningBox = GDI.createElement('div', {
     styles: {
       padding: '12px',
-      background: DT.colors.warningLight,
-      borderRadius: DT.radii.md,
+      background: window.DESIGN_TOKENS.colors.warningLight,
+      borderRadius: window.DESIGN_TOKENS.radii.md,
       fontSize: DT.typography.sizes.base,
       color: '#92400E',
       display: 'none',
@@ -4161,11 +4175,11 @@ function toolBulkUrlOpener() {
   });
   
   // Open button
-  content.appendChild(createButton('🚀 Open All URLs', () => {
+  content.appendChild(GDI.createButton('🚀 Open All URLs', () => {
     const urls = processUrls(urlTextarea.value);
     
     if (urls.length === 0) {
-      showNotification('❌ Please enter at least one valid URL', 'error');
+      GDI.showNotification('❌ Please enter at least one valid URL', 'error');
       return;
     }
     
@@ -4179,16 +4193,24 @@ function toolBulkUrlOpener() {
       }, i * 200);
     });
     
-    showNotification(`✅ Opening ${urls.length} URL${urls.length !== 1 ? 's' : ''}...`, 'success');
+    GDI.showNotification(`✅ Opening ${urls.length} URL${urls.length !== 1 ? 's' : ''}...`, 'success');
   }, { variant: 'primary' }));
   
-  const { close } = createModal('Bulk URL Opener', content, { width: '600px' });
+  const { close } = GDI.createModal('Bulk URL Opener', content, { width: '600px' });
 }
 
 // ==================== TOOL: FULL PAGE CAPTURE ====================
 
 async function toolFullPageCapture() {
-  const notification = showNotification('📸 Capturing full page... Please do not scroll!', 'warning', 10000);
+  const notification = GDI.showNotification('📸 Capturing full page... Please do not scroll!', 'warning', 10000);
+  
+  // Give user a moment to read the notification before hiding it
+  await new Promise(r => setTimeout(r, 1500));
+  
+  // Hide the extension UI (Shadow DOM host) so it isn't captured in the screenshot
+  const gdiHost = document.getElementById('gdi-seo-tools-host');
+  const origGdiOpacity = gdiHost ? gdiHost.style.opacity : '';
+  if (gdiHost) gdiHost.style.opacity = '0';
   
   // Save original states
   const originalOverflow = document.body.style.overflow;
@@ -4196,7 +4218,7 @@ async function toolFullPageCapture() {
   const fixedElements = [];
   
   // 1. Hide scrollbars temporarily
-  const hideScrollbarStyle = document.createElement('style');
+  const hideScrollbarStyle = GDI.createElement('style');
   hideScrollbarStyle.textContent = `
     ::-webkit-scrollbar { display: none !important; }
     * { scrollbar-width: none !important; }
@@ -4272,7 +4294,7 @@ async function toolFullPageCapture() {
     }));
 
     // 5. Stitch images on Canvas
-    const canvas = document.createElement('canvas');
+    const canvas = GDI.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const ratio = window.devicePixelRatio || 1;
     
@@ -4287,7 +4309,7 @@ async function toolFullPageCapture() {
     canvas.toBlob(blob => {
       if (!blob) throw new Error("Canvas is too large to export.");
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = GDI.createElement('a');
       a.href = url;
       const cleanTitle = (document.title || 'screenshot').replace(/[^a-z0-9]/gi, '_').toLowerCase().substring(0, 50);
       a.download = `full_page_${cleanTitle}.png`;
@@ -4295,15 +4317,16 @@ async function toolFullPageCapture() {
       URL.revokeObjectURL(url);
       
       if (notification) notification.dismiss();
-      showNotification('✅ Full page capture saved!', 'success');
+      GDI.showNotification('✅ Full page capture saved!', 'success');
     }, 'image/png');
 
   } catch (error) {
     console.error("Full Page Capture Error:", error);
     if (notification) notification.dismiss();
-    showNotification('❌ Capture failed. The page might be too long.', 'error');
+    GDI.showNotification('❌ Capture failed. The page might be too long.', 'error');
   } finally {
     // 7. Guaranteed Cleanup (Runs even if the code crashes)
+    if (gdiHost) gdiHost.style.opacity = origGdiOpacity;
     document.body.style.overflow = originalOverflow;
     fixedElements.forEach(({ el, origPosition }) => {
       el.style.position = origPosition;
@@ -4319,7 +4342,7 @@ function toolCheckPageSpeed() {
   const url = encodeURIComponent(window.location.href);
   const pageSpeedUrl = `https://developers.google.com/speed/pagespeed/insights/?url=${url}`;
   window.open(pageSpeedUrl, '_blank');
-  showNotification('🚀 Opening PageSpeed Insights...', 'success');
+  GDI.showNotification('🚀 Opening PageSpeed Insights...', 'success');
 }
 
 // ==================== TOOL: ROBOTS.TXT CHECKER ====================
@@ -4327,7 +4350,7 @@ function toolCheckPageSpeed() {
 function toolCheckRobotsTxt() {
   const robotsUrl = `${window.location.origin}/robots.txt`;
   window.open(robotsUrl, '_blank');
-  showNotification('🤖 Opening robots.txt...', 'success');
+  GDI.showNotification('🤖 Opening robots.txt...', 'success');
 }
 
 // ==================== TOOL: SITEMAP FINDER ====================
@@ -4342,7 +4365,7 @@ function toolCheckSitemap() {
     '/wp-sitemap.xml',
   ];
   
-  showNotification('🗺️ Searching for sitemap...', 'info', 3000);
+  GDI.showNotification('🗺️ Searching for sitemap...', 'info', 3000);
   
   // Try robots.txt first
   fetch(`${domain}/robots.txt`)
@@ -4351,7 +4374,7 @@ function toolCheckSitemap() {
       const match = text.match(/Sitemap:\s*(.+)/i);
       if (match) {
         window.open(match[1], '_blank');
-        showNotification('✅ Sitemap found in robots.txt!', 'success');
+        GDI.showNotification('✅ Sitemap found in robots.txt!', 'success');
         return;
       }
       
@@ -4366,21 +4389,21 @@ function toolCheckSitemap() {
         const found = results.find(Boolean);
         if (found) {
           window.open(found, '_blank');
-          showNotification('✅ Sitemap found!', 'success');
+          GDI.showNotification('✅ Sitemap found!', 'success');
         } else {
-          showNotification('❌ No sitemap found', 'error');
+          GDI.showNotification('❌ No sitemap found', 'error');
         }
       });
     })
     .catch(() => {
-      showNotification('❌ Could not check robots.txt', 'error');
+      GDI.showNotification('❌ Could not check robots.txt', 'error');
     });
 }
 
 // ==================== TOOL: KEYWORD DENSITY ANALYZER ====================
 
 function toolAnalyzeKeywordDensity() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   // Extract content from main areas
   function extractContent() {
@@ -4392,7 +4415,7 @@ function toolAnalyzeKeywordDensity() {
     let textContent = '';
     
     for (const selector of contentSelectors) {
-      const el = $(selector);
+      const el = GDI.$(selector);
       if (el) {
         textContent += ' ' + (el.innerText || el.textContent || '');
       }
@@ -4476,29 +4499,29 @@ function toolAnalyzeKeywordDensity() {
   );
   
   // Header
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🔤 Keyword Density Analyzer',
     `${totalAll.toLocaleString()} total words • ${totalMeaningful.toLocaleString()} meaningful words`,
-    'linear-gradient(135deg, #667EEA 0%, #764BA2 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // Stats
   content.appendChild(createStatGrid([
-    { label: 'Total Words', value: totalAll.toLocaleString(), icon: '📝', color: DT.colors.primary },
-    { label: 'Meaningful', value: totalMeaningful.toLocaleString(), icon: '🎯', color: DT.colors.info },
+    { label: 'Total Words', value: totalAll.toLocaleString(), icon: '📝', color: window.DESIGN_TOKENS.colors.primary },
+    { label: 'Meaningful', value: totalMeaningful.toLocaleString(), icon: '🎯', color: window.DESIGN_TOKENS.colors.info },
     { label: 'Unique Words', value: new Set(meaningfulWords).size.toLocaleString(), icon: '🔤' },
-    { label: 'Key Phrases', value: sortedBigrams.length, icon: '📊', color: DT.colors.success },
+    { label: 'Key Phrases', value: sortedBigrams.length, icon: '📊', color: window.DESIGN_TOKENS.colors.success },
   ]));
   
   // Stuffing warning
   if (stuffedKeywords.length > 0) {
-    content.appendChild(createSection('⚠️ Keyword Stuffing Warning', [
-      createElement('div', {
+    content.appendChild(GDI.createSection('⚠️ Keyword Stuffing Warning', [
+      GDI.createElement('div', {
         styles: {
           padding: '14px',
-          background: DT.colors.warningLight,
-          border: `1px solid ${DT.colors.warning}30`,
-          borderRadius: DT.radii.md,
+          background: window.DESIGN_TOKENS.colors.warningLight,
+          border: `1px solid ${window.DESIGN_TOKENS.colors.warning}30`,
+          borderRadius: window.DESIGN_TOKENS.radii.md,
           fontSize: DT.typography.sizes.base,
           color: '#92400E',
         },
@@ -4508,14 +4531,14 @@ function toolAnalyzeKeywordDensity() {
   }
   
   // Tabs
-  const tabBar = createElement('div', {
+  const tabBar = GDI.createElement('div', {
     styles: {
       display: 'flex',
       gap: '4px',
       marginBottom: '16px',
-      background: DT.colors.surfaceTertiary,
+      background: 'var(--gdi-surface-tertiary)',
       padding: '4px',
-      borderRadius: DT.radii.md,
+      borderRadius: window.DESIGN_TOKENS.radii.md,
     },
   });
   
@@ -4528,14 +4551,14 @@ function toolAnalyzeKeywordDensity() {
   let activeTab = 'single';
   
   tabs.forEach(tab => {
-    const btn = createElement('button', {
+    const btn = GDI.createElement('button', {
       styles: {
         flex: '1',
         padding: '10px 16px',
         border: 'none',
-        borderRadius: DT.radii.sm,
-        background: tab.id === activeTab ? DT.colors.surface : 'transparent',
-        color: tab.id === activeTab ? DT.colors.primary : DT.colors.textSecondary,
+        borderRadius: window.DESIGN_TOKENS.radii.sm,
+        background: tab.id === activeTab ? 'var(--gdi-surface)' : 'transparent',
+        color: tab.id === activeTab ? window.DESIGN_TOKENS.colors.primary : 'var(--gdi-text-secondary)',
         fontSize: DT.typography.sizes.base,
         fontWeight: DT.typography.weights.semibold,
         cursor: 'pointer',
@@ -4548,10 +4571,10 @@ function toolAnalyzeKeywordDensity() {
       activeTab = tab.id;
       tabBar.querySelectorAll('button').forEach(b => {
         b.style.background = 'transparent';
-        b.style.color = DT.colors.textSecondary;
+        b.style.color = 'var(--gdi-text-secondary)';
       });
-      btn.style.background = DT.colors.surface;
-      btn.style.color = DT.colors.primary;
+      btn.style.background = 'var(--gdi-surface)';
+      btn.style.color = window.DESIGN_TOKENS.colors.primary;
       showTabContent(tab.id);
     });
     
@@ -4561,12 +4584,12 @@ function toolAnalyzeKeywordDensity() {
   content.appendChild(tabBar);
   
   // Tab contents
-  const tabContents = createElement('div', {
+  const tabContents = GDI.createElement('div', {
     styles: {
       maxHeight: '400px',
       overflowY: 'auto',
-      border: `1px solid ${DT.colors.border}`,
-      borderRadius: DT.radii.lg,
+      border: `1px solid ${'var(--gdi-border)'}`,
+      borderRadius: window.DESIGN_TOKENS.radii.lg,
     },
   });
   
@@ -4588,7 +4611,7 @@ function toolAnalyzeKeywordDensity() {
         break;
     }
     
-    const table = createElement('table', {
+    const table = GDI.createElement('table', {
       styles: {
         width: '100%',
         borderCollapse: 'collapse',
@@ -4597,10 +4620,10 @@ function toolAnalyzeKeywordDensity() {
     });
     
     // Header
-    const thead = createElement('thead');
-    const headerRow = createElement('tr', {
+    const thead = GDI.createElement('thead');
+    const headerRow = GDI.createElement('tr', {
       styles: {
-        background: DT.colors.surfaceSecondary,
+        background: 'var(--gdi-surface-secondary)',
         position: 'sticky',
         top: '0',
         zIndex: '1',
@@ -4608,13 +4631,13 @@ function toolAnalyzeKeywordDensity() {
     });
     
     ['#', 'Keyword/Phrase', 'Count', 'Density', 'Distribution'].forEach(label => {
-      const th = createElement('th', {
+      const th = GDI.createElement('th', {
         styles: {
           padding: '10px 12px',
           textAlign: 'left',
           fontWeight: DT.typography.weights.semibold,
-          color: DT.colors.textPrimary,
-          borderBottom: `2px solid ${DT.colors.border}`,
+          color: 'var(--gdi-text-primary)',
+          borderBottom: `2px solid ${'var(--gdi-border)'}`,
           fontSize: DT.typography.sizes.xs,
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
@@ -4628,24 +4651,24 @@ function toolAnalyzeKeywordDensity() {
     table.appendChild(thead);
     
     // Body
-    const tbody = createElement('tbody');
+    const tbody = GDI.createElement('tbody');
     
     data.forEach(([word, count], index) => {
       const density = (count / totalMeaningful * 100);
-      const densityColor = density > 5 ? DT.colors.error :
-                          density > 2 ? DT.colors.warning :
-                          DT.colors.success;
+      const densityColor = density > 5 ? window.DESIGN_TOKENS.colors.error :
+                          density > 2 ? window.DESIGN_TOKENS.colors.warning :
+                          window.DESIGN_TOKENS.colors.success;
       const barWidth = Math.min(density * 15, 100);
       
-      const row = createElement('tr', {
+      const row = GDI.createElement('tr', {
         styles: {
-          borderBottom: `1px solid ${DT.colors.borderLight}`,
+          borderBottom: `1px solid ${'var(--gdi-border-light)'}`,
           transition: `background ${DT.transitions.fast}`,
         },
       });
       
       row.addEventListener('mouseenter', () => {
-        row.style.background = DT.colors.surfaceSecondary;
+        row.style.background = 'var(--gdi-surface-secondary)';
       });
       
       row.addEventListener('mouseleave', () => {
@@ -4653,47 +4676,47 @@ function toolAnalyzeKeywordDensity() {
       });
       
       // Rank
-      const rankCell = createElement('td', {
-        styles: { padding: '10px 12px', color: DT.colors.textMuted, fontSize: DT.typography.sizes.sm },
+      const rankCell = GDI.createElement('td', {
+        styles: { padding: '10px 12px', color: 'var(--gdi-text-muted)', fontSize: DT.typography.sizes.sm },
         text: String(index + 1),
       });
       
       // Keyword
-      const keywordCell = createElement('td', {
-        styles: { padding: '10px 12px', fontWeight: DT.typography.weights.semibold, color: DT.colors.textPrimary },
+      const keywordCell = GDI.createElement('td', {
+        styles: { padding: '10px 12px', fontWeight: DT.typography.weights.semibold, color: 'var(--gdi-text-primary)' },
         text: word,
       });
       
       // Count
-      const countCell = createElement('td', {
+      const countCell = GDI.createElement('td', {
         styles: { padding: '10px 12px', textAlign: 'center', fontWeight: DT.typography.weights.bold },
         text: String(count),
       });
       
       // Density
-      const densityCell = createElement('td', {
+      const densityCell = GDI.createElement('td', {
         styles: { padding: '10px 12px', color: densityColor, fontWeight: DT.typography.weights.semibold },
         text: `${density.toFixed(2)}%`,
       });
       
       // Distribution bar
-      const distCell = createElement('td', {
+      const distCell = GDI.createElement('td', {
         styles: { padding: '10px 12px' },
         children: [
-          createElement('div', {
+          GDI.createElement('div', {
             styles: {
               height: '6px',
-              background: DT.colors.surfaceTertiary,
-              borderRadius: DT.radii.full,
+              background: 'var(--gdi-surface-tertiary)',
+              borderRadius: window.DESIGN_TOKENS.radii.full,
               overflow: 'hidden',
             },
             children: [
-              createElement('div', {
+              GDI.createElement('div', {
                 styles: {
                   width: `${barWidth}%`,
                   height: '100%',
                   background: densityColor,
-                  borderRadius: DT.radii.full,
+                  borderRadius: window.DESIGN_TOKENS.radii.full,
                   transition: 'width 0.5s ease',
                 },
               }),
@@ -4718,11 +4741,11 @@ function toolAnalyzeKeywordDensity() {
   showTabContent('single');
   
   // Export buttons
-  const buttonRow = createElement('div', {
+  const buttonRow = GDI.createElement('div', {
     styles: { display: 'flex', gap: '10px', marginTop: '16px' },
   });
   
-  buttonRow.appendChild(createButton('📊 Export CSV', () => {
+  buttonRow.appendChild(GDI.createButton('📊 Export CSV', () => {
     let csv = 'Rank,Keyword,Count,Density\n';
     sortedWords.forEach(([word, count], i) => {
       csv += `${i + 1},"${word}",${count},${((count / totalMeaningful) * 100).toFixed(2)}%\n`;
@@ -4730,15 +4753,15 @@ function toolAnalyzeKeywordDensity() {
     
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = GDI.createElement('a');
     a.href = url;
     a.download = `keyword-density-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showNotification('✅ CSV exported!', 'success');
+    GDI.showNotification('✅ CSV exported!', 'success');
   }, { variant: 'secondary' }));
   
-  buttonRow.appendChild(createButton('📋 Copy Report', () => {
+  buttonRow.appendChild(GDI.createButton('📋 Copy Report', () => {
     let report = `KEYWORD DENSITY REPORT\n${'='.repeat(40)}\n\n`;
     report += `TOP KEYWORDS:\n`;
     sortedWords.slice(0, 15).forEach(([word, count], i) => {
@@ -4752,41 +4775,41 @@ function toolAnalyzeKeywordDensity() {
       });
     }
     
-    copyToClipboard(report).then(() => showNotification('✅ Report copied!', 'success'));
+    GDI.copyToClipboard(report).then(() => GDI.showNotification('✅ Report copied!', 'success'));
   }, { variant: 'primary' }));
   
   content.appendChild(buttonRow);
   
-  const { close } = createModal('Keyword Density Analyzer', content, { width: '750px' });
+  const { close } = GDI.createModal('Keyword Density Analyzer', content, { width: '750px' });
 }
 
 // ==================== TOOL: SERP PREVIEW ====================
 
 function toolShowSerpPreview() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const currentTitle = document.title || '';
   const metaDescTag = document.querySelector('meta[name="description"]');
   const currentDesc = metaDescTag?.getAttribute('content') || '';
   const currentUrl = window.location.href;
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '👁️ SERP Preview',
     'See how your page appears in Google search results'
   ));
   
   // Title input
-  const { wrapper: titleWrapper, input: titleInput } = createInputField({
+  const { wrapper: titleWrapper, input: titleInput } = GDI.createInputField({
     label: '📝 Page Title (50-60 chars optimal)',
     id: 'serp-title',
     placeholder: 'Enter page title...',
     defaultValue: currentTitle,
   });
   
-  const titleCount = createElement('div', {
+  const titleCount = GDI.createElement('div', {
     styles: {
       fontSize: DT.typography.sizes.xs,
-      color: DT.colors.textMuted,
+      color: 'var(--gdi-text-muted)',
       textAlign: 'right',
       marginTop: '4px',
     },
@@ -4795,7 +4818,7 @@ function toolShowSerpPreview() {
   titleWrapper.appendChild(titleCount);
   
   // Description input
-  const { wrapper: descWrapper, textarea: descTextarea } = createTextarea({
+  const { wrapper: descWrapper, textarea: descTextarea } = GDI.createTextarea({
     label: '📄 Meta Description (150-160 chars optimal)',
     id: 'serp-desc',
     placeholder: 'Enter meta description...',
@@ -4803,10 +4826,10 @@ function toolShowSerpPreview() {
   });
   descTextarea.value = currentDesc;
   
-  const descCount = createElement('div', {
+  const descCount = GDI.createElement('div', {
     styles: {
       fontSize: DT.typography.sizes.xs,
-      color: DT.colors.textMuted,
+      color: 'var(--gdi-text-muted)',
       textAlign: 'right',
       marginTop: '4px',
     },
@@ -4815,11 +4838,11 @@ function toolShowSerpPreview() {
   descWrapper.appendChild(descCount);
   
   // Preview section
-  const previewLabel = createElement('div', {
+  const previewLabel = GDI.createElement('div', {
     styles: {
       fontSize: DT.typography.sizes.sm,
       fontWeight: DT.typography.weights.bold,
-      color: DT.colors.textSecondary,
+      color: 'var(--gdi-text-secondary)',
       marginBottom: '12px',
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
@@ -4827,11 +4850,11 @@ function toolShowSerpPreview() {
     text: '🔍 Google Search Preview',
   });
   
-  const previewCard = createElement('div', {
+  const previewCard = GDI.createElement('div', {
     styles: {
       background: '#FFFFFF',
       border: '1px solid #E5E7EB',
-      borderRadius: DT.radii.lg,
+      borderRadius: window.DESIGN_TOKENS.radii.lg,
       padding: '20px',
       fontFamily: 'Arial, sans-serif',
       boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
@@ -4839,7 +4862,7 @@ function toolShowSerpPreview() {
   });
   
   // URL display
-  previewCard.appendChild(createElement('div', {
+  previewCard.appendChild(GDI.createElement('div', {
     styles: {
       display: 'flex',
       alignItems: 'center',
@@ -4847,7 +4870,7 @@ function toolShowSerpPreview() {
       marginBottom: '6px',
     },
     children: [
-      createElement('div', {
+      GDI.createElement('div', {
         styles: {
           width: '26px',
           height: '26px',
@@ -4860,15 +4883,15 @@ function toolShowSerpPreview() {
         },
         text: '🌐',
       }),
-      createElement('div', {
+      GDI.createElement('div', {
         styles: { fontSize: '12px', color: '#4D5156' },
-        html: `${escapeHtml(window.location.hostname)}<span style="color:#70757A;"> › </span>`,
+        html: `${GDI.escapeHtml(window.location.hostname)}<span style="color:#70757A;"> › </span>`,
       }),
     ],
   }));
   
   // Title preview
-  const previewTitle = createElement('div', {
+  const previewTitle = GDI.createElement('div', {
     id: 'preview-title',
     styles: {
       color: '#1A0DAB',
@@ -4883,7 +4906,7 @@ function toolShowSerpPreview() {
   previewCard.appendChild(previewTitle);
   
   // Description preview
-  const previewDesc = createElement('div', {
+  const previewDesc = GDI.createElement('div', {
     id: 'preview-desc',
     styles: {
       color: '#4D5156',
@@ -4896,9 +4919,9 @@ function toolShowSerpPreview() {
   previewCard.appendChild(previewDesc);
   
   // Assemble preview section
-  const previewSection = createSection('', [previewLabel, previewCard]);
+  const previewSection = GDI.createSection('', [previewLabel, previewCard]);
   
-  content.appendChild(createSection('🎨 Edit Meta Tags', [titleWrapper, descWrapper]));
+  content.appendChild(GDI.createSection('🎨 Edit Meta Tags', [titleWrapper, descWrapper]));
   content.appendChild(previewSection);
   
   // Live update
@@ -4908,14 +4931,14 @@ function toolShowSerpPreview() {
     
     // Update counts
     titleCount.textContent = `${title.length} characters`;
-    titleCount.style.color = title.length >= 50 && title.length <= 60 ? DT.colors.success :
-                              title.length < 30 || title.length > 65 ? DT.colors.error :
-                              DT.colors.warning;
+    titleCount.style.color = title.length >= 50 && title.length <= 60 ? window.DESIGN_TOKENS.colors.success :
+                              title.length < 30 || title.length > 65 ? window.DESIGN_TOKENS.colors.error :
+                              window.DESIGN_TOKENS.colors.warning;
     
     descCount.textContent = `${desc.length} characters`;
-    descCount.style.color = desc.length >= 150 && desc.length <= 160 ? DT.colors.success :
-                             desc.length < 120 || desc.length > 170 ? DT.colors.error :
-                             DT.colors.warning;
+    descCount.style.color = desc.length >= 150 && desc.length <= 160 ? window.DESIGN_TOKENS.colors.success :
+                             desc.length < 120 || desc.length > 170 ? window.DESIGN_TOKENS.colors.error :
+                             window.DESIGN_TOKENS.colors.warning;
     
     // Truncate for realistic preview
     previewTitle.textContent = title.length > 65 ? title.substring(0, 62) + '...' : (title || 'Your Page Title');
@@ -4926,20 +4949,20 @@ function toolShowSerpPreview() {
   descTextarea.addEventListener('input', updatePreview);
   
   // Copy optimized
-  content.appendChild(createButton('📋 Copy Optimized Tags', () => {
+  content.appendChild(GDI.createButton('📋 Copy Optimized Tags', () => {
     const title = titleInput.value;
     const desc = descTextarea.value;
     const text = `Title: ${title}\nDescription: ${desc}`;
-    copyToClipboard(text).then(() => showNotification('✅ Meta tags copied!', 'success'));
+    GDI.copyToClipboard(text).then(() => GDI.showNotification('✅ Meta tags copied!', 'success'));
   }, { variant: 'primary' }));
   
-  const { close } = createModal('SERP Preview', content, { width: '600px' });
+  const { close } = GDI.createModal('SERP Preview', content, { width: '600px' });
 }
 
 // ==================== TOOL: IMAGE ALT TEXT ANALYZER ====================
 
 function toolAnalyzeImages() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const images = Array.from(document.querySelectorAll('img'));
   const results = {
@@ -4987,23 +5010,23 @@ function toolAnalyzeImages() {
     : 0;
   
   // Header
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🖼️ Image Alt Text Analysis',
     `${results.total} images found • ${results.withoutAlt + results.emptyAlt} need attention`,
-    'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
   
   // Score
-  const scoreRow = createElement('div', {
+  const scoreRow = GDI.createElement('div', {
     styles: { display: 'flex', justifyContent: 'center', marginBottom: '20px' },
   });
-  scoreRow.appendChild(createScoreRing(accessibilityScore, 90));
+  scoreRow.appendChild(GDI.createScoreRing(accessibilityScore, 90));
   
-  const scoreLabel = createElement('div', {
+  const scoreLabel = GDI.createElement('div', {
     styles: {
       textAlign: 'center',
       fontSize: DT.typography.sizes.sm,
-      color: DT.colors.textMuted,
+      color: 'var(--gdi-text-muted)',
       marginTop: '-10px',
       marginBottom: '16px',
     },
@@ -5015,18 +5038,18 @@ function toolAnalyzeImages() {
   
   // Stats
   content.appendChild(createStatGrid([
-    { label: 'Total Images', value: results.total, icon: '🖼️', color: DT.colors.primary },
-    { label: 'With Alt Text', value: results.withAlt, icon: '✅', color: DT.colors.success },
-    { label: 'Missing Alt', value: results.withoutAlt, icon: '❌', color: DT.colors.error },
-    { label: 'Empty Alt', value: results.emptyAlt, icon: '⚠️', color: DT.colors.warning },
-    { label: 'Lazy Loaded', value: results.withLazy, icon: '⚡', color: DT.colors.info },
-    { label: 'No Dimensions', value: results.missingDimensions, icon: '📏', color: DT.colors.warning },
+    { label: 'Total Images', value: results.total, icon: '🖼️', color: window.DESIGN_TOKENS.colors.primary },
+    { label: 'With Alt Text', value: results.withAlt, icon: '✅', color: window.DESIGN_TOKENS.colors.success },
+    { label: 'Missing Alt', value: results.withoutAlt, icon: '❌', color: window.DESIGN_TOKENS.colors.error },
+    { label: 'Empty Alt', value: results.emptyAlt, icon: '⚠️', color: window.DESIGN_TOKENS.colors.warning },
+    { label: 'Lazy Loaded', value: results.withLazy, icon: '⚡', color: window.DESIGN_TOKENS.colors.info },
+    { label: 'No Dimensions', value: results.missingDimensions, icon: '📏', color: window.DESIGN_TOKENS.colors.warning },
   ]));
   
   // Issues list
   if (results.withoutAlt + results.emptyAlt > 0) {
-    const issuesSection = createSection('⚠️ Images Needing Attention', [
-      createElement('div', {
+    const issuesSection = GDI.createSection('⚠️ Images Needing Attention', [
+      GDI.createElement('div', {
         styles: {
           maxHeight: '300px',
           overflowY: 'auto',
@@ -5036,39 +5059,39 @@ function toolAnalyzeImages() {
         },
         children: results.details
           .filter(d => !d.hasAlt)
-          .map(d => createElement('div', {
+          .map(d => GDI.createElement('div', {
             styles: {
               padding: '10px 14px',
-              background: results.withoutAlt > 0 && d.alt === null ? DT.colors.errorLight : DT.colors.warningLight,
-              borderLeft: `3px solid ${d.alt === null ? DT.colors.error : DT.colors.warning}`,
-              borderRadius: DT.radii.md,
+              background: results.withoutAlt > 0 && d.alt === null ? window.DESIGN_TOKENS.colors.errorLight : window.DESIGN_TOKENS.colors.warningLight,
+              borderLeft: `3px solid ${d.alt === null ? window.DESIGN_TOKENS.colors.error : window.DESIGN_TOKENS.colors.warning}`,
+              borderRadius: window.DESIGN_TOKENS.radii.md,
               fontSize: DT.typography.sizes.sm,
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
             },
             children: [
-              createElement('span', {
+              GDI.createElement('span', {
                 styles: {
                   fontWeight: DT.typography.weights.bold,
-                  color: DT.colors.textSecondary,
+                  color: 'var(--gdi-text-secondary)',
                   minWidth: '30px',
                 },
                 text: `#${d.index}`,
               }),
-              createElement('span', {
+              GDI.createElement('span', {
                 styles: {
                   flex: '1',
                   fontFamily: DT.typography.fontMono,
                   fontSize: DT.typography.sizes.xs,
-                  color: DT.colors.textSecondary,
+                  color: 'var(--gdi-text-secondary)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                 },
                 text: d.src || 'Unknown source',
               }),
-              createBadge(
+              GDI.createBadge(
                 d.alt === null ? 'Missing' : 'Empty',
                 d.alt === null ? 'error' : 'warning'
               ),
@@ -5079,12 +5102,12 @@ function toolAnalyzeImages() {
     
     content.appendChild(issuesSection);
   } else if (results.total > 0) {
-    content.appendChild(createSection('', [
-      createElement('div', {
+    content.appendChild(GDI.createSection('', [
+      GDI.createElement('div', {
         styles: {
           padding: '20px',
-          background: DT.colors.successLight,
-          borderRadius: DT.radii.md,
+          background: window.DESIGN_TOKENS.colors.successLight,
+          borderRadius: window.DESIGN_TOKENS.radii.md,
           textAlign: 'center',
           color: '#166534',
           fontWeight: DT.typography.weights.semibold,
@@ -5095,13 +5118,13 @@ function toolAnalyzeImages() {
   }
   
   // Recommendations
-  content.appendChild(createSection('💡 Recommendations', [
-    createElement('ul', {
+  content.appendChild(GDI.createSection('💡 Recommendations', [
+    GDI.createElement('ul', {
       styles: {
         margin: '0',
         paddingLeft: '20px',
         fontSize: DT.typography.sizes.base,
-        color: DT.colors.textSecondary,
+        color: 'var(--gdi-text-secondary)',
         lineHeight: '1.8',
       },
       html: `
@@ -5113,7 +5136,7 @@ function toolAnalyzeImages() {
     }),
   ]));
   
-  const { close } = createModal('Image Alt Text Analysis', content, { width: '650px' });
+  const { close } = GDI.createModal('Image Alt Text Analysis', content, { width: '650px' });
 }
 
 // ==================== TOOL: BROKEN LINK CHECKER ====================
@@ -5127,20 +5150,20 @@ async function toolCheckBrokenLinks() {
   });
   
   if (links.length === 0) {
-    showNotification('No valid links found to check.', 'warning');
+    GDI.showNotification('No valid links found to check.', 'warning');
     return;
   }
   
   // Create status overlay
-  const statusDiv = createElement('div', {
+  const statusDiv = GDI.createElement('div', {
     styles: {
       position: 'fixed',
       top: '20px',
       right: '20px',
       zIndex: '100000',
-      background: DT.colors.surface,
-      border: `1px solid ${DT.colors.border}`,
-      borderRadius: DT.radii.lg,
+      background: 'var(--gdi-surface)',
+      border: `1px solid ${'var(--gdi-border)'}`,
+      borderRadius: window.DESIGN_TOKENS.radii.lg,
       padding: '20px',
       minWidth: '300px',
       boxShadow: DT.shadows['2xl'],
@@ -5149,17 +5172,17 @@ async function toolCheckBrokenLinks() {
   });
   
   statusDiv.innerHTML = `
-    <div style="font-size: ${DT.typography.sizes.md}; font-weight: ${DT.typography.weights.bold}; margin-bottom: 12px; color: ${DT.colors.textPrimary};">
+    <div style="font-size: ${DT.typography.sizes.md}; font-weight: ${DT.typography.weights.bold}; margin-bottom: 12px; color: ${'var(--gdi-text-primary)'};">
       🚨 Broken Link Checker
     </div>
-    <div id="bl-status" style="font-size: ${DT.typography.sizes.base}; color: ${DT.colors.textSecondary}; margin-bottom: 12px;">
+    <div id="bl-status" style="font-size: ${DT.typography.sizes.base}; color: ${'var(--gdi-text-secondary)'}; margin-bottom: 12px;">
       Scanning ${links.length} links...
     </div>
-    <div style="background: ${DT.colors.surfaceTertiary}; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
-      <div id="bl-progress" style="height: 100%; width: 0%; background: ${DT.colors.primaryGradient}; border-radius: 4px; transition: width 0.3s;"></div>
+    <div style="background: ${'var(--gdi-surface-tertiary)'}; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+      <div id="bl-progress" style="height: 100%; width: 0%; background: ${window.DESIGN_TOKENS.colors.primaryGradient}; border-radius: 4px; transition: width 0.3s;"></div>
     </div>
-    <div id="bl-count" style="font-size: ${DT.typography.sizes.sm}; color: ${DT.colors.textMuted};"></div>
-    <button id="bl-close" style="margin-top: 12px; padding: 6px 12px; background: ${DT.colors.surfaceTertiary}; border: 1px solid ${DT.colors.border}; border-radius: 6px; cursor: pointer; font-size: 12px; color: ${DT.colors.textSecondary};">Close</button>
+    <div id="bl-count" style="font-size: ${DT.typography.sizes.sm}; color: ${'var(--gdi-text-muted)'};"></div>
+    <button id="bl-close" style="margin-top: 12px; padding: 6px 12px; background: ${'var(--gdi-surface-tertiary)'}; border: 1px solid ${'var(--gdi-border)'}; border-radius: 6px; cursor: pointer; font-size: 12px; color: ${'var(--gdi-text-secondary)'};">Close</button>
   `;
   
   statusDiv.classList.add('gdi-pointer-auto'); // Ensures it remains clickable
@@ -5167,12 +5190,12 @@ async function toolCheckBrokenLinks() {
   
   const updateStatus = (checked, total, broken) => {
     const progress = Math.round((checked / total) * 100);
-    $('#bl-status').textContent = `Scanning: ${checked}/${total} links...`;
-    $('#bl-progress').style.width = `${progress}%`;
-    $('#bl-count').innerHTML = `Issues found: <strong style="color: ${broken > 0 ? DT.colors.error : DT.colors.success}">${broken}</strong>`;
+    GDI.$('#bl-status').textContent = `Scanning: ${checked}/${total} links...`;
+    GDI.$('#bl-progress').style.width = `${progress}%`;
+    GDI.$('#bl-count').innerHTML = `Issues found: <strong style="color: ${broken > 0 ? window.DESIGN_TOKENS.colors.error : window.DESIGN_TOKENS.colors.success}">${broken}</strong>`;
   };
   
-  $('#bl-close').addEventListener('click', () => {
+  GDI.$('#bl-close').addEventListener('click', () => {
     statusDiv.style.opacity = '0';
     statusDiv.style.transition = 'opacity 0.3s';
     setTimeout(() => statusDiv.remove(), 300);
@@ -5194,7 +5217,7 @@ async function toolCheckBrokenLinks() {
         link.style.backgroundColor = '#FEE2E2';
         brokenLinks.push({
           url: link.href,
-          text: cleanText(link.textContent).substring(0, 100) || '[No Anchor Text]',
+          text: GDI.cleanText(link.textContent).substring(0, 100) || '[No Anchor Text]',
           status: `HTTP ${response.status}`,
         });
       }
@@ -5203,7 +5226,7 @@ async function toolCheckBrokenLinks() {
       link.style.backgroundColor = '#FEF3C7';
       brokenLinks.push({
         url: link.href,
-        text: cleanText(link.textContent).substring(0, 100) || '[No Anchor Text]',
+        text: GDI.cleanText(link.textContent).substring(0, 100) || '[No Anchor Text]',
         status: 'Network Error',
       });
     } finally {
@@ -5222,12 +5245,12 @@ async function toolCheckBrokenLinks() {
   updateStatus(links.length, links.length, brokenLinks.length);
   
   if (brokenLinks.length > 0) {
-    const exportBtn = createElement('button', {
+    const exportBtn = GDI.createElement('button', {
       styles: {
         width: '100%',
         marginTop: '12px',
         padding: '10px',
-        background: DT.colors.primary,
+        background: window.DESIGN_TOKENS.colors.primary,
         color: '#FFFFFF',
         border: 'none',
         borderRadius: '8px',
@@ -5246,18 +5269,18 @@ async function toolCheckBrokenLinks() {
       
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = GDI.createElement('a');
       a.href = url;
       a.download = `broken-links-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      showNotification('✅ CSV exported!', 'success');
+      GDI.showNotification('✅ CSV exported!', 'success');
     });
     
     statusDiv.appendChild(exportBtn);
   }
   
-  showNotification(
+  GDI.showNotification(
     `✅ Check complete! Found ${brokenLinks.length} broken link${brokenLinks.length !== 1 ? 's' : ''}.`,
     brokenLinks.length > 0 ? 'warning' : 'success'
   );
@@ -5363,7 +5386,7 @@ function toolExtractBulkGoogleDomains() {
   });
   
   function extractDomainsFromHtml(html, pageNum) {
-    const tempDiv = document.createElement('div');
+    const tempDiv = GDI.createElement('div');
     tempDiv.innerHTML = html;
     const anchors = tempDiv.querySelectorAll('a[href]');
     let newItemsFound = 0;
@@ -5467,10 +5490,10 @@ function toolExtractBulkGoogleDomains() {
     });
 
     // Add Header
-    content.appendChild(createToolHeader(
+    content.appendChild(GDI.createToolHeader(
       '🌐 Deep Google Extraction',
       `Successfully extracted ${sortedUrls.length} URLs across ${sortedDomains.length} domains`,
-      'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)'
+      window.DESIGN_TOKENS.colors.primaryGradient
     ));
 
     // View Toggles
@@ -5504,7 +5527,7 @@ function toolExtractBulkGoogleDomains() {
       const csv = headerText + '\n' + listToExport.map(d => `"${d}"`).join('\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = GDI.createElement('a');
       a.href = url;
       a.download = `google-${viewMode}-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
@@ -5572,26 +5595,26 @@ function toolShowMetrics() {
     { name: 'Organic Traffic', url: `https://ahrefs.com/traffic-checker/?input=${encodedDomain}&mode=subdomains` },
   ];
   
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📈 SEO Metrics',
     `Open third-party tools for domain: ${domain}`
   ));
   
-  content.appendChild(createSection('🔗 Available Tools', [
-    createElement('div', {
+  content.appendChild(GDI.createSection('🔗 Available Tools', [
+    GDI.createElement('div', {
       styles: { display: 'grid', gap: '10px' },
       children: metricsUrls.map(metric => {
-        const card = createElement('div', {
+        const card = GDI.createElement('div', {
           styles: {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '16px',
-            background: DT.colors.surface,
-            border: `1px solid ${DT.colors.border}`,
-            borderRadius: DT.radii.md,
+            background: 'var(--gdi-surface)',
+            border: `1px solid ${'var(--gdi-border)'}`,
+            borderRadius: window.DESIGN_TOKENS.radii.md,
             cursor: 'pointer',
             transition: `all ${DT.transitions.fast}`,
           },
@@ -5600,26 +5623,26 @@ function toolShowMetrics() {
         card.addEventListener('click', () => window.open(metric.url, '_blank'));
         
         card.addEventListener('mouseenter', () => {
-          card.style.borderColor = DT.colors.primary;
+          card.style.borderColor = window.DESIGN_TOKENS.colors.primary;
           card.style.transform = 'translateX(4px)';
         });
         
         card.addEventListener('mouseleave', () => {
-          card.style.borderColor = DT.colors.border;
+          card.style.borderColor = 'var(--gdi-border)';
           card.style.transform = 'translateX(0)';
         });
         
-        card.appendChild(createElement('span', {
+        card.appendChild(GDI.createElement('span', {
           styles: {
             fontSize: DT.typography.sizes.md,
             fontWeight: DT.typography.weights.semibold,
-            color: DT.colors.textPrimary,
+            color: 'var(--gdi-text-primary)',
           },
           text: metric.name,
         }));
         
-        card.appendChild(createElement('span', {
-          styles: { color: DT.colors.primary },
+        card.appendChild(GDI.createElement('span', {
+          styles: { color: window.DESIGN_TOKENS.colors.primary },
           text: 'Open →',
         }));
         
@@ -5628,23 +5651,23 @@ function toolShowMetrics() {
     }),
   ]));
   
-  content.appendChild(createButton('🚀 Open All Tools', () => {
+  content.appendChild(GDI.createButton('🚀 Open All Tools', () => {
     metricsUrls.forEach((metric, i) => {
       setTimeout(() => window.open(metric.url, '_blank'), i * 150);
     });
-    showNotification('Opening all metrics tools...', 'success');
+    GDI.showNotification('Opening all metrics tools...', 'success');
   }, { variant: 'primary' }));
   
-  const { close } = createModal('SEO Metrics', content, { width: '500px' });
+  const { close } = GDI.createModal('SEO Metrics', content, { width: '500px' });
 }
 
 // ==================== TOOL: INTERNAL VS EXTERNAL LINKS ====================
 
 function toolAnalyzeLinks() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const currentDomain = window.location.hostname;
-  const links = $$('a[href]');
+  const links = $GDI.$$('a[href]');
   
   let internalCount = 0, externalCount = 0;
   const internalLinks = [], externalLinks = [];
@@ -5652,7 +5675,7 @@ function toolAnalyzeLinks() {
   links.forEach(link => {
     try {
       const url = new URL(link.href, window.location.origin);
-      const text = cleanText(link.textContent).substring(0, 50);
+      const text = GDI.cleanText(link.textContent).substring(0, 50);
       
       if (url.hostname === currentDomain) {
         internalCount++;
@@ -5666,34 +5689,34 @@ function toolAnalyzeLinks() {
   
   const totalLinks = internalCount + externalCount;
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🔗 Link Analysis',
     `${totalLinks} total links • ${internalCount} internal • ${externalCount} external`
   ));
   
   content.appendChild(createStatGrid([
     { label: 'Total Links', value: totalLinks, icon: '🔗' },
-    { label: 'Internal', value: internalCount, icon: '🏠', color: DT.colors.success },
-    { label: 'External', value: externalCount, icon: '🌐', color: DT.colors.info },
+    { label: 'Internal', value: internalCount, icon: '🏠', color: window.DESIGN_TOKENS.colors.success },
+    { label: 'External', value: externalCount, icon: '🌐', color: window.DESIGN_TOKENS.colors.info },
     { label: 'Ratio', value: `${internalCount}:${externalCount}`, icon: '📊' },
   ]));
   
   // Internal links section
   if (internalLinks.length > 0) {
-    const internalSection = createSection('🏠 Internal Links', [
-      createElement('div', {
+    const internalSection = GDI.createSection('🏠 Internal Links', [
+      GDI.createElement('div', {
         styles: { display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' },
         children: internalLinks.slice(0, 15).map((link, i) => 
-          createElement('div', {
+          GDI.createElement('div', {
             styles: {
               display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '8px 12px', background: DT.colors.surfaceSecondary,
-              borderRadius: DT.radii.md, fontSize: DT.typography.sizes.sm,
+              padding: '8px 12px', background: 'var(--gdi-surface-secondary)',
+              borderRadius: window.DESIGN_TOKENS.radii.md, fontSize: DT.typography.sizes.sm,
             },
             children: [
-              createElement('span', { styles: { color: DT.colors.textMuted, minWidth: '24px' }, text: String(i + 1) }),
-              createElement('span', { 
-                styles: { flex: '1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: DT.colors.primary, fontFamily: DT.typography.fontMono, fontSize: DT.typography.sizes.xs },
+              GDI.createElement('span', { styles: { color: 'var(--gdi-text-muted)', minWidth: '24px' }, text: String(i + 1) }),
+              GDI.createElement('span', { 
+                styles: { flex: '1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: window.DESIGN_TOKENS.colors.primary, fontFamily: DT.typography.fontMono, fontSize: DT.typography.sizes.xs },
                 text: link.url.length > 60 ? link.url.substring(0, 57) + '...' : link.url 
               }),
             ],
@@ -5706,20 +5729,20 @@ function toolAnalyzeLinks() {
   
   // External links section
   if (externalLinks.length > 0) {
-    const externalSection = createSection('🌐 External Links', [
-      createElement('div', {
+    const externalSection = GDI.createSection('🌐 External Links', [
+      GDI.createElement('div', {
         styles: { display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' },
         children: externalLinks.slice(0, 15).map((link, i) =>
-          createElement('div', {
+          GDI.createElement('div', {
             styles: {
               display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '8px 12px', background: DT.colors.surfaceSecondary,
-              borderRadius: DT.radii.md, fontSize: DT.typography.sizes.sm,
+              padding: '8px 12px', background: 'var(--gdi-surface-secondary)',
+              borderRadius: window.DESIGN_TOKENS.radii.md, fontSize: DT.typography.sizes.sm,
             },
             children: [
-              createElement('span', { styles: { color: DT.colors.textMuted, minWidth: '24px' }, text: String(i + 1) }),
-              createElement('span', {
-                styles: { flex: '1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: DT.colors.info, fontFamily: DT.typography.fontMono, fontSize: DT.typography.sizes.xs },
+              GDI.createElement('span', { styles: { color: 'var(--gdi-text-muted)', minWidth: '24px' }, text: String(i + 1) }),
+              GDI.createElement('span', {
+                styles: { flex: '1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: window.DESIGN_TOKENS.colors.info, fontFamily: DT.typography.fontMono, fontSize: DT.typography.sizes.xs },
                 text: link.url.length > 60 ? link.url.substring(0, 57) + '...' : link.url
               }),
             ],
@@ -5730,13 +5753,13 @@ function toolAnalyzeLinks() {
     content.appendChild(externalSection);
   }
   
-  const { close } = createModal('Link Analysis', content, { width: '650px' });
+  const { close } = GDI.createModal('Link Analysis', content, { width: '650px' });
 }
 
 // ==================== TOOL: CURRENCY SYMBOL COPIER ====================
 
 function toolCurrencyCopier() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const currencies = [
     { symbol: '$', code: 'USD', name: 'US Dollar', flag: '🇺🇸' },
@@ -5756,24 +5779,24 @@ function toolCurrencyCopier() {
     { symbol: '¢', code: 'CENT', name: 'Cent', flag: '💰' },
   ];
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '💰 Currency Symbol Copier',
     'Click any currency to copy its symbol to clipboard'
   ));
   
-  const grid = createElement('div', {
+  const grid = GDI.createElement('div', {
     styles: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
       gap: '10px',
     },
     children: currencies.map(curr => {
-      const card = createElement('div', {
+      const card = GDI.createElement('div', {
         styles: {
           padding: '16px',
-          background: DT.colors.surface,
-          border: `1px solid ${DT.colors.border}`,
-          borderRadius: DT.radii.lg,
+          background: 'var(--gdi-surface)',
+          border: `1px solid ${'var(--gdi-border)'}`,
+          borderRadius: window.DESIGN_TOKENS.radii.lg,
           textAlign: 'center',
           cursor: 'pointer',
           transition: `all ${DT.transitions.fast}`,
@@ -5781,51 +5804,51 @@ function toolCurrencyCopier() {
       });
       
       card.addEventListener('click', () => {
-        copyToClipboard(curr.symbol).then(() => 
-          showNotification(`✅ Copied ${curr.symbol} (${curr.code})!`, 'success')
+        GDI.copyToClipboard(curr.symbol).then(() => 
+          GDI.showNotification(`✅ Copied ${curr.symbol} (${curr.code})!`, 'success')
         );
       });
       
       card.addEventListener('mouseenter', () => {
         card.style.transform = 'translateY(-3px)';
         card.style.boxShadow = DT.shadows.md;
-        card.style.borderColor = DT.colors.primary;
+        card.style.borderColor = window.DESIGN_TOKENS.colors.primary;
       });
       
       card.addEventListener('mouseleave', () => {
         card.style.transform = 'translateY(0)';
         card.style.boxShadow = 'none';
-        card.style.borderColor = DT.colors.border;
+        card.style.borderColor = 'var(--gdi-border)';
       });
       
-      card.appendChild(createElement('div', {
+      card.appendChild(GDI.createElement('div', {
         styles: { fontSize: '28px', marginBottom: '8px' },
         text: curr.flag,
       }));
       
-      card.appendChild(createElement('div', {
+      card.appendChild(GDI.createElement('div', {
         styles: {
           fontSize: '24px',
           fontWeight: DT.typography.weights.extrabold,
-          color: DT.colors.textPrimary,
+          color: 'var(--gdi-text-primary)',
           marginBottom: '4px',
         },
         text: curr.symbol,
       }));
       
-      card.appendChild(createElement('div', {
+      card.appendChild(GDI.createElement('div', {
         styles: {
           fontSize: DT.typography.sizes.sm,
           fontWeight: DT.typography.weights.bold,
-          color: DT.colors.primary,
+          color: window.DESIGN_TOKENS.colors.primary,
         },
         text: curr.code,
       }));
       
-      card.appendChild(createElement('div', {
+      card.appendChild(GDI.createElement('div', {
         styles: {
           fontSize: DT.typography.sizes.xs,
-          color: DT.colors.textMuted,
+          color: 'var(--gdi-text-muted)',
           marginTop: '2px',
         },
         text: curr.name,
@@ -5835,15 +5858,15 @@ function toolCurrencyCopier() {
     }),
   });
   
-  content.appendChild(createSection('💱 Available Currencies', [grid]));
+  content.appendChild(GDI.createSection('💱 Available Currencies', [grid]));
   
-  const { close } = createModal('Currency Symbol Copier', content, { width: '600px' });
+  const { close } = GDI.createModal('Currency Symbol Copier', content, { width: '600px' });
 }
 
 // ==================== TOOL: URL OPTIMIZER ====================
 
 function toolOptimizeUrl() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const currentUrl = window.location.href;
   const urlObj = new URL(currentUrl);
@@ -5886,52 +5909,52 @@ function toolOptimizeUrl() {
   
   const optimizedUrl = urlObj.origin + optimizedPath;
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🔗 URL Optimizer',
     'Analyze and optimize your URL structure for SEO'
   ));
   
   // Current vs Optimized
-  const comparisonSection = createSection('📊 URL Comparison', [
-    createElement('div', { styles: { display: 'flex', flexDirection: 'column', gap: '12px' } }),
+  const comparisonSection = GDI.createSection('📊 URL Comparison', [
+    GDI.createElement('div', { styles: { display: 'flex', flexDirection: 'column', gap: '12px' } }),
   ]);
   
-  const currentCard = createElement('div', {
+  const currentCard = GDI.createElement('div', {
     styles: {
-      padding: '16px', background: DT.colors.surfaceSecondary,
-      border: `1px solid ${DT.colors.border}`, borderRadius: DT.radii.md,
+      padding: '16px', background: 'var(--gdi-surface-secondary)',
+      border: `1px solid ${'var(--gdi-border)'}`, borderRadius: window.DESIGN_TOKENS.radii.md,
     },
     children: [
-      createElement('div', {
-        styles: { fontSize: DT.typography.sizes.xs, fontWeight: DT.typography.weights.bold, color: DT.colors.textMuted, textTransform: 'uppercase', marginBottom: '6px' },
+      GDI.createElement('div', {
+        styles: { fontSize: DT.typography.sizes.xs, fontWeight: DT.typography.weights.bold, color: 'var(--gdi-text-muted)', textTransform: 'uppercase', marginBottom: '6px' },
         text: 'Current URL',
       }),
-      createElement('div', {
-        styles: { fontFamily: DT.typography.fontMono, fontSize: DT.typography.sizes.sm, color: DT.colors.textSecondary, wordBreak: 'break-all' },
+      GDI.createElement('div', {
+        styles: { fontFamily: DT.typography.fontMono, fontSize: DT.typography.sizes.sm, color: 'var(--gdi-text-secondary)', wordBreak: 'break-all' },
         text: currentUrl,
       }),
-      createElement('div', {
-        styles: { fontSize: DT.typography.sizes.xs, color: currentUrl.length > 75 ? DT.colors.error : DT.colors.success, marginTop: '4px' },
+      GDI.createElement('div', {
+        styles: { fontSize: DT.typography.sizes.xs, color: currentUrl.length > 75 ? window.DESIGN_TOKENS.colors.error : window.DESIGN_TOKENS.colors.success, marginTop: '4px' },
         text: `${currentUrl.length} characters ${currentUrl.length > 75 ? '⚠️ Too long' : '✅ Good'}`,
       }),
     ],
   });
   
-  const optimizedCard = createElement('div', {
+  const optimizedCard = GDI.createElement('div', {
     styles: {
-      padding: '16px', background: DT.colors.successLight,
-      border: `2px solid ${DT.colors.success}`, borderRadius: DT.radii.md,
+      padding: '16px', background: window.DESIGN_TOKENS.colors.successLight,
+      border: `2px solid ${window.DESIGN_TOKENS.colors.success}`, borderRadius: window.DESIGN_TOKENS.radii.md,
     },
     children: [
-      createElement('div', {
+      GDI.createElement('div', {
         styles: { fontSize: DT.typography.sizes.xs, fontWeight: DT.typography.weights.bold, color: '#166534', textTransform: 'uppercase', marginBottom: '6px' },
         text: '✨ Optimized URL',
       }),
-      createElement('div', {
+      GDI.createElement('div', {
         styles: { fontFamily: DT.typography.fontMono, fontSize: DT.typography.sizes.sm, color: '#166534', wordBreak: 'break-all' },
         text: optimizedUrl,
       }),
-      createElement('div', {
+      GDI.createElement('div', {
         styles: { fontSize: DT.typography.sizes.xs, color: '#166534', marginTop: '4px', fontWeight: DT.typography.weights.bold },
         text: '✅ SEO-friendly',
       }),
@@ -5944,16 +5967,16 @@ function toolOptimizeUrl() {
   
   // Issues
   if (issues.length > 0) {
-    content.appendChild(createSection('⚠️ Issues Found', [
-      createElement('div', {
+    content.appendChild(GDI.createSection('⚠️ Issues Found', [
+      GDI.createElement('div', {
         styles: { display: 'flex', flexDirection: 'column', gap: '8px' },
         children: issues.map(issue =>
-          createElement('div', {
+          GDI.createElement('div', {
             styles: {
               padding: '10px 14px',
-              background: issue.severity === 'warning' ? DT.colors.warningLight : DT.colors.infoLight,
-              borderLeft: `3px solid ${issue.severity === 'warning' ? DT.colors.warning : DT.colors.info}`,
-              borderRadius: DT.radii.md,
+              background: issue.severity === 'warning' ? window.DESIGN_TOKENS.colors.warningLight : window.DESIGN_TOKENS.colors.infoLight,
+              borderLeft: `3px solid ${issue.severity === 'warning' ? window.DESIGN_TOKENS.colors.warning : window.DESIGN_TOKENS.colors.info}`,
+              borderRadius: window.DESIGN_TOKENS.radii.md,
               fontSize: DT.typography.sizes.base,
               color: issue.severity === 'warning' ? '#92400E' : '#1E40AF',
               display: 'flex', alignItems: 'center', gap: '8px',
@@ -5966,14 +5989,14 @@ function toolOptimizeUrl() {
   }
   
   // Copy button
-  content.appendChild(createButton('📋 Copy Optimized URL', () => {
-    copyToClipboard(optimizedUrl).then(() => showNotification('✅ Optimized URL copied!', 'success'));
+  content.appendChild(GDI.createButton('📋 Copy Optimized URL', () => {
+    GDI.copyToClipboard(optimizedUrl).then(() => GDI.showNotification('✅ Optimized URL copied!', 'success'));
   }, { variant: 'success' }));
   
   // Best practices
-  content.appendChild(createSection('💡 URL Best Practices', [
-    createElement('ul', {
-      styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: DT.colors.textSecondary, lineHeight: '1.8' },
+  content.appendChild(GDI.createSection('💡 URL Best Practices', [
+    GDI.createElement('ul', {
+      styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: 'var(--gdi-text-secondary)', lineHeight: '1.8' },
       html: `
         <li>Keep URLs under 75 characters</li>
         <li>Use lowercase letters only</li>
@@ -5985,13 +6008,13 @@ function toolOptimizeUrl() {
     }),
   ]));
   
-  const { close } = createModal('URL Optimizer', content, { width: '600px' });
+  const { close } = GDI.createModal('URL Optimizer', content, { width: '600px' });
 }
 
 // ==================== TOOL: SEO TITLE GENERATOR ====================
 
 function toolGenerateTitles() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const h1 = document.querySelector('h1')?.textContent || document.title;
   const bodyText = document.body.innerText.substring(0, 1000);
@@ -6013,66 +6036,66 @@ function toolGenerateTitles() {
     `${keywords.slice(0, 2).join(' ')} ${keywords[2] || ''}: ${h1}`,
   ];
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📝 SEO Title Generator',
     `${titleVariations.length} optimized titles generated`
   ));
   
-  const titlesList = createSection('✨ Generated Titles', [
-    createElement('div', {
+  const titlesList = GDI.createSection('✨ Generated Titles', [
+    GDI.createElement('div', {
       styles: { display: 'flex', flexDirection: 'column', gap: '10px' },
       children: titleVariations.map((title, i) => {
-        const card = createElement('div', {
+        const card = GDI.createElement('div', {
           styles: {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             padding: '14px 16px',
-            background: i === 0 ? DT.colors.successLight : DT.colors.surface,
-            border: `1px solid ${i === 0 ? DT.colors.success : DT.colors.border}`,
-            borderRadius: DT.radii.md,
+            background: i === 0 ? window.DESIGN_TOKENS.colors.successLight : 'var(--gdi-surface)',
+            border: `1px solid ${i === 0 ? window.DESIGN_TOKENS.colors.success : 'var(--gdi-border)'}`,
+            borderRadius: window.DESIGN_TOKENS.radii.md,
             transition: `all ${DT.transitions.fast}`,
           },
         });
         
         card.addEventListener('mouseenter', () => {
-          card.style.borderColor = DT.colors.primary;
+          card.style.borderColor = window.DESIGN_TOKENS.colors.primary;
         });
         
         card.addEventListener('mouseleave', () => {
-          card.style.borderColor = i === 0 ? DT.colors.success : DT.colors.border;
+          card.style.borderColor = i === 0 ? window.DESIGN_TOKENS.colors.success : 'var(--gdi-border)';
         });
         
-        const titleInfo = createElement('div', { styles: { flex: '1', marginRight: '12px' } });
+        const titleInfo = GDI.createElement('div', { styles: { flex: '1', marginRight: '12px' } });
         
-        titleInfo.appendChild(createElement('div', {
+        titleInfo.appendChild(GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.sm,
             fontWeight: DT.typography.weights.bold,
-            color: DT.colors.primary,
+            color: window.DESIGN_TOKENS.colors.primary,
             marginBottom: '4px',
           },
           text: `Option ${i + 1}${i === 0 ? ' 🏆' : ''}`,
         }));
         
-        titleInfo.appendChild(createElement('div', {
+        titleInfo.appendChild(GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.base,
-            color: DT.colors.textPrimary,
+            color: 'var(--gdi-text-primary)',
             lineHeight: '1.4',
           },
           text: title,
         }));
         
-        titleInfo.appendChild(createElement('div', {
+        titleInfo.appendChild(GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.xs,
-            color: title.length > 60 ? DT.colors.error : DT.colors.success,
+            color: title.length > 60 ? window.DESIGN_TOKENS.colors.error : window.DESIGN_TOKENS.colors.success,
             marginTop: '4px',
           },
           text: `${title.length} characters ${title.length > 60 ? '⚠️' : '✅'}`,
         }));
         
-        const copyBtn = createButton('Copy', () => {
-          copyToClipboard(title).then(() => showNotification('✅ Title copied!', 'success'));
+        const copyBtn = GDI.createButton('Copy', () => {
+          GDI.copyToClipboard(title).then(() => GDI.showNotification('✅ Title copied!', 'success'));
         }, { variant: 'secondary', fullWidth: false, size: 'sm' });
         
         card.appendChild(titleInfo);
@@ -6085,19 +6108,19 @@ function toolGenerateTitles() {
   
   content.appendChild(titlesList);
   
-  content.appendChild(createButton('📋 Copy All Titles', () => {
-    copyToClipboard(titleVariations.join('\n')).then(() => 
-      showNotification(`✅ ${titleVariations.length} titles copied!`, 'success')
+  content.appendChild(GDI.createButton('📋 Copy All Titles', () => {
+    GDI.copyToClipboard(titleVariations.join('\n')).then(() => 
+      GDI.showNotification(`✅ ${titleVariations.length} titles copied!`, 'success')
     );
   }, { variant: 'primary' }));
   
-  const { close } = createModal('SEO Title Generator', content, { width: '650px' });
+  const { close } = GDI.createModal('SEO Title Generator', content, { width: '650px' });
 }
 
 // ==================== TOOL: PUBLICATION DATE CHECKER ====================
 
 function toolCheckPublicationDate() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const url = window.location.href;
   const domain = window.location.hostname.replace('www.', '');
@@ -6192,38 +6215,38 @@ function toolCheckPublicationDate() {
     else freshness = '⚫ Very Stale (Over 1 year)';
   }
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📅 Publication Date Checker',
     'Analyze content freshness and date signals'
   ));
   
   // Freshness indicator
   const freshnessColor = ageInDays ? 
-    (ageInDays < 30 ? DT.colors.success : ageInDays < 90 ? DT.colors.warning : DT.colors.error) 
-    : DT.colors.textMuted;
+    (ageInDays < 30 ? window.DESIGN_TOKENS.colors.success : ageInDays < 90 ? window.DESIGN_TOKENS.colors.warning : window.DESIGN_TOKENS.colors.error) 
+    : 'var(--gdi-text-muted)';
   
-  const freshnessCard = createElement('div', {
+  const freshnessCard = GDI.createElement('div', {
     styles: {
       textAlign: 'center',
       padding: '24px',
       background: ageInDays ? 
-        (ageInDays < 30 ? DT.colors.successLight : ageInDays < 90 ? DT.colors.warningLight : DT.colors.errorLight)
-        : DT.colors.surfaceSecondary,
-      borderRadius: DT.radii.lg,
+        (ageInDays < 30 ? window.DESIGN_TOKENS.colors.successLight : ageInDays < 90 ? window.DESIGN_TOKENS.colors.warningLight : window.DESIGN_TOKENS.colors.errorLight)
+        : 'var(--gdi-surface-secondary)',
+      borderRadius: window.DESIGN_TOKENS.radii.lg,
       marginBottom: '20px',
       border: `2px solid ${freshnessColor}30`,
     },
     children: [
-      createElement('div', {
+      GDI.createElement('div', {
         styles: { fontSize: DT.typography.sizes['3xl'], fontWeight: DT.typography.weights.extrabold, color: freshnessColor, marginBottom: '8px' },
         text: freshness,
       }),
-      latestDate ? createElement('div', {
-        styles: { fontSize: DT.typography.sizes.md, color: DT.colors.textSecondary },
+      latestDate ? GDI.createElement('div', {
+        styles: { fontSize: DT.typography.sizes.md, color: 'var(--gdi-text-secondary)' },
         text: `Latest Date: ${latestDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
       }) : null,
-      ageInDays ? createElement('div', {
-        styles: { fontSize: DT.typography.sizes.base, color: DT.colors.textMuted, marginTop: '4px' },
+      ageInDays ? GDI.createElement('div', {
+        styles: { fontSize: DT.typography.sizes.base, color: 'var(--gdi-text-muted)', marginTop: '4px' },
         text: `${ageInDays} days ago`,
       }) : null,
     ].filter(Boolean),
@@ -6232,26 +6255,26 @@ function toolCheckPublicationDate() {
   content.appendChild(freshnessCard);
   
   // Date sources table
-  const sourcesSection = createSection('📋 Date Sources Found', [
-    createElement('div', {
+  const sourcesSection = GDI.createSection('📋 Date Sources Found', [
+    GDI.createElement('div', {
       styles: { display: 'flex', flexDirection: 'column', gap: '6px' },
       children: Object.entries(dateSources).map(([key, value]) => {
         const cleanKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
-        return createElement('div', {
+        return GDI.createElement('div', {
           styles: {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '10px 14px', background: DT.colors.surface,
-            border: `1px solid ${DT.colors.border}`, borderRadius: DT.radii.md,
+            padding: '10px 14px', background: 'var(--gdi-surface)',
+            border: `1px solid ${'var(--gdi-border)'}`, borderRadius: window.DESIGN_TOKENS.radii.md,
           },
           children: [
-            createElement('span', {
-              styles: { fontSize: DT.typography.sizes.base, fontWeight: DT.typography.weights.medium, color: DT.colors.textPrimary },
+            GDI.createElement('span', {
+              styles: { fontSize: DT.typography.sizes.base, fontWeight: DT.typography.weights.medium, color: 'var(--gdi-text-primary)' },
               text: cleanKey,
             }),
-            createElement('span', {
+            GDI.createElement('span', {
               styles: {
                 fontSize: DT.typography.sizes.sm,
-                color: value ? DT.colors.success : DT.colors.textMuted,
+                color: value ? window.DESIGN_TOKENS.colors.success : 'var(--gdi-text-muted)',
                 fontWeight: DT.typography.weights.semibold,
               },
               text: value || 'Not found',
@@ -6265,17 +6288,17 @@ function toolCheckPublicationDate() {
   content.appendChild(sourcesSection);
   
   // Google cache button
-  content.appendChild(createButton('🔍 Check Google Cache', () => {
+  content.appendChild(GDI.createButton('🔍 Check Google Cache', () => {
     window.open(`https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url)}`, '_blank');
   }, { variant: 'secondary' }));
   
-  const { close } = createModal('Publication Date Checker', content, { width: '600px' });
+  const { close } = GDI.createModal('Publication Date Checker', content, { width: '600px' });
 }
 
 // ==================== TOOL: MOBILE USABILITY TEST ====================
 
 function toolTestMobileUsability() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const url = window.location.href;
   const viewport = document.querySelector('meta[name="viewport"]')?.getAttribute('content') || '';
@@ -6329,24 +6352,24 @@ function toolTestMobileUsability() {
     return 'Poor';
   };
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📱 Mobile Usability Test',
     `Score: ${score}/100 - ${getScoreGrade(score)}`
   ));
   
   // Score ring
-  const scoreRow = createElement('div', {
+  const scoreRow = GDI.createElement('div', {
     styles: { display: 'flex', justifyContent: 'center', marginBottom: '20px' },
   });
-  scoreRow.appendChild(createScoreRing(score, 100));
+  scoreRow.appendChild(GDI.createScoreRing(score, 100));
   content.appendChild(scoreRow);
   
   // Stats
   content.appendChild(createStatGrid([
-    { label: 'Viewport', value: hasViewport ? '✅' : '❌', icon: '📱', color: hasViewport ? DT.colors.success : DT.colors.error },
-    { label: 'Font Size', value: `${bodyFontSize}px`, icon: '🔤', color: isFontReadable ? DT.colors.success : DT.colors.warning },
-    { label: 'Small Taps', value: smallTapTargets, icon: '👆', color: smallTapTargets === 0 ? DT.colors.success : DT.colors.error },
-    { label: 'H-Scroll', value: hasHorizontalScroll ? '❌' : '✅', icon: '↔️', color: !hasHorizontalScroll ? DT.colors.success : DT.colors.error },
+    { label: 'Viewport', value: hasViewport ? '✅' : '❌', icon: '📱', color: hasViewport ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.error },
+    { label: 'Font Size', value: `${bodyFontSize}px`, icon: '🔤', color: isFontReadable ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.warning },
+    { label: 'Small Taps', value: smallTapTargets, icon: '👆', color: smallTapTargets === 0 ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.error },
+    { label: 'H-Scroll', value: hasHorizontalScroll ? '❌' : '✅', icon: '↔️', color: !hasHorizontalScroll ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.error },
   ]));
   
   // Priority fixes
@@ -6360,26 +6383,26 @@ function toolTestMobileUsability() {
   if (imagesWithoutDimensions > 0) fixes.push('Add width/height to images to prevent layout shift');
   
   if (fixes.length > 0) {
-    content.appendChild(createSection('⚠️ Priority Fixes', [
-      createElement('ul', {
-        styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: DT.colors.textSecondary, lineHeight: '1.8' },
+    content.appendChild(GDI.createSection('⚠️ Priority Fixes', [
+      GDI.createElement('ul', {
+        styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: 'var(--gdi-text-secondary)', lineHeight: '1.8' },
         html: fixes.map(f => `<li>${f}</li>`).join(''),
       }),
     ]));
   } else {
-    content.appendChild(createSection('', [
-      createElement('div', {
-        styles: { padding: '20px', background: DT.colors.successLight, borderRadius: DT.radii.md, textAlign: 'center', color: '#166534', fontWeight: DT.typography.weights.semibold },
+    content.appendChild(GDI.createSection('', [
+      GDI.createElement('div', {
+        styles: { padding: '20px', background: window.DESIGN_TOKENS.colors.successLight, borderRadius: window.DESIGN_TOKENS.radii.md, textAlign: 'center', color: '#166534', fontWeight: DT.typography.weights.semibold },
         text: '✅ No mobile usability issues detected! Great job!',
       }),
     ]));
   }
   
-  content.appendChild(createButton('🔍 Google Mobile-Friendly Test', () => {
+  content.appendChild(GDI.createButton('🔍 Google Mobile-Friendly Test', () => {
     window.open(`https://search.google.com/test/mobile-friendly?url=${encodeURIComponent(url)}`, '_blank');
   }, { variant: 'primary' }));
   
-  const { close } = createModal('Mobile Usability Test', content, { width: '600px' });
+  const { close } = GDI.createModal('Mobile Usability Test', content, { width: '600px' });
 }
 
 // ==================== TOOL: AI META TAG GENERATOR ====================
@@ -6469,10 +6492,10 @@ function toolGenerateAIMeta() {
   descTemplates.sort((a,b) => b.score - a.score);
 
   // ─── HEADER ───
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🤖 AI Meta Tag Generator',
     'AI-optimized SEO suggestions based on live content analysis',
-    'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
 
   // ─── SEO AUDIT PANEL ───
@@ -6495,17 +6518,17 @@ function toolGenerateAIMeta() {
   auditItems.forEach(item => {
     const isGood = item.isText ? item.good : 
       (item.value >= item.optimal[0] && item.value <= item.optimal[1]);
-    const color = isGood ? DT.colors.success : item.isText ? DT.colors.error : DT.colors.warning;
+    const color = isGood ? window.DESIGN_TOKENS.colors.success : item.isText ? window.DESIGN_TOKENS.colors.error : window.DESIGN_TOKENS.colors.warning;
     
     auditPanel.appendChild(GDI.createElement('div', {
       styles: {
-        padding: '12px 14px', background: DT.colors.surface,
-        borderRadius: DT.radii.md, border: `1px solid ${color}30`,
+        padding: '12px 14px', background: 'var(--gdi-surface)',
+        borderRadius: window.DESIGN_TOKENS.radii.md, border: `1px solid ${color}30`,
         display: 'flex', flexDirection: 'column', gap: '4px'
       },
       children: [
         GDI.createElement('span', { 
-          styles: { fontSize: '11px', color: DT.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' },
+          styles: { fontSize: '11px', color: 'var(--gdi-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' },
           text: item.label 
         }),
         GDI.createElement('span', { 
@@ -6518,7 +6541,7 @@ function toolGenerateAIMeta() {
   content.appendChild(auditPanel);
 
   // ─── CURRENT META SECTION ───
-  const currentSection = createSection('📊 Current Meta Tags', [
+  const currentSection = GDI.createSection('📊 Current Meta Tags', [
     GDI.createElement('div', { styles: { display: 'flex', flexDirection: 'column', gap: '12px' } }),
   ]);
 
@@ -6531,21 +6554,21 @@ function toolGenerateAIMeta() {
 
   metaItems.forEach(item => {
     const len = item.value.length;
-    const statusColor = !item.value ? DT.colors.error :
-      len >= item.optimal[0] && len <= item.optimal[1] ? DT.colors.success : DT.colors.warning;
+    const statusColor = !item.value ? window.DESIGN_TOKENS.colors.error :
+      len >= item.optimal[0] && len <= item.optimal[1] ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.warning;
     
     currentSection.querySelector('div').appendChild(
       GDI.createElement('div', {
         styles: {
-          padding: '14px', background: DT.colors.surface,
-          border: `1px solid ${DT.colors.border}`, borderRadius: DT.radii.md,
+          padding: '14px', background: 'var(--gdi-surface)',
+          border: `1px solid ${'var(--gdi-border)'}`, borderRadius: window.DESIGN_TOKENS.radii.md,
         },
         children: [
           GDI.createElement('div', {
             styles: { display: 'flex', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' },
             children: [
               GDI.createElement('span', { 
-                styles: { fontWeight: '600', fontSize: '13px', color: DT.colors.textPrimary },
+                styles: { fontWeight: '600', fontSize: '13px', color: 'var(--gdi-text-primary)' },
                 text: item.label 
               }),
               GDI.createElement('span', { 
@@ -6555,7 +6578,7 @@ function toolGenerateAIMeta() {
             ],
           }),
           GDI.createElement('div', {
-            styles: { fontSize: '13px', color: item.value ? DT.colors.textSecondary : DT.colors.error, lineHeight: '1.5', wordBreak: 'break-word', fontStyle: item.value ? 'normal' : 'italic' },
+            styles: { fontSize: '13px', color: item.value ? 'var(--gdi-text-secondary)' : window.DESIGN_TOKENS.colors.error, lineHeight: '1.5', wordBreak: 'break-word', fontStyle: item.value ? 'normal' : 'italic' },
             text: item.value || 'Not set — search engines may auto-generate this from page content',
           }),
         ],
@@ -6565,7 +6588,7 @@ function toolGenerateAIMeta() {
   content.appendChild(currentSection);
 
   // ─── TITLE SUGGESTIONS ───
-  const titleSection = createSection('📝 AI Title Suggestions', [
+  const titleSection = GDI.createSection('📝 AI Title Suggestions', [
     GDI.createElement('div', { styles: { display: 'flex', flexDirection: 'column', gap: '10px' } }),
   ]);
 
@@ -6573,19 +6596,19 @@ function toolGenerateAIMeta() {
     const card = GDI.createElement('div', {
       styles: {
         padding: '14px 16px',
-        background: i === 0 ? `${DT.colors.success}08` : DT.colors.surface,
-        border: `2px solid ${i === 0 ? DT.colors.success : DT.colors.border}`,
-        borderRadius: DT.radii.md,
+        background: i === 0 ? `${window.DESIGN_TOKENS.colors.success}08` : 'var(--gdi-surface)',
+        border: `2px solid ${i === 0 ? window.DESIGN_TOKENS.colors.success : 'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.md,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         gap: '12px', transition: 'all 0.2s', cursor: 'pointer'
       }
     });
 
     card.addEventListener('mouseenter', () => {
-      if (i !== 0) card.style.borderColor = DT.colors.primary;
+      if (i !== 0) card.style.borderColor = window.DESIGN_TOKENS.colors.primary;
     });
     card.addEventListener('mouseleave', () => {
-      if (i !== 0) card.style.borderColor = DT.colors.border;
+      if (i !== 0) card.style.borderColor = 'var(--gdi-border)';
     });
 
     const info = GDI.createElement('div', { styles: { flex: '1', minWidth: '0' } });
@@ -6593,16 +6616,16 @@ function toolGenerateAIMeta() {
     info.appendChild(GDI.createElement('div', {
       styles: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' },
       children: [
-        i === 0 ? createBadge('🏆 Best Match', 'success') : null,
+        i === 0 ? GDI.createBadge('🏆 Best Match', 'success') : null,
         GDI.createElement('span', { 
-          styles: { fontSize: '11px', color: DT.colors.textMuted, fontWeight: '500' },
+          styles: { fontSize: '11px', color: 'var(--gdi-text-muted)', fontWeight: '500' },
           text: `Score ${title.score}% • ${title.reason}` 
         }),
         GDI.createElement('span', {
           styles: {
             fontSize: '11px', fontWeight: '700',
-            color: title.text.length > 60 ? DT.colors.error : title.text.length < 50 ? DT.colors.warning : DT.colors.success,
-            padding: '2px 6px', borderRadius: '4px', background: `${title.text.length > 60 ? DT.colors.error : title.text.length < 50 ? DT.colors.warning : DT.colors.success}15`
+            color: title.text.length > 60 ? window.DESIGN_TOKENS.colors.error : title.text.length < 50 ? window.DESIGN_TOKENS.colors.warning : window.DESIGN_TOKENS.colors.success,
+            padding: '2px 6px', borderRadius: '4px', background: `${title.text.length > 60 ? window.DESIGN_TOKENS.colors.error : title.text.length < 50 ? window.DESIGN_TOKENS.colors.warning : window.DESIGN_TOKENS.colors.success}15`
           },
           text: `${title.text.length} chars`
         }),
@@ -6610,12 +6633,12 @@ function toolGenerateAIMeta() {
     }));
 
     info.appendChild(GDI.createElement('div', {
-      styles: { fontSize: '14px', color: DT.colors.textPrimary, lineHeight: '1.5', wordBreak: 'break-word' },
+      styles: { fontSize: '14px', color: 'var(--gdi-text-primary)', lineHeight: '1.5', wordBreak: 'break-word' },
       text: title.text,
     }));
 
-    const copyBtn = createButton('Copy', () => {
-      copyToClipboard(title.text).then(() => showNotification('✅ Title copied to clipboard!', 'success'));
+    const copyBtn = GDI.createButton('Copy', () => {
+      GDI.copyToClipboard(title.text).then(() => GDI.showNotification('✅ Title copied to clipboard!', 'success'));
     }, { variant: i === 0 ? 'primary' : 'secondary', fullWidth: false, size: 'sm' });
 
     card.appendChild(info);
@@ -6625,7 +6648,7 @@ function toolGenerateAIMeta() {
   content.appendChild(titleSection);
 
   // ─── DESCRIPTION SUGGESTIONS ───
-  const descSection = createSection('📄 AI Meta Descriptions', [
+  const descSection = GDI.createSection('📄 AI Meta Descriptions', [
     GDI.createElement('div', { styles: { display: 'flex', flexDirection: 'column', gap: '10px' } }),
   ]);
 
@@ -6633,19 +6656,19 @@ function toolGenerateAIMeta() {
     const card = GDI.createElement('div', {
       styles: {
         padding: '14px 16px',
-        background: i === 0 ? `${DT.colors.info}08` : DT.colors.surface,
-        border: `2px solid ${i === 0 ? DT.colors.info : DT.colors.border}`,
-        borderRadius: DT.radii.md,
+        background: i === 0 ? `${window.DESIGN_TOKENS.colors.info}08` : 'var(--gdi-surface)',
+        border: `2px solid ${i === 0 ? window.DESIGN_TOKENS.colors.info : 'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.md,
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         gap: '12px', transition: 'all 0.2s', cursor: 'pointer'
       }
     });
 
     card.addEventListener('mouseenter', () => {
-      if (i !== 0) card.style.borderColor = DT.colors.primary;
+      if (i !== 0) card.style.borderColor = window.DESIGN_TOKENS.colors.primary;
     });
     card.addEventListener('mouseleave', () => {
-      if (i !== 0) card.style.borderColor = DT.colors.border;
+      if (i !== 0) card.style.borderColor = 'var(--gdi-border)';
     });
 
     const info = GDI.createElement('div', { styles: { flex: '1', minWidth: '0' } });
@@ -6653,16 +6676,16 @@ function toolGenerateAIMeta() {
     info.appendChild(GDI.createElement('div', {
       styles: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' },
       children: [
-        i === 0 ? createBadge('🏆 Best Match', 'info') : null,
+        i === 0 ? GDI.createBadge('🏆 Best Match', 'info') : null,
         GDI.createElement('span', { 
-          styles: { fontSize: '11px', color: DT.colors.textMuted, fontWeight: '500' },
+          styles: { fontSize: '11px', color: 'var(--gdi-text-muted)', fontWeight: '500' },
           text: `Score ${desc.score}%` 
         }),
         GDI.createElement('span', {
           styles: {
             fontSize: '11px', fontWeight: '700',
-            color: desc.text.length > 160 ? DT.colors.error : desc.text.length < 120 ? DT.colors.warning : DT.colors.success,
-            padding: '2px 6px', borderRadius: '4px', background: `${desc.text.length > 160 ? DT.colors.error : desc.text.length < 120 ? DT.colors.warning : DT.colors.success}15`
+            color: desc.text.length > 160 ? window.DESIGN_TOKENS.colors.error : desc.text.length < 120 ? window.DESIGN_TOKENS.colors.warning : window.DESIGN_TOKENS.colors.success,
+            padding: '2px 6px', borderRadius: '4px', background: `${desc.text.length > 160 ? window.DESIGN_TOKENS.colors.error : desc.text.length < 120 ? window.DESIGN_TOKENS.colors.warning : window.DESIGN_TOKENS.colors.success}15`
           },
           text: `${desc.text.length} chars`
         }),
@@ -6670,12 +6693,12 @@ function toolGenerateAIMeta() {
     }));
 
     info.appendChild(GDI.createElement('div', {
-      styles: { fontSize: '13px', color: DT.colors.textSecondary, lineHeight: '1.6' },
+      styles: { fontSize: '13px', color: 'var(--gdi-text-secondary)', lineHeight: '1.6' },
       text: desc.text,
     }));
 
-    const copyBtn = createButton('Copy', () => {
-      copyToClipboard(desc.text).then(() => showNotification('✅ Description copied to clipboard!', 'success'));
+    const copyBtn = GDI.createButton('Copy', () => {
+      GDI.copyToClipboard(desc.text).then(() => GDI.showNotification('✅ Description copied to clipboard!', 'success'));
     }, { variant: i === 0 ? 'primary' : 'secondary', fullWidth: false, size: 'sm' });
 
     card.appendChild(info);
@@ -6685,7 +6708,7 @@ function toolGenerateAIMeta() {
   content.appendChild(descSection);
 
   // ─── KEYWORDS TAG CLOUD ───
-  content.appendChild(createSection('🎯 Top Keywords Detected', [
+  content.appendChild(GDI.createSection('🎯 Top Keywords Detected', [
     GDI.createElement('div', {
       styles: { display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' },
       children: topKeywords.map((kw, i) => {
@@ -6695,9 +6718,9 @@ function toolGenerateAIMeta() {
         return GDI.createElement('span', {
           styles: {
             padding: '6px 14px',
-            background: i < 3 ? DT.colors.primary : `${DT.colors.primary}15`,
-            color: i < 3 ? '#FFFFFF' : DT.colors.primary,
-            borderRadius: DT.radii.full,
+            background: i < 3 ? window.DESIGN_TOKENS.colors.primary : `${window.DESIGN_TOKENS.colors.primary}15`,
+            color: i < 3 ? '#FFFFFF' : window.DESIGN_TOKENS.colors.primary,
+            borderRadius: window.DESIGN_TOKENS.radii.full,
             fontSize: size,
             fontWeight: weight,
             opacity,
@@ -6714,17 +6737,17 @@ function toolGenerateAIMeta() {
   const bundleSection = GDI.createElement('div', {
     styles: {
       marginTop: '20px', padding: '16px',
-      background: `${DT.colors.success}08`, border: `2px dashed ${DT.colors.success}`,
-      borderRadius: DT.radii.md, textAlign: 'center'
+      background: `${window.DESIGN_TOKENS.colors.success}08`, border: `2px dashed ${window.DESIGN_TOKENS.colors.success}`,
+      borderRadius: window.DESIGN_TOKENS.radii.md, textAlign: 'center'
     }
   });
 
   bundleSection.appendChild(GDI.createElement('div', {
-    styles: { fontSize: '14px', fontWeight: '600', color: DT.colors.textPrimary, marginBottom: '12px' },
+    styles: { fontSize: '14px', fontWeight: '600', color: 'var(--gdi-text-primary)', marginBottom: '12px' },
     text: '📋 Copy Complete Meta Tag Bundle'
   }));
 
-  const copyBundleBtn = createButton('Copy Title + Description + Keywords', () => {
+  const copyBundleBtn = GDI.createButton('Copy Title + Description + Keywords', () => {
     const bundle = `<title>${titleTemplates[0].text}</title>
 <meta name="description" content="${descTemplates[0].text}">
 <meta name="keywords" content="${topKeywords.slice(0,10).join(', ')}">
@@ -6736,14 +6759,14 @@ function toolGenerateAIMeta() {
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${titleTemplates[0].text}">
 <meta name="twitter:description" content="${descTemplates[0].text}">`;
-    copyToClipboard(bundle).then(() => showNotification('✅ Full meta bundle copied!', 'success'));
+    GDI.copyToClipboard(bundle).then(() => GDI.showNotification('✅ Full meta bundle copied!', 'success'));
   }, { variant: 'success', size: 'md' });
   copyBundleBtn.style.width = '100%';
 
   bundleSection.appendChild(copyBundleBtn);
   content.appendChild(bundleSection);
 
-  const { close } = createModal('AI Meta Tag Generator', content, { width: '800px' });
+  const { close } = GDI.createModal('AI Meta Tag Generator', content, { width: '800px' });
 }
 
 // ==================== TOOL: AI ALT TEXT GENERATOR ====================
@@ -6859,18 +6882,18 @@ function toolGenerateAltText() {
   const decorative = imageData.filter(i => i.isDecorative);
 
   // ─── HEADER ───
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🖼️ AI Alt Text Generator',
     `${imageData.length} images analyzed • ${needsAlt.length} need attention`,
-    'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
 
   // ─── STATS ───
   content.appendChild(createStatGrid([
-    { label: 'Total Images', value: imageData.length.toString(), icon: '🖼️', color: DT.colors.primary },
-    { label: 'Need Alt Text', value: needsAlt.length.toString(), icon: '⚠️', color: DT.colors.warning },
-    { label: 'Have Alt Text', value: hasAlt.length.toString(), icon: '✅', color: DT.colors.success },
-    { label: 'Decorative', value: decorative.length.toString(), icon: '✨', color: DT.colors.info },
+    { label: 'Total Images', value: imageData.length.toString(), icon: '🖼️', color: window.DESIGN_TOKENS.colors.primary },
+    { label: 'Need Alt Text', value: needsAlt.length.toString(), icon: '⚠️', color: window.DESIGN_TOKENS.colors.warning },
+    { label: 'Have Alt Text', value: hasAlt.length.toString(), icon: '✅', color: window.DESIGN_TOKENS.colors.success },
+    { label: 'Decorative', value: decorative.length.toString(), icon: '✨', color: window.DESIGN_TOKENS.colors.info },
   ]));
 
   // ─── FILTER TABS ───
@@ -6890,10 +6913,10 @@ function toolGenerateAltText() {
   filters.forEach(f => {
     const btn = GDI.createElement('button', {
       styles: {
-        padding: '8px 16px', borderRadius: DT.radii.md, border: 'none',
+        padding: '8px 16px', borderRadius: window.DESIGN_TOKENS.radii.md, border: 'none',
         fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-        background: activeFilter === f.key ? DT.colors.primary : DT.colors.surface,
-        color: activeFilter === f.key ? '#fff' : DT.colors.textSecondary,
+        background: activeFilter === f.key ? window.DESIGN_TOKENS.colors.primary : 'var(--gdi-surface)',
+        color: activeFilter === f.key ? '#fff' : 'var(--gdi-text-secondary)',
         transition: 'all 0.2s'
       },
       text: f.label
@@ -6901,8 +6924,8 @@ function toolGenerateAltText() {
     btn.addEventListener('click', () => {
       activeFilter = f.key;
       tabButtons.forEach(b => {
-        b.style.background = b === btn ? DT.colors.primary : DT.colors.surface;
-        b.style.color = b === btn ? '#fff' : DT.colors.textSecondary;
+        b.style.background = b === btn ? window.DESIGN_TOKENS.colors.primary : 'var(--gdi-surface)';
+        b.style.color = b === btn ? '#fff' : 'var(--gdi-text-secondary)';
       });
       renderImageList();
     });
@@ -6928,7 +6951,7 @@ function toolGenerateAltText() {
 
     if (filtered.length === 0) {
       listContainer.appendChild(GDI.createElement('div', {
-        styles: { textAlign: 'center', padding: '40px', color: DT.colors.textMuted, fontSize: '14px' },
+        styles: { textAlign: 'center', padding: '40px', color: 'var(--gdi-text-muted)', fontSize: '14px' },
         text: 'No images match this filter.'
       }));
       return;
@@ -6937,10 +6960,10 @@ function toolGenerateAltText() {
     filtered.forEach(item => {
       const card = GDI.createElement('div', {
         styles: {
-          padding: '14px', background: DT.colors.surface,
-          border: `1px solid ${item.needsAlt ? DT.colors.warning : item.isDecorative ? DT.colors.info : DT.colors.success}30`,
-          borderRadius: DT.radii.md,
-          borderLeft: `4px solid ${item.needsAlt ? DT.colors.warning : item.isDecorative ? DT.colors.info : DT.colors.success}`,
+          padding: '14px', background: 'var(--gdi-surface)',
+          border: `1px solid ${item.needsAlt ? window.DESIGN_TOKENS.colors.warning : item.isDecorative ? window.DESIGN_TOKENS.colors.info : window.DESIGN_TOKENS.colors.success}30`,
+          borderRadius: window.DESIGN_TOKENS.radii.md,
+          borderLeft: `4px solid ${item.needsAlt ? window.DESIGN_TOKENS.colors.warning : item.isDecorative ? window.DESIGN_TOKENS.colors.info : window.DESIGN_TOKENS.colors.success}`,
         }
       });
 
@@ -6952,10 +6975,10 @@ function toolGenerateAltText() {
       // Thumbnail
       const thumbWrap = GDI.createElement('div', {
         styles: {
-          width: '60px', height: '60px', borderRadius: DT.radii.sm,
+          width: '60px', height: '60px', borderRadius: window.DESIGN_TOKENS.radii.sm,
           background: '#F1F5F9', overflow: 'hidden', flexShrink: '0',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: `1px solid ${DT.colors.border}`
+          border: `1px solid ${'var(--gdi-border)'}`
         }
       });
 
@@ -6980,7 +7003,7 @@ function toolGenerateAltText() {
         styles: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' },
         children: [
           GDI.createElement('span', { 
-            styles: { fontSize: '12px', fontWeight: '700', color: DT.colors.textPrimary },
+            styles: { fontSize: '12px', fontWeight: '700', color: 'var(--gdi-text-primary)' },
             text: `Image #${item.index}` 
           }),
           GDI.createBadge(`${item.confidence}%`, 
@@ -6988,14 +7011,14 @@ function toolGenerateAltText() {
           ),
           GDI.createBadge(item.source, 'info'),
           item.width ? GDI.createElement('span', {
-            styles: { fontSize: '11px', color: DT.colors.textMuted },
+            styles: { fontSize: '11px', color: 'var(--gdi-text-muted)' },
             text: `${item.width}×${item.height}`
           }) : null,
         ].filter(Boolean),
       }));
 
       meta.appendChild(GDI.createElement('div', {
-        styles: { fontSize: '11px', color: DT.colors.textMuted, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+        styles: { fontSize: '11px', color: 'var(--gdi-text-muted)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
         text: item.filename
       }));
 
@@ -7006,8 +7029,8 @@ function toolGenerateAltText() {
       if (item.existingAlt && !item.isDecorative) {
         card.appendChild(GDI.createElement('div', {
           styles: { 
-            fontSize: '12px', color: DT.colors.textSecondary, marginBottom: '8px',
-            padding: '6px 10px', background: DT.colors.background, borderRadius: DT.radii.sm,
+            fontSize: '12px', color: 'var(--gdi-text-secondary)', marginBottom: '8px',
+            padding: '6px 10px', background: window.DESIGN_TOKENS.colors.background, borderRadius: window.DESIGN_TOKENS.radii.sm,
             fontStyle: 'italic'
           },
           text: `Current: "${item.existingAlt}"`
@@ -7021,15 +7044,15 @@ function toolGenerateAltText() {
           attrs: { type: 'text', value: item.suggestion, placeholder: 'Enter alt text...' },
           styles: {
             width: '100%', padding: '10px 12px',
-            border: `1.5px solid ${item.needsAlt ? DT.colors.warning : DT.colors.border}`,
-            borderRadius: DT.radii.md, fontSize: '13px',
-            color: DT.colors.textPrimary, background: DT.colors.background,
+            border: `1.5px solid ${item.needsAlt ? window.DESIGN_TOKENS.colors.warning : 'var(--gdi-border)'}`,
+            borderRadius: window.DESIGN_TOKENS.radii.md, fontSize: '13px',
+            color: 'var(--gdi-text-primary)', background: window.DESIGN_TOKENS.colors.background,
             outline: 'none', boxSizing: 'border-box',
             transition: 'border-color 0.2s'
           }
         });
-        input.addEventListener('focus', () => input.style.borderColor = DT.colors.primary);
-        input.addEventListener('blur', () => input.style.borderColor = item.needsAlt ? DT.colors.warning : DT.colors.border);
+        input.addEventListener('focus', () => input.style.borderColor = window.DESIGN_TOKENS.colors.primary);
+        input.addEventListener('blur', () => input.style.borderColor = item.needsAlt ? window.DESIGN_TOKENS.colors.warning : 'var(--gdi-border)');
         inputWrap.appendChild(input);
         card.appendChild(inputWrap);
 
@@ -7064,8 +7087,8 @@ function toolGenerateAltText() {
       } else {
         card.appendChild(GDI.createElement('div', {
           styles: { 
-            fontSize: '12px', color: DT.colors.info, fontStyle: 'italic',
-            padding: '8px', background: `${DT.colors.info}08`, borderRadius: DT.radii.sm
+            fontSize: '12px', color: window.DESIGN_TOKENS.colors.info, fontStyle: 'italic',
+            padding: '8px', background: `${window.DESIGN_TOKENS.colors.info}08`, borderRadius: window.DESIGN_TOKENS.radii.sm
           },
           text: '✨ This image is marked as decorative (role="presentation"). No alt text needed.'
         }));
@@ -7080,7 +7103,7 @@ function toolGenerateAltText() {
   // ─── BULK ACTIONS ───
   if (needsAlt.length > 0) {
     const bulkRow = GDI.createElement('div', {
-      styles: { display: 'flex', gap: '10px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${DT.colors.border}` }
+      styles: { display: 'flex', gap: '10px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${'var(--gdi-border)'}` }
     });
 
     bulkRow.appendChild(GDI.createButton('✨ Apply All Suggestions', () => {
@@ -7162,7 +7185,7 @@ function toolGenerateAITopics() {
   const categories = [
     {
       name: '📖 How-To Guides',
-      color: DT.colors.success,
+      color: window.DESIGN_TOKENS.colors.success,
       icon: '📖',
       topics: [
         { text: `How to ${h1} Like a Pro: Complete ${cap(kw1)} Guide`, type: 'tutorial', difficulty: 'beginner' },
@@ -7174,7 +7197,7 @@ function toolGenerateAITopics() {
     },
     {
       name: '📊 Listicles & Roundups',
-      color: DT.colors.warning,
+      color: window.DESIGN_TOKENS.colors.warning,
       icon: '📊',
       topics: [
         { text: `Top 20 ${cap(kw1)} Tools You Need in ${year}`, type: 'listicle', difficulty: 'beginner' },
@@ -7186,7 +7209,7 @@ function toolGenerateAITopics() {
     },
     {
       name: '⚔️ Comparisons & Reviews',
-      color: DT.colors.error,
+      color: window.DESIGN_TOKENS.colors.error,
       icon: '⚔️',
       topics: [
         { text: `${cap(kw1)} vs ${cap(kw2)}: Which One Should You Choose?`, type: 'comparison', difficulty: 'intermediate' },
@@ -7198,7 +7221,7 @@ function toolGenerateAITopics() {
     },
     {
       name: '❓ Questions & Answers',
-      color: DT.colors.info,
+      color: window.DESIGN_TOKENS.colors.info,
       icon: '❓',
       topics: [
         { text: `What is ${cap(kw1)}? A Comprehensive Introduction`, type: 'explainer', difficulty: 'beginner' },
@@ -7210,7 +7233,7 @@ function toolGenerateAITopics() {
     },
     {
       name: '📈 Case Studies & Data',
-      color: DT.colors.primary,
+      color: window.DESIGN_TOKENS.colors.primary,
       icon: '📈',
       topics: [
         { text: `How We Used ${cap(kw1)} to Achieve 300% Growth`, type: 'case-study', difficulty: 'intermediate' },
@@ -7238,22 +7261,22 @@ function toolGenerateAITopics() {
   const totalTopics = allTopics.length;
 
   // ─── HEADER ───
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '💡 AI Topic Generator',
     `${totalTopics} blog topic ideas across ${categories.length} categories`,
-    'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
 
   // ─── KEYWORD BAR ───
-  content.appendChild(createSection('🎯 Extracted Keywords', [
+  content.appendChild(GDI.createSection('🎯 Extracted Keywords', [
     GDI.createElement('div', {
       styles: { display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' },
       children: [
         ...topKeywords.slice(0, 10).map((kw, i) => 
           GDI.createElement('span', {
             styles: {
-              padding: '6px 14px', background: i < 3 ? DT.colors.primary : `${DT.colors.primary}12`,
-              color: i < 3 ? '#fff' : DT.colors.primary, borderRadius: DT.radii.full,
+              padding: '6px 14px', background: i < 3 ? window.DESIGN_TOKENS.colors.primary : `${window.DESIGN_TOKENS.colors.primary}12`,
+              color: i < 3 ? '#fff' : window.DESIGN_TOKENS.colors.primary, borderRadius: window.DESIGN_TOKENS.radii.full,
               fontSize: i < 3 ? '14px' : '12px', fontWeight: i < 5 ? '600' : '500',
               cursor: 'pointer', transition: 'transform 0.2s'
             },
@@ -7261,7 +7284,7 @@ function toolGenerateAITopics() {
           })
         ),
         GDI.createElement('span', {
-          styles: { fontSize: '11px', color: DT.colors.textMuted, marginLeft: '4px' },
+          styles: { fontSize: '11px', color: 'var(--gdi-text-muted)', marginLeft: '4px' },
           text: `+${topKeywords.length - 10} more`
         })
       ],
@@ -7270,7 +7293,7 @@ function toolGenerateAITopics() {
 
   // ─── CATEGORY ACCORDIONS ───
   categories.forEach((cat, catIndex) => {
-    const section = createSection(`${cat.icon} ${cat.name}`, [
+    const section = GDI.createSection(`${cat.icon} ${cat.name}`, [
       GDI.createElement('div', { 
         styles: { display: 'flex', flexDirection: 'column', gap: '10px' } 
       }),
@@ -7280,8 +7303,8 @@ function toolGenerateAITopics() {
       const card = GDI.createElement('div', {
         styles: {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '14px 16px', background: DT.colors.surface,
-          border: `1px solid ${DT.colors.border}`, borderRadius: DT.radii.md,
+          padding: '14px 16px', background: 'var(--gdi-surface)',
+          border: `1px solid ${'var(--gdi-border)'}`, borderRadius: window.DESIGN_TOKENS.radii.md,
           borderLeft: `4px solid ${cat.color}`,
           transition: 'all 0.2s', cursor: 'pointer', gap: '12px'
         }
@@ -7294,7 +7317,7 @@ function toolGenerateAITopics() {
       });
       card.addEventListener('mouseleave', () => {
         card.style.transform = 'translateX(0)';
-        card.style.borderColor = DT.colors.border;
+        card.style.borderColor = 'var(--gdi-border)';
         card.style.boxShadow = 'none';
       });
 
@@ -7303,25 +7326,25 @@ function toolGenerateAITopics() {
       info.appendChild(GDI.createElement('div', {
         styles: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' },
         children: [
-          createBadge(topic.type, 'info'),
-          createBadge(topic.difficulty, 
+          GDI.createBadge(topic.type, 'info'),
+          GDI.createBadge(topic.difficulty, 
             topic.difficulty === 'beginner' ? 'success' : 
             topic.difficulty === 'intermediate' ? 'warning' : 'error'
           ),
           GDI.createElement('span', {
-            styles: { fontSize: '11px', color: DT.colors.textMuted },
+            styles: { fontSize: '11px', color: 'var(--gdi-text-muted)' },
             text: `${topic.text.length} chars`
           }),
         ],
       }));
 
       info.appendChild(GDI.createElement('div', {
-        styles: { fontSize: '14px', color: DT.colors.textPrimary, lineHeight: '1.5', wordBreak: 'break-word' },
+        styles: { fontSize: '14px', color: 'var(--gdi-text-primary)', lineHeight: '1.5', wordBreak: 'break-word' },
         text: topic.text,
       }));
 
-      const copyBtn = createButton('Copy', () => {
-        copyToClipboard(topic.text).then(() => showNotification('✅ Topic copied!', 'success'));
+      const copyBtn = GDI.createButton('Copy', () => {
+        GDI.copyToClipboard(topic.text).then(() => GDI.showNotification('✅ Topic copied!', 'success'));
       }, { variant: 'secondary', fullWidth: false, size: 'sm' });
 
       card.appendChild(info);
@@ -7336,23 +7359,23 @@ function toolGenerateAITopics() {
   const actionBar = GDI.createElement('div', {
     styles: {
       display: 'flex', gap: '12px', marginTop: '20px', paddingTop: '20px',
-      borderTop: `2px solid ${DT.colors.border}`, flexWrap: 'wrap'
+      borderTop: `2px solid ${'var(--gdi-border)'}`, flexWrap: 'wrap'
     }
   });
 
-  actionBar.appendChild(createButton('📋 Copy All Topics', () => {
+  actionBar.appendChild(GDI.createButton('📋 Copy All Topics', () => {
     const text = categories.map(cat => 
       `=== ${cat.name} ===\n${cat.topics.map(t => `• ${t.text}`).join('\n')}`
     ).join('\n\n');
-    copyToClipboard(text).then(() => showNotification(`✅ ${totalTopics} topics copied!`, 'success'));
+    GDI.copyToClipboard(text).then(() => GDI.showNotification(`✅ ${totalTopics} topics copied!`, 'success'));
   }, { variant: 'primary' }));
 
-  actionBar.appendChild(createButton('📄 Export as Markdown', () => {
+  actionBar.appendChild(GDI.createButton('📄 Export as Markdown', () => {
     const md = `# Blog Topic Ideas: ${h1}\n\n*Generated from ${domain} on ${new Date().toLocaleDateString()}*\n\n## Keywords\n${topKeywords.slice(0,8).map(k => `- ${k}`).join('\n')}\n\n${categories.map(cat => `## ${cat.name}\n\n${cat.topics.map((t, i) => `${i+1}. **${t.text}**\n   - Type: ${t.type} | Difficulty: ${t.difficulty}`).join('\n\n')}`).join('\n\n')}`;
-    copyToClipboard(md).then(() => showNotification('✅ Markdown exported to clipboard!', 'success'));
+    GDI.copyToClipboard(md).then(() => GDI.showNotification('✅ Markdown exported to clipboard!', 'success'));
   }, { variant: 'secondary' }));
 
-  actionBar.appendChild(createButton('🔄 Regenerate', () => {
+  actionBar.appendChild(GDI.createButton('🔄 Regenerate', () => {
     const overlay = document.querySelector('.gdi-modal-overlay');
     if (overlay) {
       overlay.style.opacity = '0';
@@ -7365,13 +7388,13 @@ function toolGenerateAITopics() {
 
   content.appendChild(actionBar);
 
-  const { close } = createModal('AI Topic Generator', content, { width: '800px' });
+  const { close } = GDI.createModal('AI Topic Generator', content, { width: '800px' });
 }
 
 // ==================== TOOL: LINK PROSPECT FINDER ====================
 
 function toolFindLinkProspects() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const domain = window.location.hostname.replace('www.', '');
   const bodyText = document.body.innerText.substring(0, 1000);
@@ -7395,25 +7418,25 @@ function toolFindLinkProspects() {
     { name: 'Top Reviews', query: `${mainKeyword} "top" "best" "review"` },
   ];
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🎯 Link Prospect Finder',
     `Find guest post and link building opportunities for "${mainKeyword}"`
   ));
   
   // Custom keyword input
-  const { wrapper: keywordWrapper, input: keywordInput } = createInputField({
+  const { wrapper: keywordWrapper, input: keywordInput } = GDI.createInputField({
     label: '🎯 Target Keyword',
     id: 'prospect-keyword',
     placeholder: 'Enter keyword...',
     defaultValue: mainKeyword,
   });
   
-  content.appendChild(createSection('🔧 Settings', [keywordWrapper]));
+  content.appendChild(GDI.createSection('🔧 Settings', [keywordWrapper]));
   
   // Search queries
-  const queriesSection = createSection(`📋 Search Queries (${searchQueries.length})`, [
-    createElement('div', {
-      id: 'prospect-queries',
+  const queriesSection = GDI.createSection(`📋 Search Queries (${searchQueries.length})`, [
+    GDI.createElement('div', {
+      attrs: { id: 'prospect-queries' },
       styles: { display: 'flex', flexDirection: 'column', gap: '8px' },
     }),
   ]);
@@ -7423,38 +7446,38 @@ function toolFindLinkProspects() {
     if (!container) return;
     
     container.innerHTML = queries.map((sq, i) => {
-      const row = createElement('div', {
+      const row = GDI.createElement('div', {
         styles: {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '12px 16px', background: DT.colors.surface,
-          border: `1px solid ${DT.colors.border}`, borderRadius: DT.radii.md,
+          padding: '12px 16px', background: 'var(--gdi-surface)',
+          border: `1px solid ${'var(--gdi-border)'}`, borderRadius: window.DESIGN_TOKENS.radii.md,
           transition: `all ${DT.transitions.fast}`,
         },
       });
       
       row.addEventListener('mouseenter', () => {
-        row.style.borderColor = DT.colors.primary;
+        row.style.borderColor = window.DESIGN_TOKENS.colors.primary;
       });
       
       row.addEventListener('mouseleave', () => {
-        row.style.borderColor = DT.colors.border;
+        row.style.borderColor = 'var(--gdi-border)';
       });
       
-      row.appendChild(createElement('div', {
+      row.appendChild(GDI.createElement('div', {
         styles: { flex: '1', marginRight: '12px' },
         children: [
-          createElement('div', {
-            styles: { fontSize: DT.typography.sizes.base, fontWeight: DT.typography.weights.semibold, color: DT.colors.textPrimary, marginBottom: '2px' },
+          GDI.createElement('div', {
+            styles: { fontSize: DT.typography.sizes.base, fontWeight: DT.typography.weights.semibold, color: 'var(--gdi-text-primary)', marginBottom: '2px' },
             text: sq.name,
           }),
-          createElement('div', {
-            styles: { fontSize: DT.typography.sizes.sm, color: DT.colors.primary, fontFamily: DT.typography.fontMono },
+          GDI.createElement('div', {
+            styles: { fontSize: DT.typography.sizes.sm, color: window.DESIGN_TOKENS.colors.primary, fontFamily: DT.typography.fontMono },
             text: sq.query,
           }),
         ],
       }));
       
-      row.appendChild(createButton('Search', () => {
+      row.appendChild(GDI.createButton('Search', () => {
         window.open(`https://www.google.com/search?q=${encodeURIComponent(sq.query)}`, '_blank');
       }, { variant: 'secondary', fullWidth: false, size: 'sm' }));
       
@@ -7473,7 +7496,7 @@ function toolFindLinkProspects() {
   content.appendChild(queriesSection);
   renderQueries(searchQueries);
   
-  keywordInput.addEventListener('input', debounce(() => {
+  keywordInput.addEventListener('input', GDI.debounce(() => {
     const newKeyword = keywordInput.value.trim() || mainKeyword;
     const updatedQueries = searchQueries.map(sq => ({
       name: sq.name,
@@ -7483,9 +7506,9 @@ function toolFindLinkProspects() {
   }, 300));
   
   // Action buttons
-  const btnRow = createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
+  const btnRow = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
   
-  btnRow.appendChild(createButton('🚀 Open All Queries', () => {
+  btnRow.appendChild(GDI.createButton('🚀 Open All Queries', () => {
     const queries = document.querySelectorAll('#prospect-queries button');
     const allQueries = Array.from(queries).map(btn => 
       btn.parentElement?.querySelector('div:last-child')?.textContent || ''
@@ -7496,24 +7519,24 @@ function toolFindLinkProspects() {
         window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
       }, i * 300);
     });
-    showNotification(`✅ Opening ${allQueries.length} searches...`, 'success');
+    GDI.showNotification(`✅ Opening ${allQueries.length} searches...`, 'success');
   }, { variant: 'primary' }));
   
-  btnRow.appendChild(createButton('📋 Copy Search URLs', () => {
+  btnRow.appendChild(GDI.createButton('📋 Copy Search URLs', () => {
     const queries = document.querySelectorAll('#prospect-queries button');
     const urls = Array.from(queries).map(btn => {
       const query = btn.parentElement?.querySelector('div:last-child')?.textContent || '';
       return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
     });
-    copyToClipboard(urls.join('\n')).then(() => showNotification('✅ URLs copied!', 'success'));
+    GDI.copyToClipboard(urls.join('\n')).then(() => GDI.showNotification('✅ URLs copied!', 'success'));
   }, { variant: 'secondary' }));
   
   content.appendChild(btnRow);
   
   // Tips
-  content.appendChild(createSection('💡 Prospecting Tips', [
-    createElement('ul', {
-      styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: DT.colors.textSecondary, lineHeight: '1.8' },
+  content.appendChild(GDI.createSection('💡 Prospecting Tips', [
+    GDI.createElement('ul', {
+      styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: 'var(--gdi-text-secondary)', lineHeight: '1.8' },
       html: `
         <li>Look for sites with good DA/DR metrics</li>
         <li>Check if they've published guest posts recently</li>
@@ -7524,13 +7547,13 @@ function toolFindLinkProspects() {
     }),
   ]));
   
-  const { close } = createModal('Link Prospect Finder', content, { width: '700px' });
+  const { close } = GDI.createModal('Link Prospect Finder', content, { width: '700px' });
 }
 
 // ==================== TOOL: RESOURCE PAGE FINDER ====================
 
 function toolFindResourcePages() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const domain = window.location.hostname.replace('www.', '');
   const bodyText = document.body.innerText.substring(0, 1000);
@@ -7554,23 +7577,23 @@ function toolFindResourcePages() {
     { name: 'Our Friends', query: `${mainKeyword} "our friends"` },
   ];
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📚 Resource Page Finder',
     `Find resource pages for link building with "${mainKeyword}"`
   ));
   
-  const { wrapper: kwWrapper, input: kwInput } = createInputField({
+  const { wrapper: kwWrapper, input: kwInput } = GDI.createInputField({
     label: '🎯 Target Keyword',
     id: 'resource-keyword',
     placeholder: 'Enter keyword...',
     defaultValue: mainKeyword,
   });
   
-  content.appendChild(createSection('🔧 Settings', [kwWrapper]));
+  content.appendChild(GDI.createSection('🔧 Settings', [kwWrapper]));
   
-  const queriesSection = createSection(`📋 Search Queries (${resourceQueries.length})`, [
-    createElement('div', {
-      id: 'resource-queries',
+  const queriesSection = GDI.createSection(`📋 Search Queries (${resourceQueries.length})`, [
+    GDI.createElement('div', {
+      attrs: { id: 'resource-queries' },
       styles: { display: 'flex', flexDirection: 'column', gap: '8px' },
     }),
   ]);
@@ -7580,33 +7603,33 @@ function toolFindResourcePages() {
     if (!container) return;
     
     container.innerHTML = queries.map(sq => {
-      const row = createElement('div', {
+      const row = GDI.createElement('div', {
         styles: {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '12px 16px', background: DT.colors.surface,
-          border: `1px solid ${DT.colors.border}`, borderRadius: DT.radii.md,
+          padding: '12px 16px', background: 'var(--gdi-surface)',
+          border: `1px solid ${'var(--gdi-border)'}`, borderRadius: window.DESIGN_TOKENS.radii.md,
           transition: `all ${DT.transitions.fast}`,
         },
       });
       
-      row.addEventListener('mouseenter', () => row.style.borderColor = DT.colors.primary);
-      row.addEventListener('mouseleave', () => row.style.borderColor = DT.colors.border);
+      row.addEventListener('mouseenter', () => row.style.borderColor = window.DESIGN_TOKENS.colors.primary);
+      row.addEventListener('mouseleave', () => row.style.borderColor = 'var(--gdi-border)');
       
-      row.appendChild(createElement('div', {
+      row.appendChild(GDI.createElement('div', {
         styles: { flex: '1', marginRight: '12px' },
         children: [
-          createElement('div', {
-            styles: { fontSize: DT.typography.sizes.base, fontWeight: DT.typography.weights.semibold, color: DT.colors.textPrimary, marginBottom: '2px' },
+          GDI.createElement('div', {
+            styles: { fontSize: DT.typography.sizes.base, fontWeight: DT.typography.weights.semibold, color: 'var(--gdi-text-primary)', marginBottom: '2px' },
             text: sq.name,
           }),
-          createElement('div', {
-            styles: { fontSize: DT.typography.sizes.sm, color: DT.colors.info, fontFamily: DT.typography.fontMono },
+          GDI.createElement('div', {
+            styles: { fontSize: DT.typography.sizes.sm, color: window.DESIGN_TOKENS.colors.info, fontFamily: DT.typography.fontMono },
             text: sq.query,
           }),
         ],
       }));
       
-      row.appendChild(createButton('Search', () => {
+      row.appendChild(GDI.createButton('Search', () => {
         window.open(`https://www.google.com/search?q=${encodeURIComponent(sq.query)}`, '_blank');
       }, { variant: 'secondary', fullWidth: false, size: 'sm' }));
       
@@ -7617,7 +7640,7 @@ function toolFindResourcePages() {
   content.appendChild(queriesSection);
   renderQueries(resourceQueries);
   
-  kwInput.addEventListener('input', debounce(() => {
+  kwInput.addEventListener('input', GDI.debounce(() => {
     const newKw = kwInput.value.trim() || mainKeyword;
     const updated = resourceQueries.map(sq => ({
       name: sq.name,
@@ -7626,26 +7649,26 @@ function toolFindResourcePages() {
     renderQueries(updated);
   }, 300));
   
-  const btnRow = createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
+  const btnRow = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
   
-  btnRow.appendChild(createButton('🚀 Open All Queries', () => {
+  btnRow.appendChild(GDI.createButton('🚀 Open All Queries', () => {
     resourceQueries.forEach((sq, i) => {
       setTimeout(() => {
         window.open(`https://www.google.com/search?q=${encodeURIComponent(sq.query)}`, '_blank');
       }, i * 300);
     });
-    showNotification(`✅ Opening ${resourceQueries.length} searches...`, 'success');
+    GDI.showNotification(`✅ Opening ${resourceQueries.length} searches...`, 'success');
   }, { variant: 'primary' }));
   
   content.appendChild(btnRow);
   
-  const { close } = createModal('Resource Page Finder', content, { width: '700px' });
+  const { close } = GDI.createModal('Resource Page Finder', content, { width: '700px' });
 }
 
 // ==================== TOOL: LOCAL KEYWORD FINDER ====================
 
 function toolFindLocalKeywords() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const domain = window.location.hostname.replace(/^www\./, '');
   const bodyText = document.body.innerText.substring(0, 1000);
@@ -7654,30 +7677,30 @@ function toolFindLocalKeywords() {
   const keywords = [...new Set(words.filter(w => !stopWords.has(w)))];
   const mainKeyword = keywords[0] || domain.split('.')[0] || 'service';
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📍 Local Keyword Finder',
     'Generate location-based keyword permutations'
   ));
   
-  const { wrapper: kwWrapper, input: kwInput } = createInputField({
+  const { wrapper: kwWrapper, input: kwInput } = GDI.createInputField({
     label: 'Main Service / Keyword',
     id: 'local-keyword',
     placeholder: 'e.g., plumber, roof repair, dentist',
     defaultValue: mainKeyword,
   });
   
-  const { wrapper: locWrapper, input: locInput } = createInputField({
+  const { wrapper: locWrapper, input: locInput } = GDI.createInputField({
     label: 'Locations (comma separated)',
     id: 'local-locations',
     placeholder: 'e.g., New York, Brooklyn, Queens',
     defaultValue: 'New York, Los Angeles, Chicago',
   });
   
-  content.appendChild(createSection('🔧 Settings', [kwWrapper, locWrapper]));
+  content.appendChild(GDI.createSection('🔧 Settings', [kwWrapper, locWrapper]));
   
-  const resultsContainer = createSection('📍 Generated Keywords', [
-    createElement('div', {
-      id: 'local-results',
+  const resultsContainer = GDI.createSection('📍 Generated Keywords', [
+    GDI.createElement('div', {
+      attrs: { id: 'local-results' },
       styles: { display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '400px', overflowY: 'auto' },
     }),
   ]);
@@ -7715,15 +7738,15 @@ function toolFindLocalKeywords() {
     
     container.innerHTML = categories.map(category => `
       <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid ${DT.colors.border};">
-          <span style="font-weight: ${DT.typography.weights.bold}; font-size: ${DT.typography.sizes.base}; color: ${DT.colors.textPrimary};">${category.name}</span>
-          <span style="font-size: ${DT.typography.sizes.xs}; color: ${DT.colors.textMuted}; background: ${DT.colors.surfaceTertiary}; padding: 2px 8px; border-radius: ${DT.radii.full}; font-weight: ${DT.typography.weights.bold};">${category.keywords.length} items</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid ${'var(--gdi-border)'};">
+          <span style="font-weight: ${DT.typography.weights.bold}; font-size: ${DT.typography.sizes.base}; color: ${'var(--gdi-text-primary)'};">${category.name}</span>
+          <span style="font-size: ${DT.typography.sizes.xs}; color: ${'var(--gdi-text-muted)'}; background: ${'var(--gdi-surface-tertiary)'}; padding: 2px 8px; border-radius: ${window.DESIGN_TOKENS.radii.full}; font-weight: ${DT.typography.weights.bold};">${category.keywords.length} items</span>
         </div>
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
           ${category.keywords.map(kw => `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: ${DT.colors.surface}; border: 1px solid ${DT.colors.border}; border-radius: ${DT.radii.sm}; font-size: ${DT.typography.sizes.sm};">
-              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: ${DT.colors.textSecondary};">${escapeHtml(kw)}</span>
-              <button class="local-copy-btn" data-kw="${escapeHtml(kw)}" style="padding: 4px 8px; background: ${DT.colors.surfaceTertiary}; border: 1px solid ${DT.colors.border}; border-radius: ${DT.radii.sm}; cursor: pointer; font-size: ${DT.typography.sizes.xs}; color: ${DT.colors.textSecondary}; flex-shrink: 0; margin-left: 8px;">Copy</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: ${'var(--gdi-surface)'}; border: 1px solid ${'var(--gdi-border)'}; border-radius: ${window.DESIGN_TOKENS.radii.sm}; font-size: ${DT.typography.sizes.sm};">
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: ${'var(--gdi-text-secondary)'};">${GDI.escapeHtml(kw)}</span>
+              <button class="local-copy-btn" data-kw="${GDI.escapeHtml(kw)}" style="padding: 4px 8px; background: ${'var(--gdi-surface-tertiary)'}; border: 1px solid ${'var(--gdi-border)'}; border-radius: ${window.DESIGN_TOKENS.radii.sm}; cursor: pointer; font-size: ${DT.typography.sizes.xs}; color: ${'var(--gdi-text-secondary)'}; flex-shrink: 0; margin-left: 8px;">Copy</button>
             </div>
           `).join('')}
         </div>
@@ -7736,14 +7759,14 @@ function toolFindLocalKeywords() {
     // Attach copy handlers
     container.querySelectorAll('.local-copy-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        copyToClipboard(btn.dataset.kw).then(() => {
+        GDI.copyToClipboard(btn.dataset.kw).then(() => {
           btn.textContent = '✓';
-          btn.style.background = DT.colors.success;
+          btn.style.background = window.DESIGN_TOKENS.colors.success;
           btn.style.color = '#FFFFFF';
           setTimeout(() => {
             btn.textContent = 'Copy';
-            btn.style.background = DT.colors.surfaceTertiary;
-            btn.style.color = DT.colors.textSecondary;
+            btn.style.background = 'var(--gdi-surface-tertiary)';
+            btn.style.color = 'var(--gdi-text-secondary)';
           }, 1500);
         });
       });
@@ -7753,46 +7776,46 @@ function toolFindLocalKeywords() {
   const initialCategories = generateKeywords(mainKeyword, 'New York, Los Angeles, Chicago');
   renderResults(initialCategories);
   
-  content.appendChild(createButton('🔄 Generate Keywords', () => {
+  content.appendChild(GDI.createButton('🔄 Generate Keywords', () => {
     const kw = kwInput.value.trim() || mainKeyword;
     const locs = locInput.value.trim() || 'New York';
     const categories = generateKeywords(kw, locs);
     renderResults(categories);
-    showNotification('✅ Keywords generated!', 'success');
+    GDI.showNotification('✅ Keywords generated!', 'success');
   }, { variant: 'primary' }));
   
-  const btnRow = createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '8px' } });
+  const btnRow = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '8px' } });
   
-  btnRow.appendChild(createButton('📋 Copy All Keywords', () => {
+  btnRow.appendChild(GDI.createButton('📋 Copy All Keywords', () => {
     const allKw = document.getElementById('local-results')?.dataset.allKeywords || '';
     if (allKw) {
-      copyToClipboard(allKw).then(() => showNotification('✅ All keywords copied!', 'success'));
+      GDI.copyToClipboard(allKw).then(() => GDI.showNotification('✅ All keywords copied!', 'success'));
     }
   }, { variant: 'secondary' }));
   
-  btnRow.appendChild(createButton('📊 Export CSV', () => {
+  btnRow.appendChild(GDI.createButton('📊 Export CSV', () => {
     const categories = generateKeywords(kwInput.value.trim() || mainKeyword, locInput.value.trim() || 'New York');
     const allKw = categories.flatMap(c => c.keywords);
     const csv = 'Keyword\n' + allKw.map(k => `"${k}"`).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = GDI.createElement('a');
     a.href = url;
     a.download = `local-keywords-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showNotification('✅ CSV exported!', 'success');
+    GDI.showNotification('✅ CSV exported!', 'success');
   }, { variant: 'secondary' }));
   
   content.appendChild(btnRow);
   
-  const { close } = createModal('Local Keyword Finder', content, { width: '750px' });
+  const { close } = GDI.createModal('Local Keyword Finder', content, { width: '750px' });
 }
 
 // ==================== TOOL: HREFLANG GENERATOR ====================
 
 function toolGenerateHreflang() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const currentUrl = window.location.href;
   const urlObj = new URL(currentUrl);
@@ -7821,69 +7844,69 @@ function toolGenerateHreflang() {
     { code: 'x-default', name: 'Default (Language Selector)', region: null },
   ];
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🌐 Hreflang Generator',
     'Generate hreflang tags for multilingual SEO'
   ));
   
   // URL pattern
-  const { wrapper: urlWrapper, input: urlInput } = createInputField({
+  const { wrapper: urlWrapper, input: urlInput } = GDI.createInputField({
     label: 'Base URL Pattern',
     id: 'hreflang-url',
     placeholder: baseUrl,
     defaultValue: baseUrl,
   });
   
-  const { wrapper: patternWrapper } = createInputField({
+  const { wrapper: patternWrapper } = GDI.createInputField({
     label: 'URL Pattern',
     id: 'hreflang-pattern',
     type: 'text',
   });
   
-  const patternSelect = createElement('select', {
+  const patternSelect = GDI.createElement('select', {
     attrs: { id: 'hreflang-pattern' },
     styles: {
       width: '100%', padding: '10px 14px',
-      border: `1.5px solid ${DT.colors.border}`, borderRadius: DT.radii.md,
+      border: `1.5px solid ${'var(--gdi-border)'}`, borderRadius: window.DESIGN_TOKENS.radii.md,
       fontSize: DT.typography.sizes.base, fontFamily: DT.typography.fontFamily,
-      background: DT.colors.surface, color: DT.colors.textPrimary, cursor: 'pointer',
+      background: 'var(--gdi-surface)', color: 'var(--gdi-text-primary)', cursor: 'pointer',
     },
   });
   
   ['Subdirectory: /{lang}/page', 'Subdomain: {lang}.example.com/page', 'Parameter: /page?lang={lang}'].forEach(opt => {
-    const option = createElement('option', { attrs: { value: opt.split(':')[0].toLowerCase() }, text: opt });
+    const option = GDI.createElement('option', { attrs: { value: opt.split(':')[0].toLowerCase() }, text: opt });
     patternSelect.appendChild(option);
   });
   
   const patternInput = patternWrapper.querySelector('input');
   if (patternInput) patternInput.replaceWith(patternSelect);
   
-  content.appendChild(createSection('🔧 Configuration', [urlWrapper, patternWrapper]));
+  content.appendChild(GDI.createSection('🔧 Configuration', [urlWrapper, patternWrapper]));
   
   // Language selection
-  const langSection = createSection('🌍 Select Languages', [
-    createElement('div', {
+  const langSection = GDI.createSection('🌍 Select Languages', [
+    GDI.createElement('div', {
       styles: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px', maxHeight: '250px', overflowY: 'auto' },
       children: languages.map(lang => {
-        const label = createElement('label', {
+        const label = GDI.createElement('label', {
           styles: {
             display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px',
-            background: DT.colors.surface, border: `1px solid ${DT.colors.border}`,
-            borderRadius: DT.radii.sm, cursor: 'pointer', fontSize: DT.typography.sizes.base,
+            background: 'var(--gdi-surface)', border: `1px solid ${'var(--gdi-border)'}`,
+            borderRadius: window.DESIGN_TOKENS.radii.sm, cursor: 'pointer', fontSize: DT.typography.sizes.base,
           },
         });
         
-        const checkbox = createElement('input', {
+        const checkbox = GDI.createElement('input', {
           attrs: { type: 'checkbox', checked: 'true', 'data-code': lang.code, 'data-region': lang.region || '' },
         });
         
         label.appendChild(checkbox);
-        label.appendChild(createElement('span', {
-          styles: { color: DT.colors.textPrimary },
+        label.appendChild(GDI.createElement('span', {
+          styles: { color: 'var(--gdi-text-primary)' },
           text: lang.name,
         }));
-        label.appendChild(createElement('span', {
-          styles: { color: DT.colors.textMuted, fontFamily: DT.typography.fontMono, fontSize: DT.typography.sizes.xs },
+        label.appendChild(GDI.createElement('span', {
+          styles: { color: 'var(--gdi-text-muted)', fontFamily: DT.typography.fontMono, fontSize: DT.typography.sizes.xs },
           text: lang.code + (lang.region ? '-' + lang.region : ''),
         }));
         
@@ -7895,24 +7918,24 @@ function toolGenerateHreflang() {
   content.appendChild(langSection);
   
   // Select all / deselect all
-  const selectRow = createElement('div', { styles: { display: 'flex', gap: '8px', marginBottom: '16px' } });
+  const selectRow = GDI.createElement('div', { styles: { display: 'flex', gap: '8px', marginBottom: '16px' } });
   
-  selectRow.appendChild(createButton('Select All', () => {
+  selectRow.appendChild(GDI.createButton('Select All', () => {
     document.querySelectorAll('#hreflang-url').forEach(cb => cb.checked = true);
   }, { variant: 'secondary', fullWidth: true, size: 'sm' }));
   
-  selectRow.appendChild(createButton('Deselect All', () => {
+  selectRow.appendChild(GDI.createButton('Deselect All', () => {
     document.querySelectorAll('#hreflang-url').forEach(cb => cb.checked = false);
   }, { variant: 'secondary', fullWidth: true, size: 'sm' }));
   
   content.appendChild(selectRow);
   
   // Output
-  const outputSection = createSection('📋 Generated Hreflang Tags', [
-    createElement('div', {
-      id: 'hreflang-output',
+  const outputSection = GDI.createSection('📋 Generated Hreflang Tags', [
+    GDI.createElement('div', {
+      attrs: { id: 'hreflang-output' },
       styles: {
-        padding: '16px', background: '#1E293B', borderRadius: DT.radii.md,
+        padding: '16px', background: '#1E293B', borderRadius: window.DESIGN_TOKENS.radii.md,
         fontFamily: DT.typography.fontMono, fontSize: DT.typography.sizes.sm,
         color: '#E2E8F0', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
         minHeight: '100px', maxHeight: '300px', overflowY: 'auto',
@@ -7951,25 +7974,25 @@ function toolGenerateHreflang() {
     return tags.join('\n');
   }
   
-  content.appendChild(createButton('🔄 Generate Tags', () => {
+  content.appendChild(GDI.createButton('🔄 Generate Tags', () => {
     document.getElementById('hreflang-output').textContent = generateTags();
   }, { variant: 'primary' }));
   
-  content.appendChild(createButton('📋 Copy Tags', () => {
+  content.appendChild(GDI.createButton('📋 Copy Tags', () => {
     const tags = document.getElementById('hreflang-output').textContent;
     if (tags && tags !== 'Select languages and click "Generate Tags"') {
-      copyToClipboard(tags).then(() => showNotification('✅ Hreflang tags copied!', 'success'));
+      GDI.copyToClipboard(tags).then(() => GDI.showNotification('✅ Hreflang tags copied!', 'success'));
     } else {
       const newTags = generateTags();
       document.getElementById('hreflang-output').textContent = newTags;
-      copyToClipboard(newTags).then(() => showNotification('✅ Hreflang tags copied!', 'success'));
+      GDI.copyToClipboard(newTags).then(() => GDI.showNotification('✅ Hreflang tags copied!', 'success'));
     }
   }, { variant: 'success' }));
   
   // Implementation notes
-  content.appendChild(createSection('📋 Implementation Notes', [
-    createElement('ul', {
-      styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: DT.colors.textSecondary, lineHeight: '1.8' },
+  content.appendChild(GDI.createSection('📋 Implementation Notes', [
+    GDI.createElement('ul', {
+      styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: 'var(--gdi-text-secondary)', lineHeight: '1.8' },
       html: `
         <li>Add tags to the &lt;head&gt; section of each page</li>
         <li>Include self-referencing hreflang tag</li>
@@ -7980,13 +8003,13 @@ function toolGenerateHreflang() {
     }),
   ]));
   
-  const { close } = createModal('Hreflang Generator', content, { width: '700px' });
+  const { close } = GDI.createModal('Hreflang Generator', content, { width: '700px' });
 }
 
 // ==================== TOOL: DUPLICATE CONTENT FINDER ====================
 
 function toolFindDuplicateContent() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const title = document.title;
   const metaDesc = document.querySelector('meta[name="description"]')?.getAttribute('content') || '';
@@ -8024,26 +8047,26 @@ function toolFindDuplicateContent() {
   score = Math.max(0, Math.min(100, score));
   
   // Content fingerprint
-  const fingerprint = hashString(bodyText.replace(/\s+/g, ' ').substring(0, 1000));
+  const fingerprint = GDI.hashString(bodyText.replace(/\s+/g, ' ').substring(0, 1000));
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🔄 Duplicate Content Analyzer',
     `Uniqueness Score: ${score}/100`
   ));
   
   // Score ring
-  const scoreRow = createElement('div', {
+  const scoreRow = GDI.createElement('div', {
     styles: { display: 'flex', justifyContent: 'center', marginBottom: '20px' },
   });
-  scoreRow.appendChild(createScoreRing(score, 100));
+  scoreRow.appendChild(GDI.createScoreRing(score, 100));
   content.appendChild(scoreRow);
   
   // Stats
   content.appendChild(createStatGrid([
-    { label: 'Word Count', value: wordCount.toLocaleString(), icon: '📝', color: wordCount >= 300 ? DT.colors.success : DT.colors.warning },
-    { label: 'H1 Tags', value: headings.h1.length, icon: '📌', color: headings.h1.length === 1 ? DT.colors.success : DT.colors.error },
-    { label: 'Meta Desc', value: metaDesc ? '✅' : '❌', icon: '📄', color: metaDesc ? DT.colors.success : DT.colors.error },
-    { label: 'Fingerprint', value: fingerprint, icon: '🔑', color: DT.colors.info },
+    { label: 'Word Count', value: wordCount.toLocaleString(), icon: '📝', color: wordCount >= 300 ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.warning },
+    { label: 'H1 Tags', value: headings.h1.length, icon: '📌', color: headings.h1.length === 1 ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.error },
+    { label: 'Meta Desc', value: metaDesc ? '✅' : '❌', icon: '📄', color: metaDesc ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.error },
+    { label: 'Fingerprint', value: fingerprint, icon: '🔑', color: window.DESIGN_TOKENS.colors.info },
   ]));
   
   // Issues
@@ -8055,16 +8078,16 @@ function toolFindDuplicateContent() {
   if (duplicateHeadings.length > 0) issues.push(`${duplicateHeadings.length} duplicate heading(s) found`);
   
   if (issues.length > 0) {
-    content.appendChild(createSection('⚠️ Issues Found', [
-      createElement('div', {
+    content.appendChild(GDI.createSection('⚠️ Issues Found', [
+      GDI.createElement('div', {
         styles: { display: 'flex', flexDirection: 'column', gap: '8px' },
         children: issues.map(issue =>
-          createElement('div', {
+          GDI.createElement('div', {
             styles: {
               padding: '10px 14px',
-              background: DT.colors.warningLight,
-              borderLeft: `3px solid ${DT.colors.warning}`,
-              borderRadius: DT.radii.md,
+              background: window.DESIGN_TOKENS.colors.warningLight,
+              borderLeft: `3px solid ${window.DESIGN_TOKENS.colors.warning}`,
+              borderRadius: window.DESIGN_TOKENS.radii.md,
               fontSize: DT.typography.sizes.base,
               color: '#92400E',
             },
@@ -8074,18 +8097,18 @@ function toolFindDuplicateContent() {
       }),
     ]));
   } else {
-    content.appendChild(createSection('', [
-      createElement('div', {
-        styles: { padding: '20px', background: DT.colors.successLight, borderRadius: DT.radii.md, textAlign: 'center', color: '#166534', fontWeight: DT.typography.weights.semibold },
+    content.appendChild(GDI.createSection('', [
+      GDI.createElement('div', {
+        styles: { padding: '20px', background: window.DESIGN_TOKENS.colors.successLight, borderRadius: window.DESIGN_TOKENS.radii.md, textAlign: 'center', color: '#166534', fontWeight: DT.typography.weights.semibold },
         text: '✅ No major duplicate content issues detected!',
       }),
     ]));
   }
   
   // Recommendations
-  content.appendChild(createSection('💡 Recommendations', [
-    createElement('ul', {
-      styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: DT.colors.textSecondary, lineHeight: '1.8' },
+  content.appendChild(GDI.createSection('💡 Recommendations', [
+    GDI.createElement('ul', {
+      styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: 'var(--gdi-text-secondary)', lineHeight: '1.8' },
       html: `
         ${wordCount < 300 ? '<li>Add more unique content (aim for 300+ words)</li>' : '<li>✅ Content length is good</li>'}
         ${headings.h1.length !== 1 ? '<li>Use exactly one H1 tag per page</li>' : '<li>✅ H1 usage is correct</li>'}
@@ -8097,13 +8120,13 @@ function toolFindDuplicateContent() {
     }),
   ]));
   
-  const { close } = createModal('Duplicate Content Analyzer', content, { width: '650px' });
+  const { close } = GDI.createModal('Duplicate Content Analyzer', content, { width: '650px' });
 }
 
 // ==================== TOOL: CONTENT & READABILITY ANALYZER ====================
 
 function toolContentAnalyzer() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const bodyText = document.body.innerText || '';
   const cleanText = bodyText.replace(/\s+/g, ' ').trim();
@@ -8132,30 +8155,30 @@ function toolContentAnalyzer() {
   
   let readabilityLabel = '';
   let readabilityColor = '';
-  if (readingEase >= 90) { readabilityLabel = 'Very Easy (5th Grade)'; readabilityColor = DT.colors.success; }
-  else if (readingEase >= 80) { readabilityLabel = 'Easy (6th Grade)'; readabilityColor = DT.colors.success; }
+  if (readingEase >= 90) { readabilityLabel = 'Very Easy (5th Grade)'; readabilityColor = window.DESIGN_TOKENS.colors.success; }
+  else if (readingEase >= 80) { readabilityLabel = 'Easy (6th Grade)'; readabilityColor = window.DESIGN_TOKENS.colors.success; }
   else if (readingEase >= 70) { readabilityLabel = 'Fairly Easy (7th Grade)'; readabilityColor = '#8BC34A'; }
-  else if (readingEase >= 60) { readabilityLabel = 'Standard (8th-9th Grade)'; readabilityColor = DT.colors.warning; }
-  else if (readingEase >= 50) { readabilityLabel = 'Fairly Difficult (10th-12th)'; readabilityColor = DT.colors.warning; }
-  else if (readingEase >= 30) { readabilityLabel = 'Difficult (College)'; readabilityColor = DT.colors.error; }
-  else { readabilityLabel = 'Very Difficult (College Grad)'; readabilityColor = DT.colors.error; }
+  else if (readingEase >= 60) { readabilityLabel = 'Standard (8th-9th Grade)'; readabilityColor = window.DESIGN_TOKENS.colors.warning; }
+  else if (readingEase >= 50) { readabilityLabel = 'Fairly Difficult (10th-12th)'; readabilityColor = window.DESIGN_TOKENS.colors.warning; }
+  else if (readingEase >= 30) { readabilityLabel = 'Difficult (College)'; readabilityColor = window.DESIGN_TOKENS.colors.error; }
+  else { readabilityLabel = 'Very Difficult (College Grad)'; readabilityColor = window.DESIGN_TOKENS.colors.error; }
   
   const readingTime = Math.max(1, Math.ceil(wordCount / 238));
   const speakingTime = Math.max(1, Math.ceil(wordCount / 130));
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📝 Content & Readability Analyzer',
     `${wordCount.toLocaleString()} words analyzed`
   ));
   
   // Score
-  const scoreRow = createElement('div', {
+  const scoreRow = GDI.createElement('div', {
     styles: { display: 'flex', justifyContent: 'center', marginBottom: '20px' },
   });
-  scoreRow.appendChild(createScoreRing(readingEase, 100));
+  scoreRow.appendChild(GDI.createScoreRing(readingEase, 100));
   content.appendChild(scoreRow);
   
-  content.appendChild(createElement('div', {
+  content.appendChild(GDI.createElement('div', {
     styles: { textAlign: 'center', fontSize: DT.typography.sizes.md, color: readabilityColor, fontWeight: DT.typography.weights.bold, marginTop: '-8px', marginBottom: '16px' },
     text: readabilityLabel,
   }));
@@ -8183,15 +8206,15 @@ function toolContentAnalyzer() {
   const topKeywords = Object.entries(wordFreq).sort((a, b) => b[1] - a[1]).slice(0, 10);
   
   if (topKeywords.length > 0) {
-    content.appendChild(createSection('🔑 Top Keywords', [
-      createElement('div', {
+    content.appendChild(GDI.createSection('🔑 Top Keywords', [
+      GDI.createElement('div', {
         styles: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
         children: topKeywords.map(([kw, count]) =>
-          createElement('span', {
+          GDI.createElement('span', {
             styles: {
-              padding: '6px 14px', background: DT.colors.infoLight,
-              borderRadius: DT.radii.full, fontSize: DT.typography.sizes.sm,
-              color: DT.colors.info, fontWeight: DT.typography.weights.semibold,
+              padding: '6px 14px', background: window.DESIGN_TOKENS.colors.infoLight,
+              borderRadius: window.DESIGN_TOKENS.radii.full, fontSize: DT.typography.sizes.sm,
+              color: window.DESIGN_TOKENS.colors.info, fontWeight: DT.typography.weights.semibold,
             },
             text: `${kw} (${count})`,
           })
@@ -8200,13 +8223,13 @@ function toolContentAnalyzer() {
     ]));
   }
   
-  const { close } = createModal('Content & Readability Analyzer', content, { width: '650px' });
+  const { close } = GDI.createModal('Content & Readability Analyzer', content, { width: '650px' });
 }
 
 // ==================== TOOL: SEO AUDIT CHECKLIST ====================
 
 function toolSEOAuditChecklist() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const url = window.location.href;
   const domain = window.location.hostname.replace('www.', '');
@@ -8284,22 +8307,25 @@ function toolSEOAuditChecklist() {
   const passedItems = checklistItems.reduce((sum, cat) => sum + cat.items.filter(i => i.check).length, 0);
   const score = Math.round((passedItems / totalItems) * 100);
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '✅ Automated SEO Audit',
     `Score: ${score}% • ${passedItems}/${totalItems} checks passed`
   ));
   
   // Score ring
-  const scoreRow = createElement('div', {
+  const scoreRow = GDI.createElement('div', {
     styles: { display: 'flex', justifyContent: 'center', marginBottom: '20px' },
   });
-  scoreRow.appendChild(createScoreRing(score, 100));
+  scoreRow.appendChild(GDI.createScoreRing(score, 100));
   content.appendChild(scoreRow);
   
-  // Score bar
-  const scoreBarSection = createElement('div', { styles: { marginBottom: '20px' } });
-  const { container: progressBar } = createProgressBar(score, 
-    score >= 80 ? DT.colors.success : score >= 50 ? DT.colors.warning : DT.colors.error, 10);
+  // Score bar (FIXED FOR DARK MODE)
+  const scoreBarSection = GDI.createElement('div', { styles: { marginBottom: '20px' } });
+  const { container: progressBar } = GDI.createProgressBar(
+    score, 
+    score >= 80 ? 'var(--gdi-success)' : score >= 50 ? 'var(--gdi-warning)' : 'var(--gdi-error)', 
+    10
+  );
   scoreBarSection.appendChild(progressBar);
   content.appendChild(scoreBarSection);
   
@@ -8308,34 +8334,42 @@ function toolSEOAuditChecklist() {
     const catPassed = category.items.filter(i => i.check).length;
     const catTotal = category.items.length;
     
-    const catSection = createSection(
+    const catSection = GDI.createSection(
       `${category.category} (${catPassed}/${catTotal})`,
       [
-        createElement('div', {
+        GDI.createElement('div', {
           styles: { display: 'flex', flexDirection: 'column', gap: '6px' },
           children: category.items.map(item => {
-            const statusColor = item.check ? DT.colors.success : DT.colors.error;
-            const statusBg = item.check ? DT.colors.successLight : DT.colors.errorLight;
+            // FIXED: Using CSS variables so it flips instantly on dark mode toggle
+            const statusColor = item.check ? 'var(--gdi-success)' : 'var(--gdi-error)';
+            const statusBg = item.check ? 'var(--gdi-success-light)' : 'var(--gdi-error-light)';
             
-            return createElement('div', {
+            return GDI.createElement('div', {
               styles: {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '10px 14px', background: statusBg,
-                border: `1px solid ${statusColor}30`, borderRadius: DT.radii.md,
+                border: `1px solid var(--gdi-border)`, // Safe dynamic border
+                borderRadius: window.DESIGN_TOKENS.radii.md,
               },
               children: [
-                createElement('div', {
+                GDI.createElement('div', {
                   styles: { display: 'flex', alignItems: 'center', gap: '8px', flex: '1' },
                   children: [
-                    createElement('span', { text: item.check ? '✅' : '❌' }),
-                    createElement('span', {
-                      styles: { fontSize: DT.typography.sizes.base, fontWeight: DT.typography.weights.medium, color: DT.colors.textPrimary },
+                    GDI.createElement('span', { text: item.check ? '✅' : '❌' }),
+                    GDI.createElement('span', {
+                      styles: { fontSize: DT.typography.sizes.base, fontWeight: DT.typography.weights.medium, color: 'var(--gdi-text-primary)' },
                       text: item.name,
                     }),
                   ],
                 }),
-                createElement('span', {
-                  styles: { fontSize: DT.typography.sizes.xs, color: statusColor, fontWeight: DT.typography.weights.semibold, textAlign: 'right', maxWidth: '40%' },
+                GDI.createElement('span', {
+                  styles: { 
+                    fontSize: DT.typography.sizes.xs, 
+                    color: statusColor, // Will pop perfectly in dark mode now
+                    fontWeight: DT.typography.weights.semibold, 
+                    textAlign: 'right', 
+                    maxWidth: '40%' 
+                  },
                   text: item.note,
                 }),
               ],
@@ -8349,34 +8383,34 @@ function toolSEOAuditChecklist() {
   });
   
   // Export buttons
-  const btnRow = createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
+  const btnRow = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
   
-  btnRow.appendChild(createButton('📥 Export Audit JSON', () => {
+  btnRow.appendChild(GDI.createButton('📥 Export Audit JSON', () => {
     const reportData = { domain, url, date: new Date().toISOString(), score, passed: passedItems, total: totalItems, checklist: checklistItems };
     const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
     const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = GDI.createElement('a');
     a.href = blobUrl;
     a.download = `seo-audit-${domain}-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(blobUrl);
-    showNotification('✅ Audit exported!', 'success');
+    GDI.showNotification('✅ Audit exported!', 'success');
   }, { variant: 'secondary' }));
   
-  btnRow.appendChild(createButton('📋 Copy Summary', () => {
+  btnRow.appendChild(GDI.createButton('📋 Copy Summary', () => {
     const summary = `SEO Audit Summary - ${domain}\nDate: ${new Date().toLocaleDateString()}\nScore: ${score}%\n\n❌ Issues:\n${checklistItems.flatMap(c => c.items.filter(i => !i.check).map(i => `- ${i.name}: ${i.note}`)).join('\n')}`;
-    copyToClipboard(summary).then(() => showNotification('✅ Summary copied!', 'success'));
+    GDI.copyToClipboard(summary).then(() => GDI.showNotification('✅ Summary copied!', 'success'));
   }, { variant: 'primary' }));
   
   content.appendChild(btnRow);
   
-  const { close } = createModal('Automated SEO Audit', content, { width: '700px' });
+  const { close } = GDI.createModal('Automated SEO Audit', content, { width: '700px' });
 }
 
 // ==================== TOOL: SEO AUDIT CHECKLIST (INTERACTIVE) ====================
 
 function toolAuditChecklist() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   // Define domain so the export function doesn't crash
   const domain = window.location.hostname.replace(/^www\./, '');
@@ -8422,23 +8456,23 @@ function toolAuditChecklist() {
     ]},
   ];
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '✅ SEO Audit Checklist',
     'Track your SEO progress interactively'
   ));
   
   // Progress bar
-  const progressSection = createElement('div', { styles: { marginBottom: '20px' } });
+  const progressSection = GDI.createElement('div', { styles: { marginBottom: '20px' } });
   
-  const progressLabel = createElement('div', {
+  const progressLabel = GDI.createElement('div', {
     styles: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: DT.typography.sizes.base },
     children: [
-      createElement('span', { styles: { fontWeight: DT.typography.weights.semibold, color: DT.colors.textPrimary }, text: 'Overall Progress' }),
-      createElement('span', { attrs: { id: 'audit-progress-text' }, styles: { fontWeight: DT.typography.weights.bold, color: DT.colors.primary }, text: '0% Complete' }),
+      GDI.createElement('span', { styles: { fontWeight: DT.typography.weights.semibold, color: 'var(--gdi-text-primary)' }, text: 'Overall Progress' }),
+      GDI.createElement('span', { attrs: { id: 'audit-progress-text' }, styles: { fontWeight: DT.typography.weights.bold, color: window.DESIGN_TOKENS.colors.primary }, text: '0% Complete' }),
     ],
   });
   
-  const { container: progressBar, fill: progressFill } = createProgressBar(0, DT.colors.primary, 10);
+  const { container: progressBar, fill: progressFill } = GDI.createProgressBar(0, window.DESIGN_TOKENS.colors.primary, 10);
   
   progressSection.appendChild(progressLabel);
   progressSection.appendChild(progressBar);
@@ -8448,40 +8482,40 @@ function toolAuditChecklist() {
   chrome.storage.local.get(['seoAuditChecklist'], (result) => {
     const savedState = result.seoAuditChecklist || {};
     
-    const checklistContainer = createElement('div', {
+    const checklistContainer = GDI.createElement('div', {
       styles: { display: 'flex', flexDirection: 'column', gap: '16px' },
     });
     
     checklist.forEach((cat, catIndex) => {
-      const catSection = createSection(cat.category, [
-        createElement('div', {
+      const catSection = GDI.createSection(cat.category, [
+        GDI.createElement('div', {
           styles: { display: 'flex', flexDirection: 'column', gap: '6px' },
           children: cat.items.map((item, itemIndex) => {
             const key = `${catIndex}-${itemIndex}`;
             const checked = savedState[key] || false;
             
-            const label = createElement('label', {
+            const label = GDI.createElement('label', {
               styles: {
                 display: 'flex', alignItems: 'center', gap: '10px',
                 padding: '10px 14px',
-                background: checked ? DT.colors.successLight : DT.colors.surface,
-                border: `1px solid ${checked ? DT.colors.success : DT.colors.border}`,
-                borderRadius: DT.radii.md,
+                background: checked ? window.DESIGN_TOKENS.colors.successLight : 'var(--gdi-surface)',
+                border: `1px solid ${checked ? window.DESIGN_TOKENS.colors.success : 'var(--gdi-border)'}`,
+                borderRadius: window.DESIGN_TOKENS.radii.md,
                 cursor: 'pointer',
                 transition: `all ${DT.transitions.fast}`,
               },
             });
             
-            const checkbox = createElement('input', {
+            const checkbox = GDI.createElement('input', {
               attrs: { type: 'checkbox', 'data-key': key },
             });
             checkbox.checked = checked;
             
-            const textSpan = createElement('span', {
+            const textSpan = GDI.createElement('span', {
               styles: {
                 flex: '1',
                 fontSize: DT.typography.sizes.base,
-                color: checked ? DT.colors.textMuted : DT.colors.textPrimary,
+                color: checked ? 'var(--gdi-text-muted)' : 'var(--gdi-text-primary)',
                 textDecoration: checked ? 'line-through' : 'none',
               },
               text: item,
@@ -8511,15 +8545,15 @@ function toolAuditChecklist() {
               
               // Update label styles
               if (checkbox.checked) {
-                label.style.background = DT.colors.successLight;
-                label.style.borderColor = DT.colors.success;
+                label.style.background = window.DESIGN_TOKENS.colors.successLight;
+                label.style.borderColor = window.DESIGN_TOKENS.colors.success;
                 textSpan.style.textDecoration = 'line-through';
-                textSpan.style.color = DT.colors.textMuted;
+                textSpan.style.color = 'var(--gdi-text-muted)';
               } else {
-                label.style.background = DT.colors.surface;
-                label.style.borderColor = DT.colors.border;
+                label.style.background = 'var(--gdi-surface)';
+                label.style.borderColor = 'var(--gdi-border)';
                 textSpan.style.textDecoration = 'none';
-                textSpan.style.color = DT.colors.textPrimary;
+                textSpan.style.color = 'var(--gdi-text-primary)';
               }
             });
             
@@ -8545,9 +8579,9 @@ function toolAuditChecklist() {
     if (initProgressText) initProgressText.textContent = `${totalChecked}/${allCheckboxes.length} items (${percent}%)`;
     
     // Action buttons
-    const btnRow = createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
+    const btnRow = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
     
-    btnRow.appendChild(createButton('🔄 Reset All', () => {
+    btnRow.appendChild(GDI.createButton('🔄 Reset All', () => {
       if (confirm('Reset all checklist items?')) {
         content.querySelectorAll('input[type="checkbox"]').forEach(cb => {
           cb.checked = false;
@@ -8555,11 +8589,11 @@ function toolAuditChecklist() {
           cb.dispatchEvent(new Event('change', { bubbles: true }));
         });
         chrome.storage.local.remove('seoAuditChecklist');
-        showNotification('✅ Checklist reset!', 'success');
+        GDI.showNotification('✅ Checklist reset!', 'success');
       }
     }, { variant: 'danger' }));
     
-    btnRow.appendChild(createButton('📤 Export Checklist', () => {
+    btnRow.appendChild(GDI.createButton('📤 Export Checklist', () => {
       const state = {};
       let checkedNum = 0;
       let totalNum = 0;
@@ -8576,24 +8610,24 @@ function toolAuditChecklist() {
       
       const blob = new Blob([report], { type: 'text/plain' });
       const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = GDI.createElement('a');
       a.href = blobUrl;
       a.download = `seo-checklist-${new Date().toISOString().split('T')[0]}.txt`;
       a.click();
       URL.revokeObjectURL(blobUrl);
-      showNotification('✅ Checklist exported!', 'success');
+      GDI.showNotification('✅ Checklist exported!', 'success');
     }, { variant: 'secondary' }));
     
     content.appendChild(btnRow);
   });
   
-  const { close } = createModal('SEO Audit Checklist', content, { width: '700px' });
+  const { close } = GDI.createModal('SEO Audit Checklist', content, { width: '700px' });
 }
 
 // ==================== TOOL: SEO DASHBOARD ====================
 
 function toolSEODashboard() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const url = window.location.href;
   const domain = window.location.hostname.replace('www.', '');
@@ -8694,31 +8728,31 @@ function toolSEODashboard() {
     return 'F';
   };
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📊 SEO Dashboard',
     `Overall Score: ${overallScore}/100 (Grade ${getGrade(overallScore)})`
   ));
   
   // Score ring
-  const scoreRow = createElement('div', {
+  const scoreRow = GDI.createElement('div', {
     styles: { display: 'flex', justifyContent: 'center', marginBottom: '20px' },
   });
-  scoreRow.appendChild(createScoreRing(overallScore, 100));
+  scoreRow.appendChild(GDI.createScoreRing(overallScore, 100));
   content.appendChild(scoreRow);
   
   // Quick stats
   content.appendChild(createStatGrid([
     { label: 'Total Links', value: allLinks.length, icon: '🔗' },
-    { label: 'Internal', value: internalLinks.length, icon: '🏠', color: DT.colors.success },
-    { label: 'External', value: externalLinks.length, icon: '🌐', color: DT.colors.info },
+    { label: 'Internal', value: internalLinks.length, icon: '🏠', color: window.DESIGN_TOKENS.colors.success },
+    { label: 'External', value: externalLinks.length, icon: '🌐', color: window.DESIGN_TOKENS.colors.info },
     { label: 'Images', value: images.length, icon: '🖼️' },
     { label: 'Word Count', value: wordCount.toLocaleString(), icon: '📝' },
-    { label: 'Schema', value: schemaCount, icon: '📋', color: schemaCount > 0 ? DT.colors.success : DT.colors.warning },
+    { label: 'Schema', value: schemaCount, icon: '📋', color: schemaCount > 0 ? window.DESIGN_TOKENS.colors.success : window.DESIGN_TOKENS.colors.warning },
   ]));
   
   // Score bars
-  const scoreBars = createSection('📊 Score Breakdown', [
-    createElement('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px' } }),
+  const scoreBars = GDI.createSection('📊 Score Breakdown', [
+    GDI.createElement('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px' } }),
   ]);
   
   [
@@ -8736,20 +8770,19 @@ function toolSEODashboard() {
     { label: 'Performance', score: scores.performance },
     { label: 'Language', score: scores.lang },
   ].forEach(item => {
-    const color = item.score >= 80 ? DT.colors.success : item.score >= 50 ? DT.colors.warning : DT.colors.error;
+const color = item.score >= 80 ? 'var(--gdi-success)' : item.score >= 50 ? 'var(--gdi-warning)' : 'var(--gdi-error)';    
+    const row = GDI.createElement('div', { styles: { marginBottom: '4px' } });
     
-    const row = createElement('div', { styles: { marginBottom: '4px' } });
-    
-    const header = createElement('div', {
+    const header = GDI.createElement('div', {
       styles: { display: 'flex', justifyContent: 'space-between', fontSize: DT.typography.sizes.sm, marginBottom: '2px' },
       children: [
-        createElement('span', { styles: { color: DT.colors.textPrimary }, text: item.label }),
-        createElement('span', { styles: { fontWeight: DT.typography.weights.bold, color }, text: `${item.score}%` }),
+        GDI.createElement('span', { styles: { color: 'var(--gdi-text-primary)' }, text: item.label }),
+        GDI.createElement('span', { styles: { fontWeight: DT.typography.weights.bold, color }, text: `${item.score}%` }),
       ],
     });
     
     row.appendChild(header);
-    const { container: bar } = createProgressBar(item.score, color, 6);
+    const { container: bar } = GDI.createProgressBar(item.score, color, 6);
     row.appendChild(bar);
     
     scoreBars.querySelector('div').appendChild(row);
@@ -8759,19 +8792,19 @@ function toolSEODashboard() {
   
   // Tech stack
   if (techStack.length > 0) {
-    content.appendChild(createSection('🛠️ Technologies Detected', [
-      createElement('div', {
+    content.appendChild(GDI.createSection('🛠️ Technologies Detected', [
+      GDI.createElement('div', {
         styles: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
         children: techStack.map(tech =>
-          createElement('span', {
+          GDI.createElement('span', {
             styles: {
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              padding: '8px 14px', background: DT.colors.surfaceTertiary,
-              borderRadius: DT.radii.full, fontSize: DT.typography.sizes.sm,
-              color: DT.colors.textPrimary, fontWeight: DT.typography.weights.semibold,
-              border: `1px solid ${DT.colors.border}`,
+              padding: '8px 14px', background: 'var(--gdi-surface-tertiary)',
+              borderRadius: window.DESIGN_TOKENS.radii.full, fontSize: DT.typography.sizes.sm,
+              color: 'var(--gdi-text-primary)', fontWeight: DT.typography.weights.semibold,
+              border: `1px solid ${'var(--gdi-border)'}`,
             },
-            html: `${tech.icon} ${escapeHtml(tech.name)}`,
+            html: `${tech.icon} ${GDI.escapeHtml(tech.name)}`,
           })
         ),
       }),
@@ -8790,53 +8823,54 @@ function toolSEODashboard() {
   if (scores.security < 80) priorityItems.push('Enable HTTPS');
   if (scores.mobile < 80) priorityItems.push('Add proper viewport meta tag');
   
-  if (priorityItems.length > 0) {
-    content.appendChild(createSection('🎯 Priority Actions', [
-      createElement('div', {
-        styles: { display: 'flex', flexDirection: 'column', gap: '6px' },
-        children: priorityItems.map(item =>
-          createElement('div', {
-            styles: {
-              padding: '10px 14px', background: DT.colors.warningLight,
-              borderLeft: `3px solid ${DT.colors.warning}`, borderRadius: DT.radii.md,
-              fontSize: DT.typography.sizes.base, color: '#92400E',
-            },
-            text: `⚠️ ${item}`,
-          })
-        ),
-      }),
-    ]));
-  }
+// ✅ NEW CODE
+if (priorityItems.length > 0) {
+  content.appendChild(GDI.createSection('🎯 Priority Actions', [
+    GDI.createElement('div', {
+      styles: { display: 'flex', flexDirection: 'column', gap: '6px' },
+      children: priorityItems.map(item =>
+        GDI.createElement('div', {
+          styles: {
+            padding: '10px 14px', background: 'var(--gdi-warning-light)',
+            borderLeft: `3px solid var(--gdi-warning)`, borderRadius: window.DESIGN_TOKENS.radii.md,
+            fontSize: DT.typography.sizes.base, color: 'var(--gdi-warning)',
+          },
+          text: `⚠️ ${item}`,
+        })
+      ),
+    }),
+  ]));
+}
   
   // Export buttons
-  const btnRow = createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
+  const btnRow = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
   
-  btnRow.appendChild(createButton('📋 Copy Report', () => {
+  btnRow.appendChild(GDI.createButton('📋 Copy Report', () => {
     const report = `SEO Dashboard Report\n${'='.repeat(30)}\nURL: ${url}\nDomain: ${domain}\nOverall Score: ${overallScore}/100 (Grade ${getGrade(overallScore)})\n\nScore Breakdown:\n${Object.entries(scores).map(([k, v]) => `- ${k}: ${v}%`).join('\n')}\n\nQuick Stats:\n- Links: ${allLinks.length} (${internalLinks.length} internal)\n- Images: ${images.length} (${imagesWithAlt} with alt)\n- Word Count: ${wordCount}\n- Schema: ${schemaCount}`;
-    copyToClipboard(report).then(() => showNotification('✅ Report copied!', 'success'));
+    GDI.copyToClipboard(report).then(() => GDI.showNotification('✅ Report copied!', 'success'));
   }, { variant: 'primary' }));
   
-  btnRow.appendChild(createButton('📊 Export JSON', () => {
+  btnRow.appendChild(GDI.createButton('📊 Export JSON', () => {
     const data = { url, domain, title, metaDesc, h1Text, h1Count, wordCount, images: images.length, imagesWithAlt, internalLinks: internalLinks.length, externalLinks: externalLinks.length, schemaCount, scores, overallScore, grade: getGrade(overallScore), techStack, analyzedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = GDI.createElement('a');
     a.href = blobUrl;
     a.download = `seo-report-${domain}-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(blobUrl);
-    showNotification('✅ JSON exported!', 'success');
+    GDI.showNotification('✅ JSON exported!', 'success');
   }, { variant: 'secondary' }));
   
   content.appendChild(btnRow);
   
-  const { close } = createModal('SEO Dashboard', content, { width: '750px' });
+  const { close } = GDI.createModal('SEO Dashboard', content, { width: '750px' });
 }
 
 // ==================== TOOL: LOCAL CITATION FINDER ====================
 
 function toolFindLocalCitations() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
   const domain = window.location.hostname.replace('www.', '');
   const pageTitle = document.title;
@@ -8876,15 +8910,15 @@ function toolFindLocalCitations() {
     { name: 'MerchantCircle', url: 'https://www.merchantcircle.com/', priority: 'low' },
   ];
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📋 Local Citation Finder',
     `Find citation opportunities for ${businessName || domain}`
   ));
   
   // Business info
   if (businessName || businessPhone || businessAddress) {
-    const infoSection = createSection('🏢 Detected Business Info', [
-      createElement('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px' } }),
+    const infoSection = GDI.createSection('🏢 Detected Business Info', [
+      GDI.createElement('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px' } }),
     ]);
     
     [
@@ -8892,7 +8926,7 @@ function toolFindLocalCitations() {
       { label: 'Phone', value: businessPhone, id: 'citation-phone' },
       { label: 'Address', value: businessAddress, id: 'citation-address' },
     ].forEach(field => {
-      const { wrapper: fw, input: fi } = createInputField({
+      const { wrapper: fw, input: fi } = GDI.createInputField({
         label: field.label,
         id: field.id,
         defaultValue: field.value || '',
@@ -8910,10 +8944,10 @@ function toolFindLocalCitations() {
     if (sources.length === 0) return;
     
     const priorityColors = {
-      critical: DT.colors.error,
-      high: DT.colors.warning,
-      medium: DT.colors.info,
-      low: DT.colors.textMuted,
+      critical: window.DESIGN_TOKENS.colors.error,
+      high: window.DESIGN_TOKENS.colors.warning,
+      medium: window.DESIGN_TOKENS.colors.info,
+      low: 'var(--gdi-text-muted)',
     };
     
     const priorityLabels = {
@@ -8923,15 +8957,15 @@ function toolFindLocalCitations() {
       low: '⚪ Low Priority',
     };
     
-    const section = createSection(priorityLabels[priority], [
-      createElement('div', {
+    const section = GDI.createSection(priorityLabels[priority], [
+      GDI.createElement('div', {
         styles: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px' },
         children: sources.map(source => {
-          const card = createElement('div', {
+          const card = GDI.createElement('div', {
             styles: {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '14px 16px', background: DT.colors.surface,
-              border: `1px solid ${DT.colors.border}`, borderRadius: DT.radii.md,
+              padding: '14px 16px', background: 'var(--gdi-surface)',
+              border: `1px solid ${'var(--gdi-border)'}`, borderRadius: window.DESIGN_TOKENS.radii.md,
               cursor: 'pointer', transition: `all ${DT.transitions.fast}`,
               borderLeft: `3px solid ${priorityColors[priority]}`,
             },
@@ -8944,15 +8978,15 @@ function toolFindLocalCitations() {
           });
           card.addEventListener('mouseleave', () => {
             card.style.transform = 'translateX(0)';
-            card.style.borderColor = DT.colors.border;
+            card.style.borderColor = 'var(--gdi-border)';
           });
           
-          card.appendChild(createElement('span', {
-            styles: { fontSize: DT.typography.sizes.base, fontWeight: DT.typography.weights.semibold, color: DT.colors.textPrimary },
+          card.appendChild(GDI.createElement('span', {
+            styles: { fontSize: DT.typography.sizes.base, fontWeight: DT.typography.weights.semibold, color: 'var(--gdi-text-primary)' },
             text: source.name,
           }));
           
-          card.appendChild(createElement('span', {
+          card.appendChild(GDI.createElement('span', {
             styles: { color: priorityColors[priority] },
             text: 'Open →',
           }));
@@ -8966,32 +9000,32 @@ function toolFindLocalCitations() {
   });
   
   // Export
-  const btnRow = createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
+  const btnRow = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
   
-  btnRow.appendChild(createButton('📋 Copy Citation List', () => {
+  btnRow.appendChild(GDI.createButton('📋 Copy Citation List', () => {
     const list = citationSources.map(s => `${s.name}: ${s.url} (${s.priority})`).join('\n');
-    copyToClipboard(list).then(() => showNotification(`✅ ${citationSources.length} citations copied!`, 'success'));
+    GDI.copyToClipboard(list).then(() => GDI.showNotification(`✅ ${citationSources.length} citations copied!`, 'success'));
   }, { variant: 'primary' }));
   
-  btnRow.appendChild(createButton('📊 Export CSV', () => {
+  btnRow.appendChild(GDI.createButton('📊 Export CSV', () => {
     let csv = 'Name,URL,Priority\n';
     citationSources.forEach(s => csv += `"${s.name}","${s.url}","${s.priority}"\n`);
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = GDI.createElement('a');
     a.href = url;
     a.download = `local-citations-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showNotification('✅ CSV exported!', 'success');
+    GDI.showNotification('✅ CSV exported!', 'success');
   }, { variant: 'secondary' }));
   
   content.appendChild(btnRow);
   
   // Tips
-  content.appendChild(createSection('💡 Citation Building Tips', [
-    createElement('ul', {
-      styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: DT.colors.textSecondary, lineHeight: '1.8' },
+  content.appendChild(GDI.createSection('💡 Citation Building Tips', [
+    GDI.createElement('ul', {
+      styles: { margin: '0', paddingLeft: '20px', fontSize: DT.typography.sizes.base, color: 'var(--gdi-text-secondary)', lineHeight: '1.8' },
       html: `
         <li>Ensure NAP (Name, Address, Phone) consistency across all citations</li>
         <li>Start with major aggregators (Data Axle, Localeze)</li>
@@ -9002,3175 +9036,19 @@ function toolFindLocalCitations() {
     }),
   ]));
   
-  const { close } = createModal('Local Citation Finder', content, { width: '700px' });
+  const { close } = GDI.createModal('Local Citation Finder', content, { width: '700px' });
 }
 
-// ==================== TOOL: KEYWORD RANK TRACKER ====================
 
-function keywordRankTracker() {
-  const CONFIG = {
-    MAX_RESULTS: 100,
-    MAX_PAGES: 10,
-    REQUEST_DELAY: { min: 600, max: 1000 },
-    USER_AGENT: navigator.userAgent
-  };
-
-  if (!window.location.hostname.includes('google.')) {
-    GDI.showNotification('This keyword ranking tool only works on Google search result pages', 'error');
-    return;
-  }
-
-  const EXCLUDE_PATTERNS = [
-    /google\.(com|co\.|ca|de|fr|it|es|co\.uk|com\.au|co\.jp)/i,
-    /youtube\.com\/(watch|channel|user|c\/|playlist)/i,
-    /youtu\.be\//i,
-    /vimeo\.com\//i,
-    /dailymotion\.com\//i,
-    /maps\.google/i,
-    /webcache\.googleusercontent/i,
-    /translate\.google/i,
-    /books\.google/i,
-    /scholar\.google/i,
-    /patents\.google/i,
-    /support\.google/i,
-    /news\.google/i,
-    /shopping\.google/i,
-    /flights\.google/i,
-    /^javascript:/i,
-    /^mailto:/i,
-    /^tel:/i,
-    /\.(jpg|jpeg|png|gif|bmp|webp|svg|ico|tiff)(\?|$)/i,
-    /\.(mp4|avi|mov|wmv|flv|webm|mkv)(\?|$)/i,
-    /\.(mp3|wav|flac|aac|ogg)(\?|$)/i,
-    /\/images\//i,
-    /\/video\//i
-  ];
-
-  const INVALID_TITLE_PATTERNS = [
-    /^Images for /i,
-    /^Videos for /i,
-    /^News for /i,
-    /^Shopping results for /i,
-    /^More results/i,
-    /^Related searches/i,
-    /^People also ask/i,
-    /^Sponsored/i,
-    /^Ad\s/i,
-    /duration:/i,
-    /\d+:\d+/i
-  ];
-
-  let allResults = [];
-  let extractionCancelled = false;
-  let targetDomain = '';
-
-  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-  const getRandomDelay = () => Math.floor(Math.random() * (CONFIG.REQUEST_DELAY.max - CONFIG.REQUEST_DELAY.min + 1)) + CONFIG.REQUEST_DELAY.min;
-
-  function isValidResult(url, title) {
-    if (!url || !url.startsWith('http')) return false;
-    if (EXCLUDE_PATTERNS.some(pattern => pattern.test(url))) return false;
-    if (!title || title.trim() === '') return false;
-    if (INVALID_TITLE_PATTERNS.some(pattern => pattern.test(title))) return false;
-    return true;
-  }
-
-  function cleanGoogleUrl(url) {
-    if (url.includes('/url?q=')) {
-      const match = url.match(/url\?q=(.+?)&/);
-      if (match && match[1]) {
-        return decodeURIComponent(match[1]).split('#')[0];
-      }
-      return null;
-    }
-    return url.split('&')[0].split('#')[0];
-  }
-
-  function extractRankings(doc = document, pageNumber = 1) {
-    const containers = doc.querySelectorAll('.MjjYud, .g, .tF2Cxc');
-    const seenUrls = new Set(allResults.map(r => r.url));
-    const extracted = [];
-
-    containers.forEach((container) => {
-      if (allResults.length >= CONFIG.MAX_RESULTS) return;
-      
-      if (container.closest('#pfa, #botstuff, .ads, #tads, [data-text-ad]')) return;
-      
-      const containerText = container.textContent.toLowerCase();
-      if (containerText.includes('people also ask') ||
-          containerText.includes('sponsored') ||
-          containerText.includes('ad ·')) return;
-
-      const linkElement = container.querySelector('a[jsname="UWfWsc"], a[data-ved], .yuRUbf a');
-      const titleElement = container.querySelector('h3');
-
-      if (!linkElement?.href || !titleElement) return;
-
-      const url = cleanGoogleUrl(linkElement.href);
-      if (!url) return;
-
-      const title = titleElement.textContent.trim();
-
-      try {
-        const urlObj = new URL(url);
-        const domain = urlObj.hostname.replace(/^www\./, '').toLowerCase();
-
-        if (isValidResult(url, title) && !seenUrls.has(url)) {
-          const result = {
-            rank: allResults.length + 1,
-            url,
-            domain,
-            title,
-            page: pageNumber,
-            isTarget: targetDomain && domain.includes(targetDomain.toLowerCase())
-          };
-          
-          allResults.push(result);
-          extracted.push(result);
-          seenUrls.add(url);
-        }
-      } catch (e) {
-        console.warn('Error processing URL:', url);
-      }
-    });
-
-    return extracted;
-  }
-
-  function createStatusDiv() {
-    const statusDiv = GDI.createElement('div', {
-        attrs: { id: 'ranking-status' },
-        styles: {
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            background: GDI.ThemeEngine.token('colors.surface'),
-            color: GDI.ThemeEngine.token('colors.textPrimary'),
-            padding: '16px 20px',
-            borderRadius: GDI.DESIGN_TOKENS.radii.lg,
-            zIndex: '100000',
-            fontFamily: GDI.DESIGN_TOKENS.typography.fontFamily,
-            fontSize: GDI.DESIGN_TOKENS.typography.sizes.md,
-            minWidth: '320px',
-            boxShadow: GDI.ThemeEngine.isDark() ? GDI.DESIGN_TOKENS.shadows.dark.xl : GDI.DESIGN_TOKENS.shadows.xl,
-            borderLeft: `4px solid ${GDI.ThemeEngine.token('colors.success')}`,
-            border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`
-        }
-    });
-    
-    statusDiv.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <strong style="font-size: 16px;">📊 Keyword Rank Tracker</strong>
-      </div>
-      <div id="status-message" style="color: ${GDI.ThemeEngine.token('colors.textSecondary')}">Starting ranking analysis...</div>
-      <div style="margin-top: 12px; height: 6px; background: ${GDI.ThemeEngine.token('colors.surfaceTertiary')}; border-radius: 4px; overflow: hidden;">
-        <div id="status-progress-bar" style="height: 100%; background: ${GDI.ThemeEngine.token('colors.success')}; width: 0%; transition: width 0.3s;"></div>
-      </div>
-    `;
-
-    const cancelBtn = GDI.createButton('Cancel', () => {
-        extractionCancelled = true;
-        statusDiv.remove();
-    }, { variant: 'danger', size: 'sm', fullWidth: true });
-    
-    cancelBtn.style.marginTop = '12px';
-    statusDiv.appendChild(cancelBtn);
-    
-    statusDiv.classList.add('gdi-pointer-auto'); // Ensures it remains clickable
-  GDI.ShadowRoot.appendChild(statusDiv);
-    return statusDiv;
-  }
-
-  function updateStatus(statusDiv, message, progress = null) {
-    if (!statusDiv?.parentNode) return;
-    
-    const msgEl = statusDiv.querySelector('#status-message');
-    const progressBar = statusDiv.querySelector('#status-progress-bar');
-    
-    if (msgEl) msgEl.textContent = message;
-    if (progressBar && progress !== null) {
-      progressBar.style.width = `${Math.min(progress, 100)}%`;
-    }
-  }
-
-  function promptForTargetDomain() {
-    return new Promise((resolve) => {
-        const content = GDI.createElement('div', {
-            styles: { padding: '20px', textAlign: 'center' }
-        });
-
-        const { wrapper, input } = GDI.createInputField({
-            label: 'Enter domain to highlight its ranking position (optional)',
-            id: 'targetDomainInput',
-            placeholder: 'e.g., example.com or amazon.com'
-        });
-
-        content.appendChild(wrapper);
-
-        const btnRow = GDI.createElement('div', {
-            styles: { display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }
-        });
-
-        btnRow.appendChild(GDI.createButton('Skip', () => {
-            closeModal();
-            resolve();
-        }, { variant: 'secondary', fullWidth: false }));
-
-        btnRow.appendChild(GDI.createButton('Track Rankings', () => {
-            targetDomain = input.value.trim();
-            closeModal();
-            resolve();
-        }, { variant: 'success', fullWidth: false }));
-
-        content.appendChild(btnRow);
-
-        const { close: closeModal } = GDI.createModal('🎯 Track Keyword Rankings', content, { width: '400px' });
-
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                targetDomain = input.value.trim();
-                closeModal();
-                resolve();
-            }
-        });
-        
-        setTimeout(() => input.focus(), 100);
-    });
-  }
-
-  async function extractRankingsFromPages() {
-    await promptForTargetDomain();
-    if(extractionCancelled) return;
-    
-    const statusDiv = createStatusDiv();
-    const urlParams = new URLSearchParams(window.location.search);
-    const query = urlParams.get('q');
-    
-    if (!query) {
-      updateStatus(statusDiv, '❌ No search query found in URL');
-      setTimeout(() => statusDiv.remove(), 2000);
-      return;
-    }
-    
-    updateStatus(statusDiv, `🔍 Analyzing rankings for: "${query}"`, 5);
-    extractRankings(document, 1);
-    
-    let targetRank = allResults.find(r => r.isTarget)?.rank;
-    if (targetRank) {
-      updateStatus(statusDiv, `📍 Target domain found at position #${targetRank} on page 1`, 15);
-    } else {
-      updateStatus(statusDiv, `📄 Page 1 complete: ${allResults.length} results`, 15);
-    }
-    
-    for (let page = 2; page <= CONFIG.MAX_PAGES; page++) {
-      if (extractionCancelled || allResults.length >= CONFIG.MAX_RESULTS) break;
-      
-      const start = (page - 1) * 10;
-      const nextPageUrl = `${window.location.origin}/search?q=${encodeURIComponent(query)}&start=${start}`;
-      const progress = 15 + ((page - 1) * 8);
-      
-      try {
-        const response = await fetch(nextPageUrl, {
-          headers: {
-            'User-Agent': CONFIG.USER_AGENT,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-          }
-        });
-        
-        if (!response.ok) continue;
-        
-        const htmlText = await response.text();
-        const doc = new DOMParser().parseFromString(htmlText, 'text/html');
-        const extracted = extractRankings(doc, page);
-        
-        const newTargetRank = allResults.find(r => r.isTarget && r.page === page)?.rank;
-        if (newTargetRank) {
-          updateStatus(statusDiv, `🎯 Target domain found at position #${newTargetRank} on page ${page}!`, progress + 8);
-        } else {
-          updateStatus(statusDiv, `📄 Page ${page} complete: +${extracted.length} results (Total: ${allResults.length})`, progress + 8);
-        }
-        
-        await delay(getRandomDelay());
-      } catch (error) {
-        console.error(`Error on page ${page}:`, error);
-        await delay(2000);
-      }
-    }
-    
-    const targetResults = allResults.filter(r => r.isTarget);
-    if (targetResults.length > 0) {
-      const ranks = targetResults.map(r => `#${r.rank}`).join(', ');
-      updateStatus(statusDiv, `✅ Complete! Target domain found at: ${ranks}`, 100);
-    } else if (targetDomain) {
-      updateStatus(statusDiv, `❌ Target domain "${targetDomain}" not found in top ${allResults.length} results`, 100);
-    } else {
-      updateStatus(statusDiv, `✅ Complete! Found ${allResults.length} rankings`, 100);
-    }
-    
-    setTimeout(() => {
-      statusDiv.remove();
-      if(!extractionCancelled) showRankingReport();
-    }, 2000);
-  }
-
-  function showRankingReport() {
-      const content = GDI.createElement('div', {
-          styles: { display: 'flex', flexDirection: 'column', height: '80vh' }
-      });
-      
-      const targetResults = allResults.filter(r => r.isTarget);
-      const uniqueDomains = new Set(allResults.map(r => r.domain)).size;
-      const urlParams = new URLSearchParams(window.location.search);
-      const query = urlParams.get('q');
-
-      // Header Section
-      const headerSection = GDI.createElement('div', {
-          styles: { marginBottom: '20px' }
-      });
-
-      const titleRow = GDI.createElement('div', {
-          styles: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
-          children: [
-              GDI.createElement('div', {
-                  children: [
-                      GDI.createElement('div', { styles: { fontSize: '14px', color: GDI.ThemeEngine.token('colors.textSecondary'), marginBottom: '4px' }, text: 'Search Query:' }),
-                      GDI.createElement('div', { styles: { fontSize: '18px', fontWeight: 'bold', color: GDI.ThemeEngine.token('colors.primary') }, text: query || 'No search query' })
-                  ]
-              }),
-              GDI.createElement('div', {
-                  styles: { display: 'flex', gap: '8px' },
-                  children: [
-                      GDI.createBadge(`${allResults.length} Results`, 'primary'),
-                      GDI.createBadge(`${uniqueDomains} Domains`, 'info')
-                  ]
-              })
-          ]
-      });
-      headerSection.appendChild(titleRow);
-
-      if (targetDomain) {
-          const targetStatus = GDI.createElement('div', {
-              styles: {
-                  padding: '16px',
-                  borderRadius: GDI.DESIGN_TOKENS.radii.md,
-                  background: targetResults.length > 0 ? GDI.ThemeEngine.token('colors.successLight') : GDI.ThemeEngine.token('colors.errorLight'),
-                  border: `1px solid ${targetResults.length > 0 ? GDI.ThemeEngine.token('colors.success') : GDI.ThemeEngine.token('colors.error')}`,
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-              }
-          });
-
-          if (targetResults.length > 0) {
-              const ranksHTML = targetResults.map(r => `<span style="background: ${GDI.ThemeEngine.token('colors.success')}; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; margin-left: 8px;">#${r.rank}</span>`).join('');
-              targetStatus.innerHTML = `
-                  <div>
-                      <strong style="color: ${GDI.ThemeEngine.token('colors.success')}; font-size: 16px;">🎯 ${targetDomain}</strong>
-                      <span style="color: ${GDI.ThemeEngine.token('colors.textSecondary')}; margin-left: 10px;">found at position${targetResults.length > 1 ? 's' : ''}:</span>
-                  </div>
-                  <div>${ranksHTML}</div>
-              `;
-          } else {
-              targetStatus.innerHTML = `
-                  <div style="color: ${GDI.ThemeEngine.token('colors.error')}; font-weight: bold;">
-                      ❌ ${targetDomain} not found in top ${allResults.length} results
-                  </div>
-              `;
-          }
-          headerSection.appendChild(targetStatus);
-      }
-      content.appendChild(headerSection);
-
-      // Search & Actions
-      const actionRow = GDI.createElement('div', {
-          styles: { display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }
-      });
-      
-      const { wrapper: searchWrap, input: searchInput } = GDI.createInputField({
-          id: 'rankings-search',
-          placeholder: '🔍 Filter domains or titles...',
-      });
-      searchWrap.style.flex = '1';
-      searchWrap.style.marginBottom = '0';
-      actionRow.appendChild(searchWrap);
-
-      const btnGroup = GDI.createElement('div', { styles: { display: 'flex', gap: '8px', alignItems: 'center' }});
-      
-      btnGroup.appendChild(GDI.createButton('📥 CSV', () => {
-          const csv = 'Rank,Domain,URL,Title,Page,Target\n' + allResults.map(r => 
-              `${r.rank},"${r.domain}","${r.url}","${r.title.replace(/"/g, '""')}",${r.page},${r.isTarget ? 'Yes' : 'No'}`
-          ).join('\n');
-          downloadFile(csv, 'keyword-rankings.csv', 'text/csv');
-          GDI.showNotification('CSV exported!', 'success');
-      }, { variant: 'success', size: 'sm', fullWidth: false }));
-
-      btnGroup.appendChild(GDI.createButton('📄 TXT', () => {
-          const txt = allResults.map(r => `${r.isTarget ? '🎯 ' : ''}#${r.rank} ${r.domain}`).join('\n');
-          downloadFile(txt, 'ranked-domains.txt', 'text/plain');
-          GDI.showNotification('Rank list exported!', 'success');
-      }, { variant: 'secondary', size: 'sm', fullWidth: false }));
-
-      btnGroup.appendChild(GDI.createButton('📋 Copy Domains', () => {
-          const domains = [...new Set(allResults.map(r => r.domain))].join('\n');
-          GDI.copyToClipboard(domains).then(() => GDI.showNotification(`Copied ${domains.split('\n').length} domains!`, 'success'));
-      }, { variant: 'primary', size: 'sm', fullWidth: false }));
-
-      actionRow.appendChild(btnGroup);
-      content.appendChild(actionRow);
-
-      // Results Table
-      const tableContainer = GDI.createElement('div', {
-          styles: { flex: '1', overflowY: 'auto', border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`, borderRadius: GDI.DESIGN_TOKENS.radii.md }
-      });
-
-      function renderResults(filterText = '') {
-          tableContainer.innerHTML = '';
-          const filter = filterText.toLowerCase();
-          
-          allResults.forEach(result => {
-              if (filter && !result.domain.includes(filter) && !result.title.toLowerCase().includes(filter)) return;
-              
-              const row = GDI.createElement('div', {
-                  styles: {
-                      padding: '12px 16px',
-                      borderBottom: `1px solid ${GDI.ThemeEngine.token('colors.borderLight')}`,
-                      display: 'flex', gap: '16px',
-                      background: result.isTarget ? GDI.ThemeEngine.token('colors.successLight') : GDI.ThemeEngine.token('colors.surface')
-                  }
-              });
-
-              const rankBadge = GDI.createElement('div', {
-                  styles: {
-                      background: result.isTarget ? GDI.ThemeEngine.token('colors.success') : GDI.ThemeEngine.token('colors.primary'),
-                      color: 'white', padding: '4px 12px', borderRadius: '20px',
-                      fontSize: '14px', fontWeight: 'bold', minWidth: '45px', textAlign: 'center', height: 'fit-content'
-                  },
-                  text: `#${result.rank}`
-              });
-
-              const infoCol = GDI.createElement('div', { styles: { flex: '1', minWidth: '0' }});
-              
-              infoCol.appendChild(GDI.createElement('div', {
-                  styles: { fontWeight: 'bold', color: result.isTarget ? GDI.ThemeEngine.token('colors.success') : GDI.ThemeEngine.token('colors.primary'), fontSize: '16px', marginBottom: '4px' },
-                  text: result.domain
-              }));
-
-              infoCol.appendChild(GDI.createElement('div', {
-                  styles: { fontSize: '12px', color: GDI.ThemeEngine.token('colors.textSecondary'), marginBottom: '4px' },
-                  text: `Page ${result.page}`
-              }));
-
-              infoCol.appendChild(GDI.createElement('div', {
-                  styles: { color: GDI.ThemeEngine.token('colors.textPrimary'), fontSize: '13px', marginBottom: '4px' },
-                  text: result.title
-              }));
-
-              infoCol.appendChild(GDI.createElement('div', {
-                  styles: { color: GDI.ThemeEngine.token('colors.textMuted'), fontSize: '11px', wordBreak: 'break-all' },
-                  text: result.url
-              }));
-
-              row.appendChild(rankBadge);
-              row.appendChild(infoCol);
-              tableContainer.appendChild(row);
-          });
-      }
-
-      renderResults();
-      searchInput.addEventListener('input', (e) => renderResults(e.target.value));
-
-      content.appendChild(tableContainer);
-
-      GDI.createModal('📈 Keyword Ranking Report', content, { width: '1000px', maxWidth: '95vw' });
-  }
-  
-  function downloadFile(content, filename, type) {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-  
-  extractionCancelled = false;
-  extractRankingsFromPages();
-}
-// ==================== ADVANCED SEO TEXT COMPARE TOOL ====================
-
-function advancedSEOCompare() {
-  const DEBOUNCE_MS = 400;
-  let debounceTimer;
-
-  // Unified, comprehensive stop words list
-  const STOP_WORDS = new Set(['the','and','for','are','but','not','you','all','can','had','her','was','one','our','out','day','get','has','him','his','how','its','may','new','now','old','see','two','who','boy','did','she','use','way','many','oil','sit','set','run','eat','far','sea','eye','ago','off','too','any','say','man','try','ask','end','why','let','put','own','tell','very','when','much','would','there','their','what','said','each','which','will','about','could','other','after','first','never','these','think','where','being','every','great','might','shall','still','those','while','this','that','with','have','from','they','know','want','been','good','some','time','come','here','just','like','long','make','over','such','take','than','them','well','were','into','also']);
-
-  const content = GDI.createElement('div', {
-    styles: { display: 'flex', flexDirection: 'column', height: '80vh', gap: '0' }
-  });
-
-  // ─── HEADER TOOLBAR ───
-  const headerToolbar = GDI.createElement('div', {
-    styles: { display: 'flex', gap: '8px', marginBottom: '12px', flexShrink: '0', flexWrap: 'wrap' }
-  });
-
-  const swapBtn = GDI.createButton('⇄ Swap Panels', swapPanels, { variant: 'secondary', size: 'sm', fullWidth: false });
-  const syncScrollBtn = GDI.createToggle({ label: 'Sync Scroll', checked: true, onChange: (val) => syncScroll = val });
-  syncScrollBtn.wrapper.style.marginRight = 'auto'; // Pushes exports to the right
-  
-  const exportJsonBtn = GDI.createButton('⬇ Export JSON', () => exportResults('json'), { variant: 'secondary', size: 'sm', fullWidth: false });
-  const exportCsvBtn = GDI.createButton('⬇ Export CSV', () => exportResults('csv'), { variant: 'secondary', size: 'sm', fullWidth: false });
-
-  headerToolbar.appendChild(swapBtn);
-  headerToolbar.appendChild(syncScrollBtn.wrapper);
-  headerToolbar.appendChild(exportJsonBtn);
-  headerToolbar.appendChild(exportCsvBtn);
-
-  // ─── MAIN CONTENT ───
-  const mainArea = GDI.createElement('div', {
-    styles: {
-      flex: '1', display: 'flex', overflow: 'hidden',
-      border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
-      borderRadius: GDI.DESIGN_TOKENS.radii.lg,
-      marginBottom: '16px'
-    }
-  });
-
-  const leftPanel = buildComparePanel('left', 'Original Text');
-  const rightPanel = buildComparePanel('right', 'Comparison Text');
-
-  mainArea.appendChild(leftPanel);
-  mainArea.appendChild(rightPanel);
-
-  // ─── RESULTS PANEL ───
-  const resultsArea = GDI.createElement('div', {
-    styles: {
-      border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
-      borderRadius: GDI.DESIGN_TOKENS.radii.lg,
-      background: GDI.ThemeEngine.token('colors.surfaceSecondary'),
-      maxHeight: '45%', overflowY: 'auto', padding: '0', flexShrink: '0',
-      display: 'flex', flexDirection: 'column'
-    }
-  });
-
-  const resultsHeader = GDI.createElement('div', {
-    styles: {
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '12px 20px', borderBottom: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
-      position: 'sticky', top: '0', background: GDI.ThemeEngine.token('colors.surfaceSecondary'), zIndex: '2'
-    }
-  });
-
-  const scoreBadge = GDI.createBadge('0% Similar', 'info');
-  const refreshBtn = GDI.createButton('Refresh Analysis', performComparison, { variant: 'secondary', size: 'sm', fullWidth: false });
-
-  resultsHeader.appendChild(GDI.createElement('strong', {
-    styles: { color: GDI.ThemeEngine.token('colors.textPrimary'), fontSize: '14px' },
-    text: '📊 SEO Comparison Results'
-  }));
-
-  const headerRight = GDI.createElement('div', { styles: { display: 'flex', gap: '12px', alignItems: 'center' } });
-  headerRight.appendChild(scoreBadge);
-  headerRight.appendChild(refreshBtn);
-  resultsHeader.appendChild(headerRight);
-
-  // Tab Navigation
-  const tabBar = GDI.createElement('div', {
-    styles: {
-      display: 'flex', gap: '4px', padding: '8px 20px 0',
-      borderBottom: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
-      background: GDI.ThemeEngine.token('colors.surfaceSecondary')
-    }
-  });
-
-  const tabs = [
-    { id: 'overview', label: '📊 Overview' },
-    { id: 'diff', label: '📝 Diff View' },
-    { id: 'structure', label: '🏗️ Structure' },
-    { id: 'keywords', label: '🔑 Keywords' }
-  ];
-
-  let activeTab = 'overview';
-  const tabButtons = {};
-
-  tabs.forEach(tab => {
-    const btn = GDI.createElement('button', {
-      text: tab.label,
-      styles: {
-        padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer',
-        fontSize: '12px', fontWeight: '600', color: GDI.ThemeEngine.token('colors.textSecondary'),
-        borderBottom: '2px solid transparent', marginBottom: '-1px', transition: 'all 0.2s'
-      }
-    });
-    btn.addEventListener('click', () => switchTab(tab.id));
-    tabButtons[tab.id] = btn;
-    tabBar.appendChild(btn);
-  });
-
-  const resultsContent = GDI.createElement('div', {
-    attrs: { id: 'gdi-compare-results' },
-    styles: { padding: '16px 20px', flex: '1', overflowY: 'auto' }
-  });
-
-  resultsArea.appendChild(resultsHeader);
-  resultsArea.appendChild(tabBar);
-  resultsArea.appendChild(resultsContent);
-
-  content.appendChild(headerToolbar);
-  content.appendChild(mainArea);
-  content.appendChild(resultsArea);
-
-  GDI.createModal('Advanced SEO Compare', content, {
-    width: '95vw', maxWidth: '1400px', icon: '🔍',
-    subtitle: 'Compare content, meta tags, readability, and structure'
-  });
-
-  let syncScroll = true;
-  let lastResults = null;
-
-  // ─── PANEL BUILDER ───
-  function buildComparePanel(side, titleText) {
-    const panel = GDI.createElement('div', {
-      styles: {
-        flex: '1', display: 'flex', flexDirection: 'column',
-        borderRight: side === 'left' ? `1px solid ${GDI.ThemeEngine.token('colors.border')}` : 'none',
-        overflow: 'hidden', minWidth: '0'
-      }
-    });
-
-    const toolbar = GDI.createElement('div', {
-      styles: {
-        padding: '10px 14px', background: GDI.ThemeEngine.token('colors.surface'),
-        borderBottom: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px',
-        flexWrap: 'wrap', flexShrink: '0'
-      }
-    });
-
-    const select = GDI.createElement('select', {
-      styles: {
-        padding: '6px 10px', border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
-        borderRadius: GDI.DESIGN_TOKENS.radii.md, fontSize: '12px', cursor: 'pointer',
-        background: GDI.ThemeEngine.token('colors.surface'), color: GDI.ThemeEngine.token('colors.textPrimary'),
-        maxWidth: '160px'
-      },
-      children: [
-        GDI.createElement('option', { attrs: { value: 'paste' }, text: '📝 Paste Text' }),
-        GDI.createElement('option', { attrs: { value: 'selection' }, text: '📋 Current Selection' }),
-        GDI.createElement('option', { attrs: { value: 'page' }, text: '🌐 Entire Page' }),
-        GDI.createElement('option', { attrs: { value: 'meta-title' }, text: '🏷️ Meta Title' }),
-        GDI.createElement('option', { attrs: { value: 'meta-description' }, text: '📄 Meta Description' }),
-        GDI.createElement('option', { attrs: { value: 'h1' }, text: '📊 H1 Heading' }),
-        GDI.createElement('option', { attrs: { value: 'first-paragraph' }, text: '📖 First Paragraph' }),
-        GDI.createElement('option', { attrs: { value: 'headings' }, text: '📑 All Headings' }),
-        GDI.createElement('option', { attrs: { value: 'links' }, text: '🔗 All Links' })
-      ]
-    });
-
-    const loadBtn = GDI.createButton('Load', null, { variant: 'primary', size: 'sm', fullWidth: false });
-    const clearBtn = GDI.createButton('Clear', null, { variant: 'danger', size: 'sm', fullWidth: false });
-    const copyBtn = GDI.createButton('Copy', null, { variant: 'secondary', size: 'sm', fullWidth: false });
-
-    const actionGroup = GDI.createElement('div', { styles: { display: 'flex', gap: '6px' } });
-    actionGroup.appendChild(clearBtn);
-    actionGroup.appendChild(copyBtn);
-
-    toolbar.appendChild(GDI.createElement('div', {
-      styles: { display: 'flex', alignItems: 'center', gap: '8px' },
-      children: [
-        GDI.createElement('strong', { text: titleText, styles: { fontSize: '13px', color: GDI.ThemeEngine.token('colors.textPrimary') } }),
-        select, loadBtn
-      ]
-    }));
-    toolbar.appendChild(actionGroup);
-
-    const textarea = GDI.createElement('textarea', {
-      attrs: { id: `${side}-textarea`, placeholder: `Enter or load ${side === 'left' ? 'original' : 'comparison'} text here...` },
-      styles: {
-        flex: '1', padding: '14px', border: 'none', resize: 'none',
-        fontFamily: GDI.DESIGN_TOKENS.typography.fontMono, fontSize: '13px',
-        lineHeight: '1.6', outline: 'none', color: GDI.ThemeEngine.token('colors.textPrimary'),
-        background: GDI.ThemeEngine.token('colors.surface')
-      }
-    });
-
-    const statsBar = GDI.createElement('div', {
-      attrs: { id: `${side}-stats` },
-      styles: {
-        padding: '8px 14px', background: GDI.ThemeEngine.token('colors.surfaceSecondary'),
-        borderTop: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
-        fontSize: '11px', color: GDI.ThemeEngine.token('colors.textSecondary'),
-        display: 'flex', gap: '14px', flexWrap: 'wrap', flexShrink: '0'
-      }
-    });
-
-    // ─── EVENTS ───
-    loadBtn.addEventListener('click', () => {
-      let textContent = '';
-      switch (select.value) {
-        case 'selection': textContent = window.getSelection().toString().trim() || 'No text selected.'; break;
-        case 'page': textContent = document.body.innerText; break;
-        case 'meta-title': textContent = document.title; break;
-        case 'meta-description': textContent = document.querySelector('meta[name="description"]')?.getAttribute('content') || ''; break;
-        case 'h1': textContent = document.querySelector('h1')?.textContent || ''; break;
-        case 'first-paragraph': textContent = document.querySelector('p')?.textContent || ''; break;
-        case 'headings':
-          textContent = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6'))
-            .map(h => `[${h.tagName}] ${h.textContent.trim()}`).join('\n'); break;
-        case 'links':
-          textContent = Array.from(document.querySelectorAll('a[href]'))
-            .map(a => `${a.textContent.trim()} → ${a.href}`).join('\n'); break;
-        case 'paste': default: return;
-      }
-      textarea.value = textContent;
-      scheduleComparison();
-    });
-
-    clearBtn.addEventListener('click', () => { textarea.value = ''; scheduleComparison(); });
-    copyBtn.addEventListener('click', () => { GDI.copyToClipboard(textarea.value).then(() => GDI.showNotification('Copied!', 'success')); });
-
-    textarea.addEventListener('input', scheduleComparison);
-    textarea.addEventListener('scroll', () => {
-      if (!syncScroll) return;
-      const otherSide = side === 'left' ? 'right' : 'left';
-      const other = content.querySelector(`#${otherSide}-textarea`);
-      if (other) other.scrollTop = textarea.scrollTop;
-    });
-
-    panel.appendChild(toolbar);
-    panel.appendChild(textarea);
-    panel.appendChild(statsBar);
-
-    return panel;
-  }
-
-  // ─── UTILITIES ───
-  function scheduleComparison() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(performComparison, DEBOUNCE_MS);
-  }
-
-  function swapPanels() {
-    const left = content.querySelector('#left-textarea');
-    const right = content.querySelector('#right-textarea');
-    if (!left || !right) return;
-    const temp = left.value;
-    left.value = right.value;
-    right.value = temp;
-    performComparison();
-  }
-
-  function switchTab(tabId) {
-    activeTab = tabId;
-    Object.keys(tabButtons).forEach(id => {
-      const btn = tabButtons[id];
-      const isActive = id === tabId;
-      btn.style.color = isActive ? GDI.ThemeEngine.token('colors.primary') : GDI.ThemeEngine.token('colors.textSecondary');
-      btn.style.borderBottom = isActive ? `2px solid ${GDI.ThemeEngine.token('colors.primary')}` : '2px solid transparent';
-    });
-    renderResults();
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  // ─── ANALYSIS ENGINE ───
-  function getWords(text) {
-    return (text.toLowerCase().match(/\b[a-z0-9]+\b/g) || []);
-  }
-
-  function getTermFreq(text) {
-    const words = getWords(text);
-    const freq = {};
-    words.forEach(w => freq[w] = (freq[w] || 0) + 1);
-    return freq;
-  }
-
-  function calculateCosineSimilarity(text1, text2) {
-    if (!text1 || !text2) return 0;
-    const tf1 = getTermFreq(text1);
-    const tf2 = getTermFreq(text2);
-    const allWords = new Set([...Object.keys(tf1), ...Object.keys(tf2)]);
-    let dot = 0, mag1 = 0, mag2 = 0;
-    allWords.forEach(w => {
-      const v1 = tf1[w] || 0, v2 = tf2[w] || 0;
-      dot += v1 * v2;
-      mag1 += v1 * v1;
-      mag2 += v2 * v2;
-    });
-    if (mag1 === 0 || mag2 === 0) return 0;
-    return (dot / (Math.sqrt(mag1) * Math.sqrt(mag2)));
-  }
-
-  function calculateJaccardSimilarity(text1, text2) {
-    const set1 = new Set(getWords(text1));
-    const set2 = new Set(getWords(text2));
-    if (set1.size === 0 || set2.size === 0) return 0;
-    const intersection = new Set([...set1].filter(x => set2.has(x)));
-    const union = new Set([...set1, ...set2]);
-    return intersection.size / union.size;
-  }
-
-  // PERFORMANCE FIX: Cap LCS calculation at 2000 chars to prevent browser lockup
-  function calculateLCSSimilarity(text1, text2) {
-    const limit = 2000;
-    const s1 = text1.replace(/\s+/g, ' ').trim().substring(0, limit);
-    const s2 = text2.replace(/\s+/g, ' ').trim().substring(0, limit);
-    if (!s1 || !s2) return 0;
-    
-    const m = s1.length, n = s2.length;
-    const dp = Array(2).fill(null).map(() => Array(n + 1).fill(0));
-    
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        dp[i % 2][j] = s1[i - 1] === s2[j - 1]
-          ? dp[(i - 1) % 2][j - 1] + 1
-          : Math.max(dp[(i - 1) % 2][j], dp[i % 2][j - 1]);
-      }
-    }
-    const lcs = dp[m % 2][n];
-    return (2 * lcs) / (m + n);
-  }
-
-  function calculateSimilarity(text1, text2) {
-    const cosine = calculateCosineSimilarity(text1, text2);
-    const jaccard = calculateJaccardSimilarity(text1, text2);
-    const lcs = calculateLCSSimilarity(text1, text2);
-    // Weighted ensemble: cosine good for topic, jaccard for vocabulary overlap, lcs for exact duplication
-    const score = (cosine * 0.5) + (jaccard * 0.3) + (lcs * 0.2);
-    return Math.min(100, Math.round(score * 100));
-  }
-
-  // ACCURACY FIX: Better regex for English syllable counting
-  function countSyllables(word) {
-    word = word.toLowerCase().replace(/[^a-z]/g, '');
-    if (word.length <= 3) return 1;
-    // Handle silent 'e' and 'es' / 'ed', but keep 'le' (like table, apple)
-    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
-    word = word.replace(/^y/, '');
-    const m = word.match(/[aeiouy]{1,2}/g);
-    return m ? m.length : 1;
-  }
-
-  function calculateReadability(text) {
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const words = text.match(/\b[a-zA-Z]{2,}\b/g) || [];
-    if (sentences.length === 0 || words.length === 0) return { flesch: 0, kincaid: 0, smog: 0 };
-
-    const totalSyllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
-    const avgWordsPerSentence = words.length / sentences.length;
-    const avgSyllablesPerWord = totalSyllables / words.length;
-
-    const flesch = Math.max(0, Math.min(100, Math.round(206.835 - (1.015 * avgWordsPerSentence) - (84.6 * avgSyllablesPerWord))));
-    const kincaid = Math.max(0, Math.round((0.39 * avgWordsPerSentence) + (11.8 * avgSyllablesPerWord) - 15.59));
-    const smog = Math.max(0, Math.round(1.043 * Math.sqrt(words.filter(w => countSyllables(w) > 2).length * (30 / sentences.length)) + 3.1291));
-
-    return { flesch, kincaid, smog };
-  }
-
-  function getReadabilityLevel(score) {
-    if (score >= 90) return 'Very Easy';
-    if (score >= 80) return 'Easy';
-    if (score >= 70) return 'Fairly Easy';
-    if (score >= 60) return 'Standard';
-    if (score >= 50) return 'Fairly Difficult';
-    if (score >= 30) return 'Difficult';
-    return 'Very Difficult';
-  }
-
-  function getSEOMetrics(text) {
-    const words = getWords(text);
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-    const headings = (text.match(/^#{1,6}\s+/gm) || []).length + (text.match(/\[H[1-6]\]/g) || []).length;
-
-    return {
-      charCount: text.length,
-      wordCount: words.length,
-      sentenceCount: sentences.length,
-      paragraphCount: paragraphs.length,
-      headingCount: headings,
-      avgWordLength: words.length ? (words.reduce((a, b) => a + b.length, 0) / words.length).toFixed(1) : 0,
-      avgSentenceLength: sentences.length ? (words.length / sentences.length).toFixed(1) : 0,
-      uniqueWords: new Set(words).size,
-      readingTime: Math.max(1, Math.ceil(words.length / 200))
-    };
-  }
-
-  function calculateKeywordDensity(text, topN = 10) {
-    const words = getWords(text);
-    if (!words.length) return [];
-    const freq = {};
-    words.forEach(w => { if (!STOP_WORDS.has(w) && w.length > 2) freq[w] = (freq[w] || 0) + 1; });
-    return Object.entries(freq)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, topN)
-      .map(([word, count]) => ({ word, count, density: ((count / words.length) * 100).toFixed(2) }));
-  }
-
-  function findKeywordGaps(text1, text2, topN = 12) {
-    const density1 = calculateKeywordDensity(text1, 50);
-    const density2 = calculateKeywordDensity(text2, 50);
-    const map1 = Object.fromEntries(density1.map(d => [d.word, d.count]));
-    const map2 = Object.fromEntries(density2.map(d => [d.word, d.count]));
-
-    const missingIn2 = density1.filter(d => !map2[d.word]).slice(0, topN).map(d => ({ word: d.word, count: d.count }));
-    const missingIn1 = density2.filter(d => !map1[d.word]).slice(0, topN).map(d => ({ word: d.word, count: d.count }));
-
-    const competitive = density1
-      .filter(d => map2[d.word])
-      .map(d => {
-        const other = map2[d.word];
-        const diff = d.count - other;
-        return { word: d.word, left: d.count, right: other, diff };
-      })
-      .filter(d => Math.abs(d.diff) >= 2)
-      .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
-      .slice(0, topN);
-
-    return { missingInText1: missingIn1, missingInText2: missingIn2, competitive };
-  }
-
-  // PERFORMANCE FIX: Chunked Diff algorithm to prevent browser freezing on large texts
-  function generateDiff(text1, text2) {
-    // Preserve line breaks by replacing them with a special token during split
-    const t1 = text1.replace(/\n/g, ' ↵ ');
-    const t2 = text2.replace(/\n/g, ' ↵ ');
-    
-    // Limit diffing array to 1000 words to prevent memory heap crash (O(N^2))
-    const limit = 1000; 
-    const words1 = t1.split(/(\s+|[.,;!?])/g).filter(w => w.length > 0).slice(0, limit);
-    const words2 = t2.split(/(\s+|[.,;!?])/g).filter(w => w.length > 0).slice(0, limit);
-
-    const m = words1.length, n = words2.length;
-    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-    
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        dp[i][j] = words1[i - 1] === words2[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
-      }
-    }
-
-    let html1 = '', html2 = '';
-    let p1 = 0, p2 = 0;
-    
-    const renderToken = (word, isError, isSuccess) => {
-      if (word === '↵') return '<br>';
-      if (isError) return `<mark style="background:${GDI.ThemeEngine.token('colors.errorLight')};color:${GDI.ThemeEngine.token('colors.error')};padding:1px 2px;border-radius:2px;">${escapeHtml(word)}</mark>`;
-      if (isSuccess) return `<mark style="background:${GDI.ThemeEngine.token('colors.successLight')};color:${GDI.ThemeEngine.token('colors.success')};padding:1px 2px;border-radius:2px;">${escapeHtml(word)}</mark>`;
-      return escapeHtml(word);
-    };
-
-    while (p1 < m || p2 < n) {
-      if (p1 < m && p2 < n && words1[p1] === words2[p2]) {
-        html1 += renderToken(words1[p1], false, false);
-        html2 += renderToken(words2[p2], false, false);
-        p1++; p2++;
-      } else if (p1 < m && (p2 >= n || dp[p1 + 1]?.[p2] >= dp[p1]?.[p2 + 1])) {
-        html1 += renderToken(words1[p1], true, false);
-        p1++;
-      } else if (p2 < n) {
-        html2 += renderToken(words2[p2], false, true);
-        p2++;
-      }
-    }
-    
-    const warning = (text1.split(/\s+/).length > limit || text2.split(/\s+/).length > limit) 
-      ? `<div style="background:${GDI.ThemeEngine.token('colors.warningLight')}; color:#92400E; padding:8px; text-align:center; font-size:11px; margin-bottom:8px; border-radius:4px;">⚠️ Diff view truncated to first 1000 words for performance.</div>` 
-      : '';
-
-    return { left: warning + html1, right: warning + html2 };
-  }
-
-  function analyzeStructure(text) {
-    const lines = text.split('\n');
-    const headings = [];
-    const paragraphs = [];
-    let currentPara = [];
-
-    lines.forEach((line, idx) => {
-      const hMatch = line.match(/^(#{1,6})\s+(.+)/) || line.match(/^\[(H[1-6])\]\s*(.+)/);
-      if (hMatch) {
-        if (currentPara.length) { paragraphs.push(currentPara.join('\n')); currentPara = []; }
-        headings.push({ level: hMatch[1].replace('#', '').length || parseInt(hMatch[1][1]), text: hMatch[2].trim(), line: idx + 1 });
-      } else if (line.trim()) {
-        currentPara.push(line);
-      } else if (currentPara.length) {
-        paragraphs.push(currentPara.join('\n')); currentPara = [];
-      }
-    });
-    if (currentPara.length) paragraphs.push(currentPara.join('\n'));
-
-    const links = [...text.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(m => ({ text: m[1], url: m[2] }));
-    const plainLinks = [...text.matchAll(/(https?:\/\/[^\s]+)/g)].map(m => m[1]);
-    const lists = text.split('\n').filter(l => /^\s*[-*+]\s+/.test(l)).length;
-    const boldCount = (text.match(/\*\*[^*]+\*\*/g) || []).length + (text.match(/__[^_]+__/g) || []).length;
-
-    return { headings, paragraphs, links, plainLinks, lists, boldCount };
-  }
-
-  function renderGauge(label, value, max = 100, color = 'primary') {
-    const pct = Math.min(100, Math.max(0, (value / max) * 100));
-    return `
-      <div style="margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
-          <span style="color:${GDI.ThemeEngine.token('colors.textSecondary')}">${label}</span>
-          <span style="font-weight:700;color:${GDI.ThemeEngine.token(`colors.${color}`)}">${value}</span>
-        </div>
-        <div style="height:6px;background:${GDI.ThemeEngine.token('colors.border')};border-radius:3px;overflow:hidden;">
-          <div style="width:${pct}%;height:100%;background:${GDI.ThemeEngine.token(`colors.${color}`)};transition:width 0.3s ease;"></div>
-        </div>
-      </div>
-    `;
-  }
-
-  function updateStats(panelId, text) {
-    const metrics = getSEOMetrics(text);
-    const statsDiv = content.querySelector(`#${panelId}-stats`);
-    if (!statsDiv) return;
-    statsDiv.innerHTML = `
-      <span title="Characters">📊 ${metrics.charCount.toLocaleString()}</span>
-      <span title="Words">📝 ${metrics.wordCount.toLocaleString()}</span>
-      <span title="Sentences">📏 ${metrics.sentenceCount.toLocaleString()}</span>
-      <span title="Paragraphs">¶ ${metrics.paragraphCount}</span>
-      <span title="Unique Words">🔤 ${metrics.uniqueWords.toLocaleString()}</span>
-      <span title="Reading Time">📖 ${metrics.readingTime} min</span>
-    `;
-  }
-
-  // ─── RENDERERS ───
-  function renderOverview(data) {
-    const simColor = data.similarity > 70 ? 'success' : data.similarity > 40 ? 'warning' : 'error';
-    const r1 = data.readability1, r2 = data.readability2;
-
-    return `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
-        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:16px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};border-left:4px solid ${GDI.ThemeEngine.token(`colors.${simColor}`)};">
-          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:8px;">📊 Similarity Score</div>
-          <div style="font-size:32px;font-weight:800;color:${GDI.ThemeEngine.token(`colors.${simColor}`)}">${data.similarity}%</div>
-          <div style="font-size:11px;color:${GDI.ThemeEngine.token('colors.textSecondary')};margin-top:4px;">
-            Cosine: ${Math.round(data.details.cosine * 100)}% · Jaccard: ${Math.round(data.details.jaccard * 100)}% · LCS: ${Math.round(data.details.lcs * 100)}%
-          </div>
-          ${renderGauge('Duplicate Risk', data.similarity, 100, simColor)}
-        </div>
-
-        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:16px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};border-left:4px solid ${GDI.ThemeEngine.token('colors.info')};">
-          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:8px;">📖 Readability</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div>
-              <div style="font-size:10px;color:${GDI.ThemeEngine.token('colors.textMuted')};">LEFT</div>
-              ${renderGauge('Flesch', r1.flesch, 100, 'info')}
-              <div style="font-size:10px;color:${GDI.ThemeEngine.token('colors.textSecondary')}">Grade ${r1.kincaid} · ${getReadabilityLevel(r1.flesch)}</div>
-            </div>
-            <div>
-              <div style="font-size:10px;color:${GDI.ThemeEngine.token('colors.textMuted')};">RIGHT</div>
-              ${renderGauge('Flesch', r2.flesch, 100, 'info')}
-              <div style="font-size:10px;color:${GDI.ThemeEngine.token('colors.textSecondary')}">Grade ${r2.kincaid} · ${getReadabilityLevel(r2.flesch)}</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:16px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};border-left:4px solid ${GDI.ThemeEngine.token('colors.primary')};">
-          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:8px;">📐 Content Metrics</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
-            <div><span style="color:${GDI.ThemeEngine.token('colors.textMuted')}">Words:</span> <strong>${data.metrics1.wordCount.toLocaleString()}</strong> vs <strong>${data.metrics2.wordCount.toLocaleString()}</strong></div>
-            <div><span style="color:${GDI.ThemeEngine.token('colors.textMuted')}">Sentences:</span> <strong>${data.metrics1.sentenceCount}</strong> vs <strong>${data.metrics2.sentenceCount}</strong></div>
-            <div><span style="color:${GDI.ThemeEngine.token('colors.textMuted')}">Paragraphs:</span> <strong>${data.metrics1.paragraphCount}</strong> vs <strong>${data.metrics2.paragraphCount}</strong></div>
-            <div><span style="color:${GDI.ThemeEngine.token('colors.textMuted')}">Avg Words/Sent:</span> <strong>${data.metrics1.avgSentenceLength}</strong> vs <strong>${data.metrics2.avgSentenceLength}</strong></div>
-          </div>
-        </div>
-      </div>
-
-      <div style="margin-top:16px;background:${GDI.ThemeEngine.token('colors.surface')};padding:16px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
-        <div style="font-weight:700;font-size:11px;text-transform:uppercase;color:${GDI.ThemeEngine.token('colors.textMuted')};margin-bottom:12px;">🔑 Keyword Gaps</div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:240px;">
-            <div style="font-weight:600;color:${GDI.ThemeEngine.token('colors.error')};font-size:12px;margin-bottom:6px;">Missing in Right (${data.gaps.missingInText2.length})</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;">
-              ${data.gaps.missingInText2.map(k => `<span style="background:${GDI.ThemeEngine.token('colors.errorLight')};color:${GDI.ThemeEngine.token('colors.error')};padding:4px 8px;border-radius:4px;font-size:11px;font-family:${GDI.DESIGN_TOKENS.typography.fontMono}" title="Frequency: ${k.count}">${escapeHtml(k.word)} <small>×${k.count}</small></span>`).join('') || '<span style="color:#999;font-size:12px;">None</span>'}
-            </div>
-          </div>
-          <div style="flex:1;min-width:240px;">
-            <div style="font-weight:600;color:${GDI.ThemeEngine.token('colors.success')};font-size:12px;margin-bottom:6px;">Missing in Left (${data.gaps.missingInText1.length})</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;">
-              ${data.gaps.missingInText1.map(k => `<span style="background:${GDI.ThemeEngine.token('colors.successLight')};color:${GDI.ThemeEngine.token('colors.success')};padding:4px 8px;border-radius:4px;font-size:11px;font-family:${GDI.DESIGN_TOKENS.typography.fontMono}" title="Frequency: ${k.count}">${escapeHtml(k.word)} <small>×${k.count}</small></span>`).join('') || '<span style="color:#999;font-size:12px;">None</span>'}
-            </div>
-          </div>
-        </div>
-        ${data.gaps.competitive.length ? `
-        <div style="margin-top:12px;padding-top:12px;border-top:1px solid ${GDI.ThemeEngine.token('colors.border')};">
-          <div style="font-weight:600;color:${GDI.ThemeEngine.token('colors.warning')};font-size:12px;margin-bottom:6px;">⚡ Competitive Gaps (frequency diff ≥ 2)</div>
-          <div style="display:flex;flex-wrap:wrap;gap:4px;">
-            ${data.gaps.competitive.map(k => {
-              const color = k.diff > 0 ? GDI.ThemeEngine.token('colors.primary') : GDI.ThemeEngine.token('colors.textSecondary');
-              return `<span style="background:${GDI.ThemeEngine.token('colors.surfaceSecondary')};color:${color};padding:4px 8px;border-radius:4px;font-size:11px;font-family:${GDI.DESIGN_TOKENS.typography.fontMono};border:1px solid ${GDI.ThemeEngine.token('colors.border')}">${escapeHtml(k.word)} L${k.left}:R${k.right}</span>`;
-            }).join('')}
-          </div>
-        </div>` : ''}
-      </div>
-
-      <div style="margin-top:16px;background:${GDI.ThemeEngine.token('colors.surface')};padding:16px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
-        <div style="font-weight:700;font-size:11px;text-transform:uppercase;color:${GDI.ThemeEngine.token('colors.textMuted')};margin-bottom:12px;">⭐ Common Keywords</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${data.commonKeywords.map(k => `<span style="background:${GDI.ThemeEngine.token('colors.infoLight')};color:${GDI.ThemeEngine.token('colors.info')};padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;font-family:${GDI.DESIGN_TOKENS.typography.fontMono}">${escapeHtml(k)}</span>`).join('') || '<span style="color:#999;font-size:12px;">None</span>'}
-        </div>
-      </div>
-    `;
-  }
-
-  function renderDiff(data) {
-    if (!data.text1 && !data.text2) return '<div style="text-align:center;padding:40px;color:#999;">Enter text in both panels to see diff</div>';
-    const diff = generateDiff(data.text1, data.text2);
-    return `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div style="background:${GDI.ThemeEngine.token('colors.surface')};border:1px solid ${GDI.ThemeEngine.token('colors.border')};border-radius:${GDI.DESIGN_TOKENS.radii.lg};padding:14px;overflow:auto;max-height:400px;font-family:${GDI.DESIGN_TOKENS.typography.fontMono};font-size:12px;line-height:1.7;" class="gdi-scrollbar">
-          <div style="font-size:10px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:8px;">Original (red = removed)</div>
-          <div style="word-break:break-word;">${diff.left || '<em style="color:#999;">Empty</em>'}</div>
-        </div>
-        <div style="background:${GDI.ThemeEngine.token('colors.surface')};border:1px solid ${GDI.ThemeEngine.token('colors.border')};border-radius:${GDI.DESIGN_TOKENS.radii.lg};padding:14px;overflow:auto;max-height:400px;font-family:${GDI.DESIGN_TOKENS.typography.fontMono};font-size:12px;line-height:1.7;" class="gdi-scrollbar">
-          <div style="font-size:10px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:8px;">Comparison (green = added)</div>
-          <div style="word-break:break-word;">${diff.right || '<em style="color:#999;">Empty</em>'}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderStructure(data) {
-    const s1 = data.structure1, s2 = data.structure2;
-    const renderHeadings = (h) => h.length ? h.map(x => `<div style="padding:2px 0;padding-left:${(x.level-1)*12}px;font-size:12px;color:${GDI.ThemeEngine.token('colors.textPrimary')}"><span style="color:${GDI.ThemeEngine.token('colors.textMuted')};font-size:10px;">H${x.level}</span> ${escapeHtml(x.text.substring(0, 60))}${x.text.length>60?'...':''}</div>`).join('') : '<em style="color:#999;font-size:12px;">No headings found</em>';
-    const renderList = (items, empty) => items.length ? `<ul style="margin:4px 0;padding-left:16px;font-size:12px;">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : `<em style="color:#999;font-size:12px;">${empty}</em>`;
-
-    return `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:14px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
-          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:10px;">🏗️ Left Structure</div>
-          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Headings (${s1.headings.length})</strong><div style="margin-top:4px;">${renderHeadings(s1.headings)}</div></div>
-          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Paragraphs:</strong> <span style="font-size:12px;">${s1.paragraphs.length}</span></div>
-          <div style="margin-bottom:10px;"><strong style="font-size:12px;">List Items:</strong> <span style="font-size:12px;">${s1.lists}</span></div>
-          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Bold Emphasis:</strong> <span style="font-size:12px;">${s1.boldCount}</span></div>
-          <div><strong style="font-size:12px;">Links:</strong> ${renderList(s1.links.map(l => `${l.text} → ${l.url}`), 'No markdown links')}</div>
-        </div>
-        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:14px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
-          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:10px;">🏗️ Right Structure</div>
-          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Headings (${s2.headings.length})</strong><div style="margin-top:4px;">${renderHeadings(s2.headings)}</div></div>
-          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Paragraphs:</strong> <span style="font-size:12px;">${s2.paragraphs.length}</span></div>
-          <div style="margin-bottom:10px;"><strong style="font-size:12px;">List Items:</strong> <span style="font-size:12px;">${s2.lists}</span></div>
-          <div style="margin-bottom:10px;"><strong style="font-size:12px;">Bold Emphasis:</strong> <span style="font-size:12px;">${s2.boldCount}</span></div>
-          <div><strong style="font-size:12px;">Links:</strong> ${renderList(s2.links.map(l => `${l.text} → ${l.url}`), 'No markdown links')}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderKeywords(data) {
-    const renderDensity = (list) => list.length ? `
-      <table style="width:100%;font-size:12px;border-collapse:collapse;">
-        <tr style="color:${GDI.ThemeEngine.token('colors.textMuted')};font-size:10px;text-align:left;">
-          <th style="padding:4px 0;">Keyword</th><th style="padding:4px 0;">Count</th><th style="padding:4px 0;">Density</th>
-        </tr>
-        ${list.map(k => `<tr style="border-top:1px solid ${GDI.ThemeEngine.token('colors.border')}">
-          <td style="padding:6px 0;font-family:${GDI.DESIGN_TOKENS.typography.fontMono};">${escapeHtml(k.word)}</td>
-          <td style="padding:6px 0;">${k.count}</td>
-          <td style="padding:6px 0;">${k.density}%</td>
-        </tr>`).join('')}
-      </table>
-    ` : '<em style="color:#999;font-size:12px;">No significant keywords found</em>';
-
-    return `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:14px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
-          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:10px;">🔑 Left Keyword Density</div>
-          ${renderDensity(data.density1)}
-        </div>
-        <div style="background:${GDI.ThemeEngine.token('colors.surface')};padding:14px;border-radius:${GDI.DESIGN_TOKENS.radii.lg};border:1px solid ${GDI.ThemeEngine.token('colors.border')};">
-          <div style="font-size:11px;font-weight:700;color:${GDI.ThemeEngine.token('colors.textMuted')};text-transform:uppercase;margin-bottom:10px;">🔑 Right Keyword Density</div>
-          ${renderDensity(data.density2)}
-        </div>
-      </div>
-    `;
-  }
-
-  function renderResults() {
-    if (!lastResults) return;
-    switch (activeTab) {
-      case 'diff': resultsContent.innerHTML = renderDiff(lastResults); break;
-      case 'structure': resultsContent.innerHTML = renderStructure(lastResults); break;
-      case 'keywords': resultsContent.innerHTML = renderKeywords(lastResults); break;
-      case 'overview': default: resultsContent.innerHTML = renderOverview(lastResults); break;
-    }
-  }
-
-  // ─── EXPORT ───
-  function exportResults(format) {
-    if (!lastResults) { GDI.showNotification('No analysis to export', 'warning'); return; }
-    const timestamp = new Date().toISOString();
-    const payload = { ...lastResults, exportedAt: timestamp };
-
-    if (format === 'json') {
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `seo-compare-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
-      GDI.showNotification('Exported JSON', 'success');
-    } else {
-      const rows = [
-        ['Metric', 'Left', 'Right'],
-        ['Words', lastResults.metrics1.wordCount, lastResults.metrics2.wordCount],
-        ['Sentences', lastResults.metrics1.sentenceCount, lastResults.metrics2.sentenceCount],
-        ['Paragraphs', lastResults.metrics1.paragraphCount, lastResults.metrics2.paragraphCount],
-        ['Flesch Score', lastResults.readability1.flesch, lastResults.readability2.flesch],
-        ['Kincaid Grade', lastResults.readability1.kincaid, lastResults.readability2.kincaid],
-        ['Similarity %', lastResults.similarity, '']
-      ];
-      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `seo-compare-${Date.now()}.csv`; a.click(); URL.revokeObjectURL(url);
-      GDI.showNotification('Exported CSV', 'success');
-    }
-  }
-
-  // ─── MAIN COMPARISON ───
-  function performComparison() {
-    const text1 = content.querySelector('#left-textarea')?.value || '';
-    const text2 = content.querySelector('#right-textarea')?.value || '';
-
-    updateStats('left', text1);
-    updateStats('right', text2);
-
-    if (!text1 && !text2) {
-      resultsContent.innerHTML = `<div style="text-align:center;padding:40px;color:${GDI.ThemeEngine.token('colors.textMuted')};">Enter text in both panels to see comparison results</div>`;
-      scoreBadge.textContent = '0% Similar';
-      scoreBadge.style.background = GDI.ThemeEngine.token('colors.infoLight');
-      scoreBadge.style.color = GDI.ThemeEngine.token('colors.info');
-      lastResults = null;
-      return;
-    }
-
-    const cosine = calculateCosineSimilarity(text1, text2);
-    const jaccard = calculateJaccardSimilarity(text1, text2);
-    const lcs = calculateLCSSimilarity(text1, text2);
-    const similarity = Math.min(100, Math.round((cosine * 0.5 + jaccard * 0.3 + lcs * 0.2) * 100));
-
-    const readability1 = calculateReadability(text1);
-    const readability2 = calculateReadability(text2);
-    const metrics1 = getSEOMetrics(text1);
-    const metrics2 = getSEOMetrics(text2);
-    const gaps = findKeywordGaps(text1, text2);
-    const density1 = calculateKeywordDensity(text1);
-    const density2 = calculateKeywordDensity(text2);
-    const structure1 = analyzeStructure(text1);
-    const structure2 = analyzeStructure(text2);
-
-    const words1 = getWords(text1);
-    const words2 = getWords(text2);
-    const freq1 = getTermFreq(text1);
-    const freq2 = getTermFreq(text2);
-    const commonKeywords = Object.keys(freq1).filter(k => freq2[k]).sort((a, b) => (freq2[b] + freq1[b]) - (freq2[a] + freq1[a])).slice(0, 15);
-
-    lastResults = {
-      text1, text2, similarity, details: { cosine, jaccard, lcs },
-      readability1, readability2, metrics1, metrics2, gaps,
-      density1, density2, structure1, structure2, commonKeywords
-    };
-
-    const simColor = similarity > 70 ? 'success' : similarity > 40 ? 'warning' : 'error';
-    scoreBadge.style.background = GDI.ThemeEngine.token(`colors.${simColor}Light`);
-    scoreBadge.style.color = GDI.ThemeEngine.token(`colors.${simColor}`);
-    scoreBadge.textContent = `${similarity}% Similar`;
-
-    renderResults();
-  }
-}
-// ==================== ADVANCED SEO IMAGE TOOLKIT ====================
-
-function advancedImageToolkit() {
-  const contentContainer = GDI.createElement('div', {
-    styles: { display: 'flex', flexDirection: 'column', height: '80vh', overflow: 'hidden' }
-  });
-
-  // ─── TABS NAVIGATION ───
-  const tabsContainer = GDI.createElement('div', {
-    styles: {
-      display: 'flex', background: GDI.ThemeEngine.token('colors.surfaceSecondary'),
-      borderBottom: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
-      padding: '0 24px', gap: '8px', flexShrink: '0', overflowX: 'auto'
-    },
-    attrs: { className: 'gdi-scrollbar' }
-  });
-  
-  const tabs = [
-    { id: 'resizer', name: '📐 Image Resizer' },
-    { id: 'converter', name: '🔄 Image Converter' },
-    { id: 'sources', name: '📷 Free Image Sources' },
-    { id: 'optimizer', name: '⚡ Image Optimizer' },
-    { id: 'analyzer', name: '🔍 SEO Analyzer' }
-  ];
-  
-  const tabButtons = [];
-  const tabPanels = {};
-  
-  // Main area for tab content
-  const panelsContainer = GDI.createElement('div', {
-    styles: { flex: '1', overflowY: 'auto', padding: '24px', background: GDI.ThemeEngine.token('colors.surface') },
-    attrs: { className: 'gdi-scrollbar' }
-  });
-
-  tabs.forEach((tab, index) => {
-    const btn = GDI.createElement('button', {
-      styles: {
-        padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer',
-        fontSize: '13px', fontWeight: '600',
-        color: index === 0 ? GDI.ThemeEngine.token('colors.primary') : GDI.ThemeEngine.token('colors.textSecondary'),
-        borderBottom: `3px solid ${index === 0 ? GDI.ThemeEngine.token('colors.primary') : 'transparent'}`,
-        transition: `all ${GDI.DESIGN_TOKENS.transitions.fast}`, whiteSpace: 'nowrap'
-      },
-      text: tab.name
-    });
-    
-    const panel = GDI.createElement('div', {
-      styles: { display: index === 0 ? 'block' : 'none' }
-    });
-    
-    btn.addEventListener('click', () => {
-      tabButtons.forEach(b => {
-        b.style.color = GDI.ThemeEngine.token('colors.textSecondary');
-        b.style.borderBottomColor = 'transparent';
-      });
-      btn.style.color = GDI.ThemeEngine.token('colors.primary');
-      btn.style.borderBottomColor = GDI.ThemeEngine.token('colors.primary');
-      
-      Object.values(tabPanels).forEach(p => p.style.display = 'none');
-      panel.style.display = 'block';
-    });
-    
-    tabsContainer.appendChild(btn);
-    panelsContainer.appendChild(panel);
-    tabButtons.push(btn);
-    tabPanels[tab.id] = panel;
-  });
-
-  contentContainer.appendChild(tabsContainer);
-  contentContainer.appendChild(panelsContainer);
-
-  // ==================== IMAGE RESIZER TAB ====================
-  const resizerPanel = tabPanels['resizer'];
-  resizerPanel.style.display = 'grid';
-  resizerPanel.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
-  resizerPanel.style.gap = '24px';
-
-  // Upload Area
-  const resizerUploadArea = GDI.createElement('div', {
-    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
-  });
-  resizerUploadArea.innerHTML = `<h3 style="margin: 0 0 16px; font-size: 15px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">📤 Upload Image</h3>`;
-  
-  const resizeDropZone = GDI.createElement('div', {
-    styles: { border: `2px dashed ${GDI.ThemeEngine.token('colors.border')}`, borderRadius: GDI.DESIGN_TOKENS.radii.md, padding: '40px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s' },
-    html: `<div style="font-size: 32px; margin-bottom: 12px;">📸</div><div style="color:${GDI.ThemeEngine.token('colors.textPrimary')}">Drag & drop image or click to upload</div><div style="font-size: 11px; color: ${GDI.ThemeEngine.token('colors.textMuted')}; margin-top: 8px;">Supports: JPG, PNG, WebP</div>`
-  });
-  
-  const resizeFileInput = GDI.createElement('input', { attrs: { type: 'file', accept: 'image/*' }, styles: { display: 'none' } });
-  const resizePreviewWrap = GDI.createElement('div', { styles: { marginTop: '20px', display: 'none', textAlign: 'center' } });
-  const resizePreviewImg = GDI.createElement('img', { styles: { maxWidth: '100%', maxHeight: '300px', borderRadius: GDI.DESIGN_TOKENS.radii.md, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` } });
-  resizePreviewWrap.appendChild(resizePreviewImg);
-  
-  resizerUploadArea.appendChild(resizeDropZone);
-  resizerUploadArea.appendChild(resizeFileInput);
-  resizerUploadArea.appendChild(resizePreviewWrap);
-
-  // Controls Area
-  const resizerControls = GDI.createElement('div', {
-    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
-  });
-  resizerControls.innerHTML = `<h3 style="margin: 0 0 16px; font-size: 15px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">📏 Resize Options</h3>`;
-  
-  const presetSelect = GDI.createSelect({
-    label: 'Preset Sizes',
-    options: [
-      { value: 'custom', label: 'Custom Size' },
-      { value: '150x150', label: 'Thumbnail (150x150)' },
-      { value: '600x400', label: 'Medium (600x400)' },
-      { value: '1200x800', label: 'Large (1200x800)' },
-      { value: '1200x630', label: 'Social / Open Graph (1200x630)' },
-      { value: '800x418', label: 'Twitter Card (800x418)' }
-    ],
-    defaultValue: 'custom'
-  });
-
-  const dimsRow = GDI.createElement('div', { styles: { display: 'flex', gap: '12px' } });
-  const widthInput = GDI.createInputField({ label: 'Width (px)', type: 'number', placeholder: 'Auto' });
-  const heightInput = GDI.createInputField({ label: 'Height (px)', type: 'number', placeholder: 'Auto' });
-  widthInput.wrapper.style.flex = '1'; heightInput.wrapper.style.flex = '1';
-  dimsRow.appendChild(widthInput.wrapper); dimsRow.appendChild(heightInput.wrapper);
-
-  const aspectToggle = GDI.createToggle({ label: 'Maintain aspect ratio', checked: true });
-  aspectToggle.wrapper.style.marginBottom = '16px';
-
-  const qWrap = GDI.createElement('div', { styles: { marginBottom: '20px' } });
-  qWrap.innerHTML = `<label style="display:block; font-size:12px; font-weight:600; color:${GDI.ThemeEngine.token('colors.textPrimary')}; margin-bottom:8px;">Quality: <span id="gdi-rz-qval">90%</span></label>`;
-  const qSlider = GDI.createElement('input', { attrs: { type: 'range', min: '1', max: '100', value: '90' }, styles: { width: '100%', cursor: 'pointer' } });
-  qSlider.addEventListener('input', () => qWrap.querySelector('#gdi-rz-qval').textContent = `${qSlider.value}%`);
-  qWrap.appendChild(qSlider);
-
-  const resizeBtn = GDI.createButton('Resize Image', null, { variant: 'primary', disabled: true });
-  const dlResizedBtn = GDI.createButton('Download Resized Image', null, { variant: 'success' });
-  dlResizedBtn.style.display = 'none';
-  dlResizedBtn.style.marginTop = '10px';
-
-  resizerControls.appendChild(presetSelect.wrapper);
-  resizerControls.appendChild(dimsRow);
-  resizerControls.appendChild(aspectToggle.wrapper);
-  resizerControls.appendChild(qWrap);
-  resizerControls.appendChild(resizeBtn);
-  resizerControls.appendChild(dlResizedBtn);
-
-  resizerPanel.appendChild(resizerUploadArea);
-  resizerPanel.appendChild(resizerControls);
-
-  // Resizer Logic
-  let currentFile = null; let resizedBlob = null; let origW = 0; let origH = 0;
-  
-  resizeDropZone.addEventListener('click', () => resizeFileInput.click());
-  resizeFileInput.addEventListener('change', (e) => { if(e.target.files[0]) loadResizeImg(e.target.files[0]); });
-  
-  function loadResizeImg(file) {
-    currentFile = file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        origW = img.width; origH = img.height;
-        resizePreviewImg.src = e.target.result;
-        resizePreviewWrap.style.display = 'block';
-        widthInput.input.value = origW; heightInput.input.value = origH;
-        resizeBtn.disabled = false;
-        resizeBtn.style.opacity = '1';
-        dlResizedBtn.style.display = 'none';
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  presetSelect.select.addEventListener('change', (e) => {
-    const val = e.target.value;
-    if(val !== 'custom') {
-      const [w, h] = val.split('x');
-      widthInput.input.value = w; heightInput.input.value = h;
-    }
-  });
-
-  resizeBtn.addEventListener('click', () => {
-    if(!currentFile) return;
-    let tw = parseInt(widthInput.input.value) || origW;
-    let th = parseInt(heightInput.input.value) || origH;
-
-    if (aspectToggle.getValue()) {
-      const ratio = origW / origH;
-      if ((tw / th) > ratio) tw = Math.round(th * ratio);
-      else th = Math.round(tw / ratio);
-      widthInput.input.value = tw; heightInput.input.value = th;
-    }
-
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = tw; canvas.height = th;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, tw, th);
-      canvas.toBlob((blob) => {
-        resizedBlob = blob;
-        dlResizedBtn.style.display = 'flex';
-        GDI.showNotification(`Image resized to ${tw}x${th}`, 'success');
-      }, currentFile.type, qSlider.value / 100);
-    };
-    img.src = resizePreviewImg.src;
-  });
-
-  dlResizedBtn.addEventListener('click', () => {
-    if (resizedBlob) {
-      const url = URL.createObjectURL(resizedBlob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `resized_${currentFile.name}`;
-      a.click(); URL.revokeObjectURL(url);
-    }
-  });
-
-  // ==================== IMAGE CONVERTER TAB ====================
-  const converterPanel = tabPanels['converter'];
-  converterPanel.style.display = 'none';
-  converterPanel.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
-  converterPanel.style.gap = '24px';
-
-  const convUploadArea = GDI.createElement('div', {
-    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
-  });
-  convUploadArea.innerHTML = `<h3 style="margin: 0 0 16px; font-size: 15px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">📤 Upload Image</h3>`;
-  
-  const convDropZone = GDI.createElement('div', {
-    styles: { border: `2px dashed ${GDI.ThemeEngine.token('colors.border')}`, borderRadius: GDI.DESIGN_TOKENS.radii.md, padding: '40px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s' },
-    html: `<div style="font-size: 32px; margin-bottom: 12px;">🔄</div><div style="color:${GDI.ThemeEngine.token('colors.textPrimary')}">Click to upload image for conversion</div>`
-  });
-  const convFileInput = GDI.createElement('input', { attrs: { type: 'file', accept: 'image/*' }, styles: { display: 'none' } });
-  const convPreviewWrap = GDI.createElement('div', { styles: { marginTop: '20px', display: 'none', textAlign: 'center' } });
-  const convPreviewImg = GDI.createElement('img', { styles: { maxWidth: '100%', maxHeight: '300px', borderRadius: GDI.DESIGN_TOKENS.radii.md, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` } });
-  convPreviewWrap.appendChild(convPreviewImg);
-  convUploadArea.appendChild(convDropZone); convUploadArea.appendChild(convFileInput); convUploadArea.appendChild(convPreviewWrap);
-
-  const convControls = GDI.createElement('div', {
-    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
-  });
-  convControls.innerHTML = `<h3 style="margin: 0 0 16px; font-size: 15px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">🔄 Convert To</h3>`;
-
-  const formatsGrid = GDI.createElement('div', { styles: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' } });
-  const formats = ['JPEG', 'PNG', 'WEBP', 'BMP'];
-  let selectedFormat = 'image/jpeg';
-  const formatBtns = [];
-
-  formats.forEach((fmt, i) => {
-    const btn = GDI.createButton(fmt, () => {
-      formatBtns.forEach(b => { b.style.background = GDI.ThemeEngine.token('colors.surfaceTertiary'); b.style.color = GDI.ThemeEngine.token('colors.textPrimary'); });
-      btn.style.background = GDI.ThemeEngine.token('colors.primary'); btn.style.color = '#fff';
-      selectedFormat = `image/${fmt.toLowerCase()}`;
-    }, { variant: 'secondary' });
-    if(i === 0) { btn.style.background = GDI.ThemeEngine.token('colors.primary'); btn.style.color = '#fff'; }
-    formatBtns.push(btn);
-    formatsGrid.appendChild(btn);
-  });
-
-  const cqWrap = GDI.createElement('div', { styles: { marginBottom: '20px' } });
-  cqWrap.innerHTML = `<label style="display:block; font-size:12px; font-weight:600; color:${GDI.ThemeEngine.token('colors.textPrimary')}; margin-bottom:8px;">Quality: <span id="gdi-cv-qval">85%</span></label>`;
-  const cqSlider = GDI.createElement('input', { attrs: { type: 'range', min: '1', max: '100', value: '85' }, styles: { width: '100%', cursor: 'pointer' } });
-  cqSlider.addEventListener('input', () => cqWrap.querySelector('#gdi-cv-qval').textContent = `${cqSlider.value}%`);
-  cqWrap.appendChild(cqSlider);
-
-  const convertBtn = GDI.createButton('Convert Image', null, { variant: 'primary', disabled: true });
-  const dlConvertedBtn = GDI.createButton('Download Converted Image', null, { variant: 'success' });
-  dlConvertedBtn.style.display = 'none'; dlConvertedBtn.style.marginTop = '10px';
-
-  convControls.appendChild(formatsGrid); convControls.appendChild(cqWrap);
-  convControls.appendChild(convertBtn); convControls.appendChild(dlConvertedBtn);
-
-  converterPanel.appendChild(convUploadArea); converterPanel.appendChild(convControls);
-
-  // Converter Logic
-  let convFile = null; let convertedBlob = null;
-  convDropZone.addEventListener('click', () => convFileInput.click());
-  convFileInput.addEventListener('change', (e) => {
-    if(e.target.files[0]) {
-      convFile = e.target.files[0];
-      const r = new FileReader();
-      r.onload = ev => {
-        convPreviewImg.src = ev.target.result;
-        convPreviewWrap.style.display = 'block';
-        convertBtn.disabled = false; convertBtn.style.opacity = '1';
-        dlConvertedBtn.style.display = 'none';
-      };
-      r.readAsDataURL(convFile);
-    }
-  });
-
-  convertBtn.addEventListener('click', () => {
-    if(!convFile) return;
-    const img = new Image();
-    img.onload = () => {
-      const cvs = document.createElement('canvas');
-      cvs.width = img.width; cvs.height = img.height;
-      cvs.getContext('2d').drawImage(img, 0, 0);
-      cvs.toBlob(blob => {
-        convertedBlob = blob;
-        dlConvertedBtn.style.display = 'flex';
-        GDI.showNotification(`Converted to ${selectedFormat.split('/')[1].toUpperCase()}`, 'success');
-      }, selectedFormat, cqSlider.value / 100);
-    };
-    img.src = convPreviewImg.src;
-  });
-
-  dlConvertedBtn.addEventListener('click', () => {
-    if(convertedBlob) {
-      const url = URL.createObjectURL(convertedBlob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `converted.${selectedFormat.split('/')[1]}`;
-      a.click(); URL.revokeObjectURL(url);
-    }
-  });
-
-  // ==================== IMAGE OPTIMIZER TAB ====================
-  const optPanel = tabPanels['optimizer'];
-  optPanel.style.display = 'none';
-  optPanel.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
-  optPanel.style.gap = '24px';
-
-  const optUploadArea = GDI.createElement('div', {
-    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
-  });
-  optUploadArea.innerHTML = `<h3 style="margin: 0 0 16px; font-size: 15px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">📤 Upload Image</h3>`;
-  const optDropZone = GDI.createElement('div', {
-    styles: { border: `2px dashed ${GDI.ThemeEngine.token('colors.border')}`, borderRadius: GDI.DESIGN_TOKENS.radii.md, padding: '40px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s' },
-    html: `<div style="font-size: 32px; margin-bottom: 12px;">⚡</div><div style="color:${GDI.ThemeEngine.token('colors.textPrimary')}">Upload image for optimization</div>`
-  });
-  const optFileInput = GDI.createElement('input', { attrs: { type: 'file', accept: 'image/*' }, styles: { display: 'none' } });
-  const optPreviewWrap = GDI.createElement('div', { styles: { marginTop: '20px', display: 'none', textAlign: 'center' } });
-  const optPreviewImg = GDI.createElement('img', { styles: { maxWidth: '100%', maxHeight: '250px', borderRadius: GDI.DESIGN_TOKENS.radii.md, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` } });
-  optPreviewWrap.appendChild(optPreviewImg);
-  optUploadArea.appendChild(optDropZone); optUploadArea.appendChild(optFileInput); optUploadArea.appendChild(optPreviewWrap);
-
-  const optControls = GDI.createElement('div', {
-    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}` }
-  });
-  
-  const resultsBox = GDI.createElement('div', {
-    styles: { background: GDI.ThemeEngine.token('colors.surface'), padding: '16px', borderRadius: GDI.DESIGN_TOKENS.radii.md, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`, marginBottom: '16px', fontSize: '13px', color: GDI.ThemeEngine.token('colors.textPrimary') },
-    html: `
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Original Size:</span><strong id="gdi-opt-orig">-</strong></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Optimized Size:</span><strong id="gdi-opt-new" style="color:${GDI.ThemeEngine.token('colors.success')}">-</strong></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Savings:</span><strong id="gdi-opt-save">-</strong></div>
-    `
-  });
-
-  const oqWrap = GDI.createElement('div', { styles: { marginBottom: '16px' } });
-  oqWrap.innerHTML = `<label style="display:block; font-size:12px; font-weight:600; color:${GDI.ThemeEngine.token('colors.textPrimary')}; margin-bottom:8px;">Compression Level: <span id="gdi-opt-qval">80%</span></label>`;
-  const oqSlider = GDI.createElement('input', { attrs: { type: 'range', min: '1', max: '100', value: '80' }, styles: { width: '100%', cursor: 'pointer' } });
-  oqSlider.addEventListener('input', () => oqWrap.querySelector('#gdi-opt-qval').textContent = `${oqSlider.value}%`);
-  oqWrap.appendChild(oqSlider);
-
-  const webpToggle = GDI.createToggle({ label: 'Convert to WebP (Best savings)', checked: true });
-  webpToggle.wrapper.style.marginBottom = '20px';
-
-  const optimizeBtn = GDI.createButton('Optimize Image', null, { variant: 'primary', disabled: true });
-  const dlOptBtn = GDI.createButton('Download Optimized Image', null, { variant: 'success' });
-  dlOptBtn.style.display = 'none'; dlOptBtn.style.marginTop = '10px';
-
-  optControls.appendChild(resultsBox);
-  optControls.appendChild(oqWrap);
-  optControls.appendChild(webpToggle.wrapper);
-  optControls.appendChild(optimizeBtn);
-  optControls.appendChild(dlOptBtn);
-
-  optPanel.appendChild(optUploadArea);
-  optPanel.appendChild(optControls);
-
-  // Optimizer Logic
-  let optFile = null; let optimizedBlob = null;
-  optDropZone.addEventListener('click', () => optFileInput.click());
-  optFileInput.addEventListener('change', (e) => {
-    if(e.target.files[0]) {
-      optFile = e.target.files[0];
-      resultsBox.querySelector('#gdi-opt-orig').textContent = GDI.formatFileSize(optFile.size);
-      const r = new FileReader();
-      r.onload = ev => {
-        optPreviewImg.src = ev.target.result;
-        optPreviewWrap.style.display = 'block';
-        optimizeBtn.disabled = false; optimizeBtn.style.opacity = '1';
-        dlOptBtn.style.display = 'none';
-        resultsBox.querySelector('#gdi-opt-new').textContent = '-';
-        resultsBox.querySelector('#gdi-opt-save').textContent = '-';
-      };
-      r.readAsDataURL(optFile);
-    }
-  });
-
-  optimizeBtn.addEventListener('click', () => {
-    if(!optFile) return;
-    const img = new Image();
-    img.onload = () => {
-      const cvs = document.createElement('canvas');
-      cvs.width = img.width; cvs.height = img.height;
-      cvs.getContext('2d').drawImage(img, 0, 0);
-      const mime = webpToggle.getValue() ? 'image/webp' : optFile.type;
-      
-      cvs.toBlob(blob => {
-        optimizedBlob = blob;
-        const saved = optFile.size - blob.size;
-        const pct = ((saved / optFile.size) * 100).toFixed(1);
-        resultsBox.querySelector('#gdi-opt-new').textContent = GDI.formatFileSize(blob.size);
-        resultsBox.querySelector('#gdi-opt-save').textContent = `${pct}% (${GDI.formatFileSize(saved)})`;
-        dlOptBtn.style.display = 'flex';
-        optPreviewImg.src = URL.createObjectURL(blob); // show optimized result
-        GDI.showNotification(`Saved ${pct}%!`, 'success');
-      }, mime, oqSlider.value / 100);
-    };
-    img.src = optPreviewImg.src;
-  });
-
-  dlOptBtn.addEventListener('click', () => {
-    if(optimizedBlob) {
-      const url = URL.createObjectURL(optimizedBlob);
-      const a = document.createElement('a');
-      a.href = url; 
-      const ext = webpToggle.getValue() ? 'webp' : optFile.name.split('.').pop();
-      a.download = `optimized_${Date.now()}.${ext}`;
-      a.click(); URL.revokeObjectURL(url);
-    }
-  });
-
-  // ==================== FREE IMAGE SOURCES TAB ====================
-  const sourcesPanel = tabPanels['sources'];
-  sourcesPanel.style.display = 'none';
-  
-  const imageSources = [
-    { name: 'Unsplash', url: 'https://unsplash.com', desc: 'High-quality free stock photos', cat: 'Stock Photos' },
-    { name: 'Pexels', url: 'https://pexels.com', desc: 'Free stock photos & videos', cat: 'Stock Photos' },
-    { name: 'Pixabay', url: 'https://pixabay.com', desc: 'Free images, illustrations, vectors', cat: 'All Types' },
-    { name: 'Burst', url: 'https://burst.shopify.com', desc: 'Free stock photos for websites', cat: 'E-commerce' },
-    { name: 'Freepik', url: 'https://freepik.com', desc: 'Free vectors & illustrations', cat: 'Vectors' },
-    { name: 'Flaticon', url: 'https://flaticon.com', desc: 'Free icons for websites', cat: 'Icons' }
-  ];
-
-  const searchWrap = GDI.createInputField({ placeholder: '🔍 Search sources...', id: 'src-search' });
-  sourcesPanel.appendChild(searchWrap.wrapper);
-
-  const sourcesGrid = GDI.createElement('div', {
-    styles: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }
-  });
-
-  function renderSources(filter = '') {
-    sourcesGrid.innerHTML = '';
-    imageSources.forEach(src => {
-      if(filter && !src.name.toLowerCase().includes(filter.toLowerCase()) && !src.desc.toLowerCase().includes(filter.toLowerCase())) return;
-      
-      const card = GDI.createElement('div', {
-        styles: {
-          background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '16px',
-          borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
-          cursor: 'pointer', transition: `all ${GDI.DESIGN_TOKENS.transitions.fast}`
-        },
-        html: `
-          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-            <h4 style="margin:0; font-size:15px; color:${GDI.ThemeEngine.token('colors.primary')}">${src.name}</h4>
-          </div>
-          <p style="margin:0 0 12px; font-size:12px; color:${GDI.ThemeEngine.token('colors.textSecondary')}">${src.desc}</p>
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="background:${GDI.ThemeEngine.token('colors.surfaceTertiary')}; padding:4px 8px; border-radius:4px; font-size:11px; color:${GDI.ThemeEngine.token('colors.textPrimary')}">${src.cat}</span>
-            <span style="color:${GDI.ThemeEngine.token('colors.primary')}; font-size:12px; font-weight:bold;">Open ↗</span>
-          </div>
-        `
-      });
-      card.addEventListener('mouseenter', () => card.style.borderColor = GDI.ThemeEngine.token('colors.primary'));
-      card.addEventListener('mouseleave', () => card.style.borderColor = GDI.ThemeEngine.token('colors.border'));
-      card.addEventListener('click', () => window.open(src.url, '_blank'));
-      sourcesGrid.appendChild(card);
-    });
-  }
-  
-  renderSources();
-  searchWrap.input.addEventListener('input', (e) => renderSources(e.target.value));
-  sourcesPanel.appendChild(sourcesGrid);
-
-  // ==================== SEO ANALYZER TAB ====================
-  const analyzerPanel = tabPanels['analyzer'];
-  analyzerPanel.style.display = 'none';
-
-  const analyzerContent = GDI.createElement('div', {
-    styles: { background: GDI.ThemeEngine.token('colors.surfaceSecondary'), padding: '40px 20px', borderRadius: GDI.DESIGN_TOKENS.radii.lg, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`, textAlign: 'center' }
-  });
-
-  const runAnalysisBtn = GDI.createButton('Analyze Page Images', () => {
-    const images = document.querySelectorAll('img');
-    let noAlt = 0, emptyAlt = 0, lazy = 0, noDims = 0;
-    const missingList = [];
-
-    images.forEach(img => {
-      const alt = img.getAttribute('alt');
-      if (alt === null) { noAlt++; missingList.push(img.src || 'Unknown'); }
-      else if (alt === '') emptyAlt++;
-      if (img.loading === 'lazy') lazy++;
-      if (!img.width || !img.height) noDims++;
-    });
-
-    analyzerContent.innerHTML = `
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; text-align: left;">
-        <div style="background:${GDI.ThemeEngine.token('colors.infoLight')}; padding:16px; border-radius:8px; border-left:4px solid ${GDI.ThemeEngine.token('colors.info')}">
-          <div style="font-size:24px; font-weight:bold; color:${GDI.ThemeEngine.token('colors.info')}">${images.length}</div>
-          <div style="font-size:12px; color:${GDI.ThemeEngine.token('colors.textSecondary')}">Total Images</div>
-        </div>
-        <div style="background:${GDI.ThemeEngine.token('colors.errorLight')}; padding:16px; border-radius:8px; border-left:4px solid ${GDI.ThemeEngine.token('colors.error')}">
-          <div style="font-size:24px; font-weight:bold; color:${GDI.ThemeEngine.token('colors.error')}">${noAlt + emptyAlt}</div>
-          <div style="font-size:12px; color:${GDI.ThemeEngine.token('colors.textSecondary')}">Missing/Empty Alt</div>
-        </div>
-        <div style="background:${GDI.ThemeEngine.token('colors.warningLight')}; padding:16px; border-radius:8px; border-left:4px solid ${GDI.ThemeEngine.token('colors.warning')}">
-          <div style="font-size:24px; font-weight:bold; color:${GDI.ThemeEngine.token('colors.warning')}">${noDims}</div>
-          <div style="font-size:12px; color:${GDI.ThemeEngine.token('colors.textSecondary')}">Missing Dimensions</div>
-        </div>
-      </div>
-      <div style="text-align: left; background:${GDI.ThemeEngine.token('colors.surface')}; border:1px solid ${GDI.ThemeEngine.token('colors.border')}; padding:16px; border-radius:8px;">
-        <strong style="color:${GDI.ThemeEngine.token('colors.textPrimary')}">📋 Recommendations:</strong>
-        <ul style="margin: 12px 0 0; padding-left: 20px; font-size:13px; color:${GDI.ThemeEngine.token('colors.textSecondary')}; line-height:1.6;">
-          ${(noAlt + emptyAlt) > 0 ? `<li style="color:${GDI.ThemeEngine.token('colors.error')}">⚠️ Add descriptive alt text to ${noAlt + emptyAlt} images.</li>` : '<li>✅ All images have alt text.</li>'}
-          ${noDims > 0 ? `<li style="color:${GDI.ThemeEngine.token('colors.warning')}">⚠️ ${noDims} images missing width/height (causes layout shifts).</li>` : '<li>✅ All images have dimensions set.</li>'}
-          ${lazy < images.length ? `<li>💡 Consider adding <code>loading="lazy"</code> to offscreen images.</li>` : '<li>✅ Good use of lazy loading!</li>'}
-        </ul>
-      </div>
-    `;
-  }, { variant: 'primary', fullWidth: false });
-  
-  runAnalysisBtn.style.margin = '0 auto';
-  
-  analyzerContent.innerHTML = `<div style="font-size:48px; margin-bottom:16px;">🔍</div><p style="color:${GDI.ThemeEngine.token('colors.textSecondary')}; margin-bottom:20px; font-size:14px;">Click below to check SEO metrics for all images currently loaded on this page.</p>`;
-  analyzerContent.appendChild(runAnalysisBtn);
-  analyzerPanel.appendChild(analyzerContent);
-
-  // Use the native GDI Modal
-  GDI.createModal('Advanced Image Toolkit', contentContainer, { 
-    width: '95vw', 
-    maxWidth: '1200px',
-    icon: '🖼️',
-    subtitle: 'Resize, Convert, Optimize & Analyze SEO Images'
-  });
-}
-
-// ==================== ENHANCED SITE STRUCTURE ====================
-
-function visualizeSiteStructure() {
-  const { $, $$, cleanText: clean, escapeHtml, copyToClipboard: copy, showNotification: toast } = GDI;
-
-  // ============ DATA COLLECTION ENGINE ============
-  const collectData = () => {
-    const domain = window.location.hostname.replace(/^www\./, '');
-    const currentPath = window.location.pathname;
-    const fullUrl = window.location.href;
-    const origin = window.location.origin;
-
-    // Links analysis
-    const links = $$('a[href]');
-    const internalLinks = [];
-    const externalLinks = [];
-    const linkMap = new Map();
-    const brokenLinks = [];
-    const nofollowLinks = [];
-    const sponsoredLinks = [];
-    const ugcLinks = [];
-    const anchorTextMap = new Map();
-
-    links.forEach(link => {
-      try {
-        const href = link.getAttribute('href') || '';
-        if (!href || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:') || href === '#') return;
-
-        const url = new URL(href, origin);
-        const isInternal = url.hostname === window.location.hostname;
-        const text = clean(link.textContent).substring(0, 120) || '[No Text]';
-        const rel = (link.getAttribute('rel') || '').toLowerCase();
-        const isNofollow = rel.includes('nofollow');
-        const isSponsored = rel.includes('sponsored');
-        const isUgc = rel.includes('ugc');
-        const target = link.getAttribute('target') || '';
-        const title = link.getAttribute('title') || '';
-
-        const linkData = { url: href, text, isInternal, isNofollow, isSponsored, isUgc, target, title };
-
-        if (isInternal) {
-          const path = url.pathname + url.search;
-          if (!linkMap.has(path)) {
-            linkMap.set(path, { path, texts: [text], count: 1, fullUrls: [href] });
-          } else {
-            const existing = linkMap.get(path);
-            existing.count++;
-            existing.texts.push(text);
-            existing.fullUrls.push(href);
-          }
-          internalLinks.push(linkData);
-
-          if (!anchorTextMap.has(path)) anchorTextMap.set(path, new Set());
-          anchorTextMap.get(path).add(text);
-        } else {
-          externalLinks.push(linkData);
-        }
-
-        if (isNofollow) nofollowLinks.push(linkData);
-        if (isSponsored) sponsoredLinks.push(linkData);
-        if (isUgc) ugcLinks.push(linkData);
-      } catch (e) {
-        brokenLinks.push({ url: link.href, error: e.message });
-      }
-    });
-
-    // Headings with hierarchy validation
-    const headings = [];
-    const headingHierarchy = { h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 };
-    const hierarchyIssues = [];
-    let lastLevel = 0;
-
-    for (let i = 1; i <= 6; i++) {
-      $$(`h${i}`).forEach(h => {
-        const text = clean(h.textContent).substring(0, 100);
-        const id = h.id || '';
-        headings.push({ level: i, text, id, element: h });
-        headingHierarchy[`h${i}`]++;
-
-        if (lastLevel > 0 && i > lastLevel + 1) {
-          hierarchyIssues.push(`Skipped from H${lastLevel} to H${i}`);
-        }
-        lastLevel = i;
-      });
-    }
-
-    // Breadcrumbs detection
-    const breadcrumbs = [];
-    const breadcrumbSelectors = [
-      '[class*="breadcrumb"] a', '[aria-label*="breadcrumb"] a', '.breadcrumbs a',
-      '[itemtype*="BreadcrumbList"] a', 'nav[aria-label*="breadcrumb"] a', '.breadcrumb-trail a',
-      '[class*="breadcrumbs"] li', '[class*="breadcrumb"] li'
-    ];
-    breadcrumbSelectors.forEach(sel => {
-      $$(sel).forEach(b => {
-        const text = clean(b.textContent);
-        if (text && !breadcrumbs.includes(text)) breadcrumbs.push(text);
-      });
-    });
-
-    // Navigation
-    const navItems = [];
-    const navSelectors = [
-      'nav a', '.menu a', '.navigation a', '[role="navigation"] a',
-      'header a', '.navbar a', '.main-menu a', '#menu a', '.nav a'
-    ];
-    navSelectors.forEach(sel => {
-      $$(sel).forEach(n => {
-        const text = clean(n.textContent).substring(0, 50);
-        const href = n.href;
-        if (text && !navItems.find(item => item.text === text)) {
-          navItems.push({ text, href });
-        }
-      });
-    });
-
-    // Schema
-    const schemaData = [];
-    $$('script[type="application/ld+json"]').forEach(script => {
-      try { schemaData.push(JSON.parse(script.textContent)); } catch (e) {}
-    });
-
-    // Meta tags
-    const metaTags = {};
-    $$('meta').forEach(meta => {
-      const name = meta.getAttribute('name') || meta.getAttribute('property') || meta.getAttribute('http-equiv');
-      const content = meta.getAttribute('content');
-      if (name && content) metaTags[name] = content;
-    });
-
-    // Images
-    const images = [];
-    const imagesWithoutAlt = [];
-    const imagesWithoutDimensions = [];
-    $$('img').forEach(img => {
-      const src = img.currentSrc || img.src || img.getAttribute('data-src') || '';
-      const alt = img.alt || '';
-      const width = img.naturalWidth || img.width || parseInt(img.getAttribute('width')) || '';
-      const height = img.naturalHeight || img.height || parseInt(img.getAttribute('height')) || '';
-      const lazy = img.getAttribute('loading') === 'lazy';
-      const isDecorative = img.getAttribute('role') === 'presentation' || img.getAttribute('aria-hidden') === 'true';
-
-      images.push({ src, alt, width, height, lazy, isDecorative });
-      if (!alt && !isDecorative) imagesWithoutAlt.push(src);
-      if ((!width || !height) && !isDecorative) imagesWithoutDimensions.push(src);
-    });
-
-    // Forms
-    const forms = $$('form').map(f => ({
-      action: f.getAttribute('action') || '',
-      method: f.getAttribute('method') || 'get',
-      id: f.id || '',
-      inputs: $$('input, textarea, select, button', f).length
-    }));
-
-    // Canonical & lang
-    const canonical = $('link[rel="canonical"]')?.href || fullUrl;
-    const htmlLang = document.documentElement.lang || 'Not specified';
-
-    // Scripts & styles
-    const scripts = $$('script[src]').map(s => s.src);
-    const stylesheets = $$('link[rel="stylesheet"]').map(l => l.href);
-    const inlineStyles = $$('[style]').length;
-
-    // DOM stats
-    const domStats = {
-      totalElements: $$('*').length,
-      maxDepth: 0,
-      deepestPath: ''
-    };
-
-    const getDepth = (el, depth = 0) => {
-      if (depth > domStats.maxDepth) {
-        domStats.maxDepth = depth;
-        domStats.deepestPath = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.className ? '.' + el.className.split(' ').slice(0, 2).join('.') : '');
-      }
-      Array.from(el.children).forEach(c => getDepth(c, depth + 1));
-    };
-    getDepth(document.documentElement);
-
-    // Page size
-    const pageSizeKB = (document.documentElement.outerHTML.length / 1024).toFixed(2);
-    const viewport = $('meta[name="viewport"]')?.getAttribute('content') || '';
-
-    return {
-      domain, currentPath, fullUrl, origin,
-      internalLinks, externalLinks, linkMap, brokenLinks, nofollowLinks, sponsoredLinks, ugcLinks, anchorTextMap,
-      headings, headingHierarchy, hierarchyIssues,
-      breadcrumbs, navItems,
-      schemaData, metaTags,
-      images, imagesWithoutAlt, imagesWithoutDimensions,
-      forms,
-      canonical, htmlLang,
-      scripts, stylesheets, inlineStyles,
-      domStats, pageSizeKB,
-      viewport, hasViewport: !!viewport, urlDepth: currentPath.split('/').filter(Boolean).length
-    };
-  };
-
-  const data = collectData();
-
-  // ============ SEO SCORING ============
-  const calculateSEOScore = () => {
-    let score = 100;
-    const issues = [];
-    const warnings = [];
-
-    if (data.headingHierarchy.h1 === 0) { score -= 15; issues.push('Missing H1 tag'); }
-    else if (data.headingHierarchy.h1 > 1) { score -= 10; warnings.push(`Multiple H1 tags (${data.headingHierarchy.h1})`); }
-
-    const desc = data.metaTags.description || '';
-    if (!desc) { score -= 10; issues.push('Missing meta description'); }
-    else if (desc.length < 50) { score -= 5; warnings.push('Meta description too short (<50 chars)'); }
-    else if (desc.length > 160) { score -= 3; warnings.push('Meta description too long (>160 chars)'); }
-
-    if (!data.metaTags['og:title'] && !data.metaTags['twitter:title']) { score -= 5; warnings.push('Missing social title tags'); }
-
-    if (data.imagesWithoutAlt.length > 0) {
-      score -= Math.min(12, data.imagesWithoutAlt.length * 2);
-      issues.push(`${data.imagesWithoutAlt.length} images missing alt text`);
-    }
-
-    if (data.canonical !== data.fullUrl) { score -= 5; warnings.push(`Canonical mismatch: ${data.canonical}`); }
-    if (data.urlDepth > 4) { score -= 5; warnings.push(`URL depth too deep (${data.urlDepth} levels)`); }
-    if (data.htmlLang === 'Not specified') { score -= 5; issues.push('Missing language declaration'); }
-    if (!data.hasViewport) { score -= 5; issues.push('Missing viewport meta tag'); }
-    if (data.internalLinks.length < 5) { score -= 5; warnings.push('Low internal link count'); }
-
-    if (data.hierarchyIssues.length > 0) {
-      score -= Math.min(8, data.hierarchyIssues.length * 2);
-      warnings.push(...data.hierarchyIssues.slice(0, 3));
-    }
-
-    if (parseFloat(data.pageSizeKB) > 500) { score -= 5; warnings.push(`Large page size (${data.pageSizeKB} KB)`); }
-
-    return { score: Math.max(0, score), issues, warnings };
-  };
-
-  const seo = calculateSEOScore();
-
-  // ============ UI STATE ============
-  let activeTab = 'overview';
-  let expandedNodes = new Set();
-  let viewMode = 'cards';
-
-  const tColor = (path) => GDI.ThemeEngine.token(path);
-
-  // ============ DOM TREE BUILDER ============
-  const buildDomTree = (element, depth = 0, maxDepth = 3) => {
-    if (depth > maxDepth) return null;
-    const tag = element.tagName.toLowerCase();
-    const id = element.id ? `#${element.id}` : '';
-    const classes = element.className && typeof element.className === 'string' ? '.' + element.className.split(' ').slice(0, 2).join('.') : '';
-    const children = Array.from(element.children).map(c => buildDomTree(c, depth + 1, maxDepth)).filter(Boolean);
-
-    return { tag, id, classes, name: `${tag}${id}${classes}`, childCount: element.children.length, textLength: element.textContent?.length || 0, children: children.length > 0 ? children : null, depth };
-  };
-
-  const domTree = buildDomTree(document.body, 0, 2);
-
-  // ============ RENDER ============
-  const content = document.createElement('div');
-  content.style.cssText = 'display:flex;flex-direction:column;height:80vh;overflow:hidden;';
-  
-  const render = () => {
-    const uniqueInternal = [...data.linkMap.values()].sort((a, b) => b.count - a.count);
-    const externalDomains = [...new Set(data.externalLinks.map(l => {
-      try { return new URL(l.url).hostname; } catch { return ''; }
-    }))].filter(Boolean);
-
-    content.innerHTML = `
-      <style>
-        .ss-tab { padding:12px 20px; font-size:13px; font-weight:700; color:var(--gdi-text-secondary); background:transparent; border:none; border-bottom:2px solid transparent; cursor:pointer; transition:all .2s; }
-        .ss-tab.active { color:var(--gdi-primary); border-bottom-color:var(--gdi-primary); }
-        .ss-tab:hover:not(.active) { color:var(--gdi-text-primary); background:var(--gdi-surface-secondary); }
-        .ss-card { background:var(--gdi-surface); border:1px solid var(--gdi-border); border-radius:16px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-        .ss-h3 { margin:0 0 16px; font-size:15px; font-weight:800; color:var(--gdi-text-primary); display:flex; align-items:center; gap:8px; }
-        .ss-item { padding:10px 12px; border-radius:8px; background:var(--gdi-surface-secondary); border:1px solid var(--gdi-border); }
-        
-        /* THE FIX: Replaced fake css variables with the real ones! */
-        .ss-text-main { color: var(--gdi-text-primary); }
-        .ss-text-sec { color: var(--gdi-text-secondary); }
-        .ss-text-muted { color: var(--gdi-text-muted); }
-      </style>
-
-      <div style="padding:0 24px; border-bottom:1px solid var(--gdi-border); background:var(--gdi-surface); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; flex-shrink:0;">
-        <div style="display:flex;gap:4px;flex-wrap:wrap;">
-          <button data-tab="overview" class="ss-tab ${activeTab === 'overview' ? 'active' : ''}">📊 Overview</button>
-          <button data-tab="structure" class="ss-tab ${activeTab === 'structure' ? 'active' : ''}">🏗️ Structure</button>
-          <button data-tab="links" class="ss-tab ${activeTab === 'links' ? 'active' : ''}">🔗 Links</button>
-          <button data-tab="seo" class="ss-tab ${activeTab === 'seo' ? 'active' : ''}">🎯 SEO</button>
-          <button data-tab="technical" class="ss-tab ${activeTab === 'technical' ? 'active' : ''}">⚙️ Technical</button>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center; padding: 8px 0;">
-          ${activeTab === 'structure' ? `
-            <div style="display:flex;gap:4px;background:var(--gdi-surface-secondary);padding:4px;border-radius:8px;">
-              <button data-view="cards" class="ss-view-btn ${viewMode === 'cards' ? 'active' : ''}" style="padding:6px 12px;border:none;border-radius:6px;background:${viewMode === 'cards' ? 'var(--gdi-surface)' : 'transparent'};color:${viewMode === 'cards' ? 'var(--gdi-primary)' : 'var(--gdi-text-secondary)'};font-size:12px;font-weight:700;cursor:pointer;">Cards</button>
-              <button data-view="tree" class="ss-view-btn ${viewMode === 'tree' ? 'active' : ''}" style="padding:6px 12px;border:none;border-radius:6px;background:${viewMode === 'tree' ? 'var(--gdi-surface)' : 'transparent'};color:${viewMode === 'tree' ? 'var(--gdi-primary)' : 'var(--gdi-text-secondary)'};font-size:12px;font-weight:700;cursor:pointer;">Tree</button>
-              <button data-view="graph" class="ss-view-btn ${viewMode === 'graph' ? 'active' : ''}" style="padding:6px 12px;border:none;border-radius:6px;background:${viewMode === 'graph' ? 'var(--gdi-surface)' : 'transparent'};color:${viewMode === 'graph' ? 'var(--gdi-primary)' : 'var(--gdi-text-secondary)'};font-size:12px;font-weight:700;cursor:pointer;">Graph</button>
-            </div>
-          ` : ''}
-          <button id="ss-export" style="padding:8px 14px; font-size:12px; font-weight:bold; border-radius:8px; border:none; background:var(--gdi-primary); color:#fff; cursor:pointer;">📤 Export</button>
-        </div>
-      </div>
-
-      <div class="gdi-scrollbar" style="flex:1;overflow-y:auto;padding:24px;background:var(--gdi-surface-secondary);">
-        ${activeTab === 'overview' ? renderOverview(uniqueInternal, externalDomains) : ''}
-        ${activeTab === 'structure' ? renderStructure() : ''}
-        ${activeTab === 'links' ? renderLinks(uniqueInternal, externalDomains) : ''}
-        ${activeTab === 'seo' ? renderSEO() : ''}
-        ${activeTab === 'technical' ? renderTechnical() : ''}
-      </div>
-    `;
-
-    bindEvents();
-  };
-
-  const renderOverview = (uniqueInternal, externalDomains) => {
-    return `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-bottom:24px;">
-        <div class="ss-card">
-          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
-            <div style="font-size:11px;font-weight:800;color:var(--gdi-text-secondary);text-transform:uppercase;letter-spacing:.5px;">SEO Score</div>
-            <div style="padding:4px 10px;border-radius:20px;background:${seo.score >= 80 ? tColor('colors.successLight') : seo.score >= 60 ? tColor('colors.warningLight') : tColor('colors.errorLight')};color:${seo.score >= 80 ? tColor('colors.success') : seo.score >= 60 ? tColor('colors.warning') : tColor('colors.error')};font-size:11px;font-weight:700;">${seo.score >= 80 ? 'Good' : seo.score >= 60 ? 'Fair' : 'Poor'}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="font-size:36px;font-weight:800;color:${seo.score >= 80 ? tColor('colors.success') : seo.score >= 60 ? tColor('colors.warning') : tColor('colors.error')};">${seo.score}</div>
-            <div style="flex:1;">
-              <div style="font-size:13px;color:var(--gdi-text-sec);line-height:1.5;">
-                ${seo.issues.length ? `<div style="color:${tColor('colors.error')};margin-bottom:4px;">${seo.issues.length} critical issues</div>` : ''}
-                ${seo.warnings.length ? `<div style="color:${tColor('colors.warning')};">${seo.warnings.length} warnings</div>` : ''}
-                ${!seo.issues.length && !seo.warnings.length ? `<div style="color:${tColor('colors.success')};">✅ All checks passed</div>` : ''}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="ss-card">
-          <div style="font-size:11px;font-weight:800;color:var(--gdi-text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Link Profile</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div>
-              <div style="font-size:28px;font-weight:800;color:var(--gdi-primary);">${data.internalLinks.length}</div>
-              <div style="font-size:12px;color:var(--gdi-text-muted);">Internal</div>
-            </div>
-            <div>
-              <div style="font-size:28px;font-weight:800;color:var(--gdi-primary);">${data.externalLinks.length}</div>
-              <div style="font-size:12px;color:var(--gdi-text-muted);">External</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="ss-card">
-          <div style="font-size:11px;font-weight:800;color:var(--gdi-text-sec);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Content Structure</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:var(--gdi-text-sec);">Total Headings</span>
-              <span style="font-size:13px;font-weight:700;color:var(--gdi-text-main);">${data.headings.length}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:var(--gdi-text-sec);">Images</span>
-              <span style="font-size:13px;font-weight:700;color:var(--gdi-text-main);">${data.images.length}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:13px;color:var(--gdi-text-sec);">Forms</span>
-              <span style="font-size:13px;font-weight:700;color:var(--gdi-text-main);">${data.forms.length}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      ${seo.issues.length > 0 ? `
-        <div class="ss-card" style="margin-bottom:24px;">
-          <h3 class="ss-h3">🚨 Critical Issues</h3>
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            ${seo.issues.map(issue => `
-              <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;background:${tColor('colors.errorLight')};border:1px solid ${tColor('colors.error')};">
-                <div style="font-weight:700;color:${tColor('colors.error')};font-size:13px;">${escapeHtml(issue)}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
-
-      <div class="ss-card">
-        <h3 class="ss-h3">🔗 Most Linked Internal Pages</h3>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          ${uniqueInternal.slice(0, 8).map((item, i) => `
-            <div class="ss-item" style="display:flex;align-items:center;gap:12px;">
-              <span style="width:28px;height:28px;border-radius:50%;background:var(--gdi-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i + 1}</span>
-              <div style="flex:1;min-width:0;">
-                <div style="font-family:monospace;font-size:12px;color:var(--gdi-text-main);word-break:break-all;">${escapeHtml(item.path)}</div>
-                <div style="font-size:11px;color:var(--gdi-text-muted);margin-top:2px;">${[...new Set(item.texts)].slice(0, 2).join(' • ')}</div>
-              </div>
-              <span style="padding:4px 12px;border-radius:20px;background:${tColor('colors.infoLight')};color:${tColor('colors.info')};font-size:12px;font-weight:700;flex-shrink:0;">${item.count} links</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-  };
-
-  const renderStructure = () => {
-    if (viewMode === 'tree') return renderTreeView();
-    if (viewMode === 'graph') return renderGraphView();
-    return renderCardsView();
-  };
-
-  const renderCardsView = () => {
-    return `
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;">
-        <div class="ss-card">
-          <h3 class="ss-h3">📑 Heading Hierarchy</h3>
-          <div class="gdi-scrollbar" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;">
-            ${data.headings.map(h => `
-              <div class="ss-item" style="margin-left:${(h.level - 1) * 16}px; border-left:3px solid var(--gdi-primary);">
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:11px;font-weight:800;color:var(--gdi-primary);text-transform:uppercase;">H${h.level}</span>
-                  <span style="font-size:13px;color:var(--gdi-text-main);font-weight:600;">${escapeHtml(h.text)}</span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <div class="ss-card">
-          <h3 class="ss-h3">🧭 Navigation Items</h3>
-          <div class="gdi-scrollbar" style="display:flex;flex-wrap:wrap;gap:6px;max-height:300px;overflow-y:auto;">
-            ${data.navItems.slice(0, 40).map(item => `
-              <span style="padding:6px 12px;border-radius:8px;background:var(--gdi-surface-secondary);border:1px solid var(--gdi-border);font-size:12px;color:var(--gdi-text-sec);font-weight:500;">${escapeHtml(item.text)}</span>
-            `).join('')}
-          </div>
-        </div>
-
-        <div class="ss-card">
-          <h3 class="ss-h3">🌳 DOM Snapshot</h3>
-          <div class="gdi-scrollbar" style="font-family:monospace;font-size:12px;color:var(--gdi-text-sec);line-height:1.6;background:var(--gdi-surface-secondary);padding:16px;border-radius:10px;overflow-x:auto;">
-            ${renderDomNode(domTree, 0)}
-          </div>
-        </div>
-      </div>
-    `;
-  };
-
-  const renderDomNode = (node, depth) => {
-    if (!node) return '';
-    const hasChildren = node.children && node.children.length > 0;
-    const isExpanded = expandedNodes.has(node.name) || depth < 1;
-
-    return `
-      <div style="margin-left:${depth * 12}px;">
-        <div style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:2px 0;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';">
-          ${hasChildren ? `<span>${isExpanded ? '▼' : '▶'}</span>` : '<span style="width:14px;"></span>'}
-          <span style="color:var(--gdi-primary);font-weight:700;">${node.tag}</span>
-          ${node.id ? `<span style="color:${tColor('colors.success')};">${node.id}</span>` : ''}
-          ${node.classes ? `<span style="color:${tColor('colors.warning')};">${node.classes}</span>` : ''}
-        </div>
-        ${hasChildren ? `
-          <div style="${isExpanded ? '' : 'display:none;'}">
-            ${node.children.map(c => renderDomNode(c, depth + 1)).join('')}
-          </div>
-        ` : ''}
-      </div>
-    `;
-  };
-
-  const renderTreeView = () => {
-    const buildTree = (node, prefix = '', isLast = true) => {
-      if (!node) return '';
-      const connector = prefix + (isLast ? '└── ' : '├── ');
-      const childPrefix = prefix + (isLast ? '    ' : '│   ');
-      let result = `<div style="font-family:monospace;font-size:12px;color:var(--gdi-text-sec);padding:2px 0;white-space:nowrap;">${connector}<span style="color:var(--gdi-primary);font-weight:700;">${node.tag}</span>${node.id || ''}${node.classes || ''}</div>`;
-      if (node.children) node.children.forEach((child, i) => { result += buildTree(child, childPrefix, i === node.children.length - 1); });
-      return result;
-    };
-
-    return `
-      <div class="ss-card gdi-scrollbar" style="overflow-x:auto;">
-        <h3 class="ss-h3">🌳 DOM Tree View</h3>
-        <div style="background:var(--gdi-surface-secondary);padding:20px;border-radius:12px;">
-          ${buildTree(domTree)}
-        </div>
-      </div>
-    `;
-  };
-
-  const renderGraphView = () => {
-    const nodes = [{ id: 'root', label: data.currentPath || '/', type: 'root', x: 400, y: 50 }];
-    const edges = [];
-    const uniqueInternal = [...data.linkMap.values()].slice(0, 15);
-    
-    uniqueInternal.forEach((item, i) => {
-      const angle = (i / uniqueInternal.length) * Math.PI * 2 - Math.PI / 2;
-      nodes.push({ id: `node-${i}`, label: item.path.length > 25 ? item.path.substring(0, 22) + '...' : item.path, count: item.count, x: 400 + Math.cos(angle) * 200, y: 250 + Math.sin(angle) * 120 });
-      edges.push({ from: 'root', to: `node-${i}`, weight: item.count });
-    });
-
-    const maxCount = Math.max(...edges.map(e => e.weight), 1);
-
-    return `
-      <div class="ss-card">
-        <h3 class="ss-h3">🕸️ Link Graph Visualization</h3>
-        <div style="position:relative;width:100%;height:500px;background:var(--gdi-surface-secondary);border-radius:12px;overflow:hidden;">
-          <svg width="100%" height="100%" viewBox="0 0 800 400" style="position:absolute;top:0;left:0;">
-            ${edges.map(e => {
-              const fNode = nodes.find(n => n.id === e.from);
-              const tNode = nodes.find(n => n.id === e.to);
-              return `<line x1="${fNode.x}" y1="${fNode.y}" x2="${tNode.x}" y2="${tNode.y}" stroke="var(--gdi-border)" stroke-width="${1 + (e.weight / maxCount) * 3}" opacity="0.6"/>`;
-            }).join('')}
-            ${nodes.map(n => `
-              <g transform="translate(${n.x},${n.y})">
-                <circle r="${n.type === 'root' ? 30 : 20 + (n.count || 0) * 2}" fill="var(--gdi-primary)" opacity="0.9"/>
-                <text y="4" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">${n.type === 'root' ? '🏠' : n.count || ''}</text>
-              </g>
-            `).join('')}
-          </svg>
-          ${nodes.map(n => `
-            <div style="position:absolute;left:${(n.x / 800) * 100}%;top:${(n.y / 400) * 100}%;transform:translate(-50%,${n.type === 'root' ? '-120%' : '120%'});text-align:center;pointer-events:none;">
-              <div style="font-size:11px;font-weight:700;color:var(--gdi-text-primary);background:var(--gdi-surface);padding:4px 8px;border-radius:6px;border:1px solid var(--gdi-border);">
-                ${escapeHtml(n.label)}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-  };
-
-  const renderLinks = (uniqueInternal, externalDomains) => {
-    return `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:14px;">
-        <div class="ss-card">
-          <h3 class="ss-h3">🔗 Internal Links (${data.internalLinks.length})</h3>
-          <div class="gdi-scrollbar" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
-            ${uniqueInternal.slice(0, 20).map(item => `
-              <div class="ss-item">
-                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                  <span style="font-family:monospace;font-size:12px;color:var(--gdi-text-main);word-break:break-all;">${escapeHtml(item.path)}</span>
-                  <span style="background:${tColor('colors.infoLight')};color:${tColor('colors.info')};font-size:11px;padding:2px 8px;border-radius:12px;font-weight:bold;">${item.count}×</span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <div class="ss-card">
-          <h3 class="ss-h3">🌐 External Domains (${externalDomains.length})</h3>
-          <div class="gdi-scrollbar" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
-            ${externalDomains.slice(0, 25).map(domain => `
-              <div class="ss-item" style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:13px;color:var(--gdi-text-main);font-weight:600;">${escapeHtml(domain)}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      </div>
-    `;
-  };
-
-  const renderSEO = () => {
-    return `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:14px;">
-        <div class="ss-card">
-          <h3 class="ss-h3">📝 Meta Tags</h3>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            ${Object.entries(data.metaTags).slice(0, 10).map(([name, content]) => `
-              <div class="ss-item">
-                <div style="font-size:11px;font-weight:800;color:var(--gdi-primary);text-transform:uppercase;margin-bottom:2px;">${escapeHtml(name)}</div>
-                <div style="font-size:12px;color:var(--gdi-text-main);word-break:break-all;">${escapeHtml(content)}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <div class="ss-card">
-          <h3 class="ss-h3">🖼️ Image SEO</h3>
-          <div style="display:flex;gap:10px;">
-            <div class="ss-item" style="flex:1;text-align:center;">
-              <div style="font-size:24px;font-weight:800;color:var(--gdi-text-main);">${data.images.length}</div>
-              <div style="font-size:11px;color:var(--gdi-text-muted);">Total Images</div>
-            </div>
-            <div class="ss-item" style="flex:1;text-align:center;background:${data.imagesWithoutAlt.length ? tColor('colors.errorLight') : tColor('colors.successLight')}">
-              <div style="font-size:24px;font-weight:800;color:${data.imagesWithoutAlt.length ? tColor('colors.error') : tColor('colors.success')};">${data.imagesWithoutAlt.length}</div>
-              <div style="font-size:11px;color:var(--gdi-text-muted);">Missing Alt</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  };
-
-  const renderTechnical = () => {
-    return `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;">
-        <div class="ss-card">
-          <h3 class="ss-h3">📄 Page Information</h3>
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--gdi-border);padding-bottom:8px;">
-              <span class="ss-text-sec" style="font-size:13px;">Canonical URL</span>
-              <span class="ss-text-main" style="font-size:12px;font-weight:600;">${escapeHtml(data.canonical)}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--gdi-border);padding-bottom:8px;">
-              <span class="ss-text-sec" style="font-size:13px;">Page Size</span>
-              <span class="ss-text-main" style="font-size:13px;font-weight:600;">${data.pageSizeKB} KB</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--gdi-border);padding-bottom:8px;">
-              <span class="ss-text-sec" style="font-size:13px;">DOM Elements</span>
-              <span class="ss-text-main" style="font-size:13px;font-weight:600;">${data.domStats.totalElements.toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  };
-
-  const bindEvents = () => {
-    $$('.ss-tab', content).forEach(t => {
-      t.addEventListener('click', () => { activeTab = t.dataset.tab; render(); });
-    });
-    $$('.ss-view-btn', content).forEach(b => {
-      b.addEventListener('click', () => { viewMode = b.dataset.view; render(); });
-    });
-
-    $('#ss-export', content)?.addEventListener('click', () => {
-      const summary = `Site Structure Report — ${data.domain}\nSEO Score: ${seo.score}/100\nInternal Links: ${data.internalLinks.length}\nExternal Links: ${data.externalLinks.length}\nImages: ${data.images.length} (${data.imagesWithoutAlt.length} missing alt)\nPage Size: ${data.pageSizeKB} KB`;
-      copy(summary).then(() => toast('Report copied to clipboard!', 'success'));
-    });
-  };
-
-  // ============ INIT ============
-  render();
-  GDI.createModal('Site Structure Visualizer', content, { 
-    width: '95vw', maxWidth: '1200px', icon: '🏗️', subtitle: 'Interactive site architecture analysis' 
-  });
-}
-
-// ==================== GOOGLE MAPS SCRAPER (WORKING VERSION) ====================
-function scrapeGoogleMaps() {
-  // ============ UTILITIES ============
-  const $ = (s, c = document) => c.querySelector(s);
-  const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
-
-  const clean = (t) => (t || '').replace(/\s+/g, ' ').trim();
-
-  const copy = async (text) => {
-    try { await navigator.clipboard.writeText(text); return true; }
-    catch {
-      const ta = document.createElement('textarea');
-      ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;';
-      document.body.appendChild(ta); ta.select();
-      const ok = document.execCommand('copy'); document.body.removeChild(ta);
-      return ok;
-    }
-  };
-
-  const toast = (msg, type = 'success') => {
-    const palette = {
-      success: { bg: '#10b981', icon: '✓' },
-      error: { bg: '#ef4444', icon: '✕' },
-      info: { bg: '#3b82f6', icon: 'ℹ' },
-      warning: { bg: '#f59e0b', icon: '!' }
-    };
-    const t = palette[type] || palette.info;
-    const el = document.createElement('div');
-    el.style.cssText = `
-      position:fixed;bottom:24px;right:24px;z-index:2147483647;
-      background:${t.bg};color:#fff;padding:14px 20px;border-radius:14px;
-      font:600 14px/1.4 system-ui,sans-serif;box-shadow:0 20px 40px rgba(0,0,0,.25),0 0 0 1px rgba(255,255,255,.1) inset;
-      display:flex;align-items:center;gap:10px;max-width:380px;pointer-events:none;
-      animation:gmsToastIn .4s cubic-bezier(.16,1,.3,1) forwards;
-    `;
-    el.innerHTML = `<span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:rgba(255,255,255,.2);border-radius:50%;font-size:13px;">${t.icon}</span><span>${msg}</span>`;
-    document.body.appendChild(el);
-    setTimeout(() => {
-      el.style.animation = 'gmsToastOut .3s ease forwards';
-      setTimeout(() => el.remove(), 300);
-    }, 3000);
-  };
-
-  // ============ MODAL SYSTEM ============
-  let overlay, modal, isMinimized = false;
-
-  const buildModal = () => {
-    overlay = document.createElement('div');
-    overlay.id = 'gms-overlay';
-    overlay.style.cssText = `
-      position:fixed;inset:0;z-index:2147483646;
-      background:rgba(15,23,42,.65);backdrop-filter:blur(12px);
-      display:flex;align-items:center;justify-content:center;
-      padding:16px;box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-      animation:gmsFadeIn .25s ease;
-    `;
-
-    modal = document.createElement('div');
-    modal.id = 'gms-modal';
-    modal.style.cssText = `
-      background:#fff;border-radius:20px;width:100%;max-width:1000px;
-      max-height:92vh;display:flex;flex-direction:column;
-      box-shadow:0 25px 80px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.1) inset;
-      animation:gmsModalUp .35s cubic-bezier(.16,1,.3,1);
-      overflow:hidden;position:relative;
-    `;
-
-    overlay.appendChild(modal);
-    overlay.classList.add('gdi-pointer-auto');
-    GDI.ShadowRoot.appendChild(overlay);
-
-    overlay.addEventListener('click', (e) => { if (e.target === overlay && !isMinimized) destroy(); });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') isMinimized ? restore() : destroy();
-      if (e.ctrlKey && e.key === 'e') { e.preventDefault(); $('#gms-btn-auto')?.click(); }
-      if (e.ctrlKey && e.key === 's') { e.preventDefault(); $('#gms-btn-stop')?.click(); }
-      if (e.ctrlKey && e.key === 'm') { e.preventDefault(); toggleMinimize(); }
-    });
-  };
-
-  const destroy = () => { stopAll(); overlay?.remove(); };
-  const toggleMinimize = () => isMinimized ? restore() : minimize();
-
-  const minimize = () => {
-    isMinimized = true;
-    modal.style.display = 'none';
-    overlay.style.background = 'transparent';
-    overlay.style.backdropFilter = 'none';
-    overlay.style.pointerEvents = 'none';
-
-    const pill = document.createElement('div');
-    pill.id = 'gms-pill';
-    pill.style.cssText = `
-      position:fixed;bottom:20px;right:20px;z-index:2147483647;
-      background:#1e293b;color:#fff;padding:10px 18px;border-radius:50px;
-      font:700 13px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3);
-      display:flex;align-items:center;gap:10px;cursor:pointer;pointer-events:auto;
-      animation:gmsPillIn .3s ease;border:1px solid rgba(255,255,255,.1);
-    `;
-    pill.innerHTML = `
-      <span style="font-size:16px;">🗺️</span>
-      <span id="gms-pill-count">${scraped.length}</span>
-      <span style="width:1px;height:16px;background:rgba(255,255,255,.2);"></span>
-      <span style="font-size:11px;opacity:.8;">Ctrl+M</span>
-    `;
-    pill.onclick = restore;
-    pill.classList.add('gdi-pointer-auto');
-    GDI.ShadowRoot.appendChild(pill);
-    toast('Minimized — Ctrl+M to restore', 'info');
-  };
-
-  const restore = () => {
-    isMinimized = false;
-    $('#gms-pill')?.remove();
-    modal.style.display = 'flex';
-    overlay.style.background = 'rgba(15,23,42,.65)';
-    overlay.style.backdropFilter = 'blur(12px)';
-    overlay.style.pointerEvents = 'auto';
-    render();
-  };
-
-  // ============ STATE ============
-  const isGM = window.location.hostname.includes('google.') &&
-    (window.location.pathname.includes('/maps') || window.location.search.includes('maps'));
-  let scraped = [];
-  let isManual = false;
-  let manualHandler = null;
-  let scrollInterval = null;
-  let mutObs = null;
-  let isScrolling = false;
-  let activeTab = 'extract'; // 'extract' | 'results'
-
-  // ============ EXTRACTION ENGINE (unchanged logic) ============
-  const findScrollContainer = () => {
-    const sels = [
-      'div[role="feed"]',
-      'div[role="main"] div[style*="overflow-y: auto"]',
-      'div[role="main"] div[style*="overflow: auto"]',
-      'div[role="main"] div[class*="m6QErb"]',
-      'div[role="main"]',
-    ];
-    for (const s of sels) {
-      const el = $(s);
-      if (el) {
-        const st = window.getComputedStyle(el);
-        if (st.overflowY === 'auto' || st.overflowY === 'scroll' || el.scrollHeight > el.clientHeight + 10) return el;
-      }
-    }
-    const cands = $$('div').filter(d => {
-      const st = window.getComputedStyle(d);
-      return (st.overflowY === 'auto' || st.overflowY === 'scroll') && d.scrollHeight > d.clientHeight + 50;
-    });
-    return cands.sort((a, b) => b.scrollHeight - a.scrollHeight)[0] || null;
-  };
-
-  const findFeed = () => $('div[role="feed"]') || $('div[role="main"]');
-
-  const extractCoords = (url) => {
-    if (!url) return null;
-    const m1 = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-    if (m1) return { lat: m1[1], lng: m1[2] };
-    const m2 = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
-    if (m2) return { lat: m2[1], lng: m2[2] };
-    return null;
-  };
-
-  const extractBiz = (container) => {
-    try {
-      if (!container || container.nodeType !== 1) return null;
-      const fullText = container.textContent || '';
-      const link = container.querySelector('a[href*="/maps/place/"]') || container.closest('a[href*="/maps/place/"]');
-
-      let name = '';
-      const nameEls = [
-        container.querySelector('div.fontHeadlineSmall'),
-        container.querySelector('div.qBF1Pd'),
-        container.querySelector('div.NrDZNb'),
-        container.querySelector('span[class*="headline"]'),
-        container.querySelector('div[role="heading"]'),
-        container.querySelector('h3'), container.querySelector('h2'), container.querySelector('h1'),
-      ];
-      for (const el of nameEls) { if (el) { name = clean(el.textContent); if (name.length > 1) break; } }
-      if (!name && link) name = clean(link.getAttribute('aria-label') || link.textContent);
-      name = name.replace(/\s*\d+(\.\d+)?\s*stars?\s*$/i, '').replace(/\s*[·•]\s*$/g, '').trim();
-      if (!name || name.length < 2 || /^\d+\.?\d*$/.test(name)) return null;
-
-      let rating = '', reviews = '';
-      const rImg = container.querySelector('[role="img"][aria-label*="star"], span[aria-label*="star"]');
-      if (rImg) {
-        const l = rImg.getAttribute('aria-label') || '';
-        const m = l.match(/([\d.]+)\s*stars?/i); if (m) rating = m[1];
-        const rm = l.match(/\(([\d,]+)\)/); if (rm) reviews = rm[1];
-      }
-      if (!rating) { const m = fullText.match(/(\d+\.\d+)\s*⭐/); if (m) rating = m[1]; }
-      if (!reviews) { const m = fullText.match(/\(([\d,]+)\s*review/i) || fullText.match(/([\d,]+)\s*review/i); if (m) reviews = m[1]; }
-
-      let category = '';
-      const parts = fullText.split(/[·•]/).map(clean).filter(Boolean);
-      if (parts.length >= 2) { const c = parts[1]; if (c.length < 60 && !c.match(/^\d/) && !c.includes('$') && c !== name) category = c; }
-
-      let address = '';
-      const am = fullText.match(/(\d+[^,]{5,}(street|st|avenue|ave|road|rd|blvd|drive|dr|lane|ln|way|plaza|center|pl|court|ct)\b[^·•]{0,80})/i);
-      if (am) address = clean(am[0]);
-      if (!address) {
-        for (const sp of $$('span', container)) {
-          const t = clean(sp.textContent);
-          if (t.length > 8 && t.match(/\d/) && !t.match(/stars?|review|open|closed/i) && t !== name && t !== category) { address = t; break; }
-        }
-      }
-
-      let phone = '';
-      const pm = fullText.match(/(\+?[\d\s\-\(\)]{10,})/);
-      if (pm) { const p = pm[1].replace(/\s+/g, ' ').trim(); if (p.length >= 10 && p.match(/\d{3}/)) phone = p; }
-
-      let website = '';
-      const wl = container.querySelector('a[href^="http"]:not([href*="google.com/maps"])');
-      if (wl) website = wl.href;
-
-      let priceLevel = '';
-      const prm = fullText.match(/([€£$¥₹]{1,4})/);
-      if (prm) priceLevel = prm[1];
-
-      let status = '';
-      const sm = fullText.match(/(Open\s*24\s*hours|Open\s*now|Closed|Closes?\s+(?:soon|at|in)|Opens?\s+(?:soon|at|in|tomorrow|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday))/i);
-      if (sm) status = sm[0];
-
-      let mapsUrl = '', coords = null;
-      if (link) { const raw = link.getAttribute('href') || link.href; mapsUrl = raw.startsWith('http') ? raw : 'https://www.google.com' + raw; coords = extractCoords(mapsUrl); }
-
-      let image = '';
-      const img = container.querySelector('img[src*="googleusercontent"], img[src*="gstatic"], img[src*="maps.gstatic"]');
-      if (img) image = img.src;
-
-      let placeId = '';
-      if (mapsUrl) { const pm = mapsUrl.match(/place\/([^/@]+)/); if (pm) placeId = decodeURIComponent(pm[1]); }
-
-      return {
-        name, rating, reviews, category, address, phone, website,
-        priceLevel, status, mapsUrl, image, placeId,
-        lat: coords?.lat || '', lng: coords?.lng || '',
-        _key: `${name.toLowerCase().trim()}|${(address || '').toLowerCase().trim()}`
-      };
-    } catch (e) { return null; }
-  };
-
-  const extractAll = () => {
-    const results = []; const seen = new Set();
-    const add = (b) => { if (!b?.name) return; if (seen.has(b._key)) return; seen.add(b._key); results.push(b); };
-    $$('div[role="article"]').forEach(el => add(extractBiz(el)));
-    const feed = $('div[role="feed"]');
-    if (feed) Array.from(feed.children).forEach(c => add(extractBiz(c)));
-    $$('[data-result-index], [data-result-id]').forEach(el => add(extractBiz(el)));
-    $$('a[href*="/maps/place/"]').forEach(link => {
-      let p = link.parentElement;
-      for (let i = 0; i < 7 && p; i++) { if (p.getAttribute('role') === 'article' || p.getAttribute('data-result-index')) { add(extractBiz(p)); return; } p = p.parentElement; }
-      add(extractBiz(link.closest('div') || link));
-    });
-    $$('.fontHeadlineSmall, .qBF1Pd, .NrDZNb').forEach(el => {
-      const p = el.closest('div[role="article"], [data-result-index], div[jsaction*="mouseover"]') || el.parentElement?.parentElement?.parentElement;
-      if (p) add(extractBiz(p));
-    });
-    return results;
-  };
-
-  // ============ SCROLL LOGIC ============
-  const stopAll = () => {
-    if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; }
-    if (mutObs) { mutObs.disconnect(); mutObs = null; }
-    isScrolling = false;
-  };
-
-  const startAutoScroll = () => {
-    if (isScrolling) return;
-    isScrolling = true;
-    activeTab = 'extract'; render();
-
-    const sc = findScrollContainer();
-    if (!sc) { toast('Scroll container not found. Scroll the sidebar manually first.', 'error'); isScrolling = false; render(); return; }
-
-    const feed = findFeed();
-    let lastCount = scraped.length;
-
-    const onMut = () => {
-      clearTimeout(window._gmsDebounce);
-      window._gmsDebounce = setTimeout(() => {
-        const added = merge(extractAll());
-        if (added) render();
-      }, 250);
-    };
-
-    mutObs = new MutationObserver(onMut);
-    mutObs.observe(feed || sc, { childList: true, subtree: true });
-    onMut();
-
-    let scrolls = 0, stagnant = 0, lastH = sc.scrollHeight;
-
-    scrollInterval = setInterval(() => {
-      const old = sc.scrollTop;
-      sc.scrollTop += Math.min(700, sc.clientHeight * 0.6);
-      scrolls++;
-      const didMove = sc.scrollTop > old;
-      const h = sc.scrollHeight;
-
-      if (scraped.length === lastCount && h === lastH && !didMove) stagnant++; else { stagnant = 0; lastCount = scraped.length; lastH = h; }
-
-      render();
-
-      if (scrolls >= 60 || stagnant >= 6) {
-        stopAll();
-        toast(`Done! ${scraped.length} businesses extracted.`, 'success');
-        render();
-      }
-    }, 800);
-  };
-
-  const merge = (items) => {
-    const before = scraped.length;
-    const map = new Map(scraped.map(b => [b._key, b]));
-    items.forEach(b => { if (b?._key && !map.has(b._key)) { map.set(b._key, b); scraped.push(b); } });
-    return scraped.length - before;
-  };
-
-  // ============ UI RENDERERS ============
-  const stats = () => {
-    if (!scraped.length) return null;
-    const avg = scraped.filter(b => b.rating).reduce((a, b) => a + (+b.rating || 0), 0) / scraped.filter(b => b.rating).length || 0;
-    const cats = {};
-    scraped.forEach(b => { if (b.category) cats[b.category] = (cats[b.category] || 0) + 1; });
-    const topCat = Object.entries(cats).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
-    return { count: scraped.length, avg: avg.toFixed(1), topCat, withPhone: scraped.filter(b => b.phone).length };
-  };
-
-  const render = () => {
-    if (!modal) return;
-    const st = stats();
-
-    // Header
-    const headerHTML = `
-      <div style="padding:16px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 12px rgba(99,102,241,.3);">🗺️</div>
-          <div>
-            <h1 style="margin:0;font-size:17px;font-weight:800;color:#0f172a;letter-spacing:-.3px;">Maps Scraper</h1>
-            <div style="font-size:12px;color:#64748b;font-weight:500;margin-top:1px;">${isGM ? 'Ready to extract' : 'Navigate to Google Maps'}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          ${st ? `<div style="background:#fff;padding:6px 14px;border-radius:20px;border:1px solid #e2e8f0;font-size:13px;font-weight:700;color:#334155;box-shadow:0 1px 2px rgba(0,0,0,.04);"><span style="color:#6366f1;">${st.count}</span> extracted</div>` : ''}
-          <button id="gms-minimize" style="background:#fff;border:1px solid #e2e8f0;width:32px;height:32px;border-radius:8px;cursor:pointer;color:#64748b;font-size:16px;display:flex;align-items:center;justify-content:center;" title="Minimize (Ctrl+M)">−</button>
-          <button id="gms-close" style="background:#fee2e2;border:1px solid #fecaca;width:32px;height:32px;border-radius:8px;cursor:pointer;color:#dc2626;font-size:18px;display:flex;align-items:center;justify-content:center;" title="Close (Esc)">×</button>
-        </div>
-      </div>
-    `;
-
-    // Tabs
-    const tabsHTML = `
-      <div style="display:flex;gap:0;border-bottom:1px solid #e2e8f0;background:#fff;padding:0 24px;">
-        <button data-tab="extract" class="gms-tab ${activeTab === 'extract' ? 'active' : ''}" style="padding:14px 20px;font-size:13px;font-weight:700;color:#64748b;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;position:relative;">Extract</button>
-        <button data-tab="results" class="gms-tab ${activeTab === 'results' ? 'active' : ''}" style="padding:14px 20px;font-size:13px;font-weight:700;color:#64748b;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;position:relative;">
-          Results
-          ${scraped.length ? `<span style="display:inline-flex;margin-left:6px;padding:2px 8px;background:#6366f1;color:#fff;border-radius:10px;font-size:11px;min-width:18px;text-align:center;">${scraped.length}</span>` : ''}
-        </button>
-      </div>
-    `;
-
-    // Extract Tab
-    const extractHTML = !isGM ? `
-      <div style="text-align:center;padding:64px 24px;">
-        <div style="font-size:64px;margin-bottom:20px;filter:grayscale(.2);">🗺️</div>
-        <h2 style="margin:0 0 8px;font-size:20px;color:#0f172a;">You're not on Google Maps</h2>
-        <p style="margin:0 0 28px;color:#64748b;max-width:360px;margin-left:auto;margin-right:auto;line-height:1.6;">Open Google Maps, search for businesses, then run this scraper again.</p>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-          <button id="gms-open-maps" class="gms-btn gms-primary">Open Google Maps</button>
-          <div style="display:flex;gap:8px;">
-            <input id="gms-search-q" placeholder="Search query..." style="padding:10px 14px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;min-width:220px;outline:none;focus:border-color:#6366f1;">
-            <button id="gms-search-btn" class="gms-btn gms-primary">Search</button>
-          </div>
-        </div>
-      </div>
-    ` : `
-      <div style="padding:24px;">
-        <!-- Stats Cards -->
-        ${st ? `
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;">
-            <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);padding:16px;border-radius:14px;border:1px solid #bfdbfe;">
-              <div style="font-size:11px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.5px;">Extracted</div>
-              <div style="font-size:28px;font-weight:800;color:#1e40af;margin-top:4px;">${st.count}</div>
-            </div>
-            <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);padding:16px;border-radius:14px;border:1px solid #fcd34d;">
-              <div style="font-size:11px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px;">Avg Rating</div>
-              <div style="font-size:28px;font-weight:800;color:#92400e;margin-top:4px;">${st.avg}★</div>
-            </div>
-            <div style="background:linear-gradient(135deg,#ecfdf5,#a7f3d0);padding:16px;border-radius:14px;border:1px solid #6ee7b7;">
-              <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.5px;">With Phone</div>
-              <div style="font-size:28px;font-weight:800;color:#065f46;margin-top:4px;">${st.withPhone}</div>
-            </div>
-            <div style="background:linear-gradient(135deg,#f5f3ff,#ddd6fe);padding:16px;border-radius:14px;border:1px solid #c4b5fd;">
-              <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;">Top Category</div>
-              <div style="font-size:14px;font-weight:700;color:#5b21b6;margin-top:8px;line-height:1.3;">${escapeHtml(st.topCat)}</div>
-            </div>
-          </div>
-        ` : ''}
-
-        <!-- Controls -->
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
-          <button id="gms-btn-auto" class="gms-btn gms-primary" ${isScrolling ? 'disabled' : ''}>
-            <span>${isScrolling ? '⏳ Extracting...' : '🔄 Auto-Scroll'}</span>
-          </button>
-          <button id="gms-btn-stop" class="gms-btn gms-danger" style="${isScrolling ? '' : 'display:none;'}">⏹ Stop</button>
-          <button id="gms-btn-visible" class="gms-btn gms-secondary" ${isScrolling ? 'disabled' : ''}>📋 Extract Visible</button>
-          <button id="gms-btn-manual" class="gms-btn gms-warning" ${isScrolling ? 'disabled' : ''}>${isManual ? '⏹ Stop Manual' : '🎯 Manual Select'}</button>
-        </div>
-
-        <!-- Progress -->
-        ${isScrolling ? `
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:20px;margin-bottom:20px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:10px;height:10px;background:#10b981;border-radius:50%;animation:gmsPulse 1.5s infinite;box-shadow:0 0 0 4px rgba(16,185,129,.2);"></div>
-                <span style="font-size:14px;font-weight:700;color:#0f172a;">Auto-scrolling in progress</span>
-              </div>
-              <span style="font-size:13px;font-weight:800;color:#6366f1;background:#e0e7ff;padding:4px 12px;border-radius:20px;">${scraped.length} found</span>
-            </div>
-            <div style="height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden;">
-              <div style="height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);width:${Math.min((scraped.length / 50) * 100, 100)}%;border-radius:999px;transition:width .5s ease;"></div>
-            </div>
-            <div style="font-size:12px;color:#64748b;margin-top:10px;">Scrolling the results sidebar and capturing new listings as they load...</div>
-          </div>
-        ` : ''}
-
-        <!-- Manual Banner -->
-        ${isManual ? `
-          <div style="background:#fef3c7;border:2px dashed #f59e0b;border-radius:14px;padding:16px 20px;text-align:center;margin-bottom:20px;animation:gmsFadeIn .3s ease;">
-            <div style="font-size:20px;margin-bottom:6px;">👆</div>
-            <div style="font-size:14px;font-weight:800;color:#92400e;">Manual Mode Active</div>
-            <div style="font-size:12px;color:#b45309;margin-top:4px;">Click any business card in the sidebar to add it. Purple outline = selected. Click again to remove.</div>
-          </div>
-        ` : ''}
-
-        <!-- Empty state -->
-        ${!st && !isScrolling ? `
-          <div style="text-align:center;padding:48px 24px;background:#f8fafc;border-radius:16px;border:2px dashed #e2e8f0;">
-            <div style="font-size:48px;margin-bottom:16px;">📭</div>
-            <div style="font-size:16px;font-weight:800;color:#334155;margin-bottom:6px;">No businesses yet</div>
-            <div style="font-size:13px;color:#64748b;max-width:320px;margin:0 auto;line-height:1.6;">Auto-Scroll will scroll through all results automatically. Manual Select lets you pick individual listings.</div>
-          </div>
-        ` : ''}
-      </div>
-    `;
-
-    // Results Tab
-    const resultsHTML = !scraped.length ? `
-      <div style="text-align:center;padding:64px 24px;">
-        <div style="font-size:56px;margin-bottom:16px;">📋</div>
-        <div style="font-size:16px;font-weight:800;color:#334155;margin-bottom:6px;">No results to show</div>
-        <div style="font-size:13px;color:#64748b;">Switch to the Extract tab and scrape some businesses first.</div>
-      </div>
-    ` : (() => {
-      const filterVal = ($('#gms-filter-input')?.value || '').toLowerCase();
-      const filtered = filterVal ? scraped.filter(b =>
-        b.name.toLowerCase().includes(filterVal) ||
-        (b.category || '').toLowerCase().includes(filterVal) ||
-        (b.address || '').toLowerCase().includes(filterVal)
-      ) : scraped;
-
-      return `
-        <div style="padding:24px;">
-          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-            <div style="position:relative;flex:1;min-width:200px;">
-              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;">🔍</span>
-              <input id="gms-filter-input" value="${escapeHtml(filterVal)}" placeholder="Filter by name, category, address..." style="width:100%;padding:10px 12px 10px 36px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;">
-            </div>
-            <button id="gms-export-trigger" class="gms-btn gms-secondary">📤 Export</button>
-            <button id="gms-clear" class="gms-btn gms-danger">🗑 Clear</button>
-          </div>
-
-          <div style="font-size:12px;color:#64748b;margin-bottom:12px;font-weight:600;">
-            Showing ${filtered.length} of ${scraped.length} result${scraped.length !== 1 ? 's' : ''}
-          </div>
-
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
-            ${filtered.map((b, i) => `
-              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:16px;transition:all .2s;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.04);" onmouseenter="this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)';this.style.transform='translateY(-2px)'" onmouseleave="this.style.boxShadow='0 1px 3px rgba(0,0,0,.04)';this.style.transform='translateY(0)'">
-                <div style="display:flex;gap:12px;">
-                  ${b.image ? `<img src="${escapeHtml(b.image)}" style="width:56px;height:56px;object-fit:cover;border-radius:12px;border:1px solid #e2e8f0;flex-shrink:0;">` : `<div style="width:56px;height:56px;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🏢</div>`}
-                  <div style="flex:1;min-width:0;">
-                    <div style="font-weight:800;color:#0f172a;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(b.name)}</div>
-                    ${b.category ? `<div style="font-size:11px;color:#6366f1;font-weight:700;margin-top:3px;">${escapeHtml(b.category)}</div>` : ''}
-                    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-                      ${b.rating ? `<span style="font-size:13px;font-weight:800;color:#f59e0b;">★ ${escapeHtml(b.rating)}</span>` : ''}
-                      ${b.reviews ? `<span style="font-size:11px;color:#64748b;">(${escapeHtml(b.reviews)})</span>` : ''}
-                      ${b.priceLevel ? `<span style="font-size:11px;color:#059669;font-weight:700;background:#d1fae5;padding:2px 6px;border-radius:4px;">${escapeHtml(b.priceLevel)}</span>` : ''}
-                    </div>
-                  </div>
-                  <button class="gms-del" data-idx="${scraped.indexOf(b)}" style="background:#fee2e2;border:none;width:28px;height:28px;border-radius:8px;cursor:pointer;color:#dc2626;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">×</button>
-                </div>
-                ${b.address ? `<div style="margin-top:10px;font-size:12px;color:#475569;line-height:1.5;display:flex;align-items:flex-start;gap:6px;"><span>📍</span><span>${escapeHtml(b.address)}</span></div>` : ''}
-                ${b.phone ? `<div style="margin-top:4px;font-size:12px;color:#475569;display:flex;align-items:center;gap:6px;"><span>📞</span><span>${escapeHtml(b.phone)}</span></div>` : ''}
-                ${b.status ? `<div style="margin-top:6px;font-size:11px;color:#059669;font-weight:700;background:#ecfdf5;display:inline-block;padding:3px 10px;border-radius:20px;">🕒 ${escapeHtml(b.status)}</div>` : ''}
-                <div style="display:flex;gap:8px;margin-top:12px;">
-                  ${b.mapsUrl ? `<a href="${escapeHtml(b.mapsUrl)}" target="_blank" style="flex:1;text-align:center;padding:8px;background:#f1f5f9;border-radius:8px;font-size:12px;font-weight:700;color:#475569;text-decoration:none;border:1px solid #e2e8f0;transition:all .15s;" onmouseenter="this.style.background='#e2e8f0'" onmouseleave="this.style.background='#f1f5f9'">🗺️ Maps</a>` : ''}
-                  ${b.website ? `<a href="${escapeHtml(b.website)}" target="_blank" style="flex:1;text-align:center;padding:8px;background:#eff6ff;border-radius:8px;font-size:12px;font-weight:700;color:#2563eb;text-decoration:none;border:1px solid #dbeafe;transition:all .15s;" onmouseenter="this.style.background='#dbeafe'" onmouseleave="this.style.background='#eff6ff'">🌐 Website</a>` : ''}
-                </div>
-                ${b.lat ? `<div style="margin-top:8px;font-size:11px;color:#94a3b8;font-family:monospace;">${escapeHtml(b.lat)}, ${escapeHtml(b.lng)}</div>` : ''}
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    })();
-
-    // Assemble
-    modal.innerHTML = `
-      <style>
-        @keyframes gmsFadeIn{from{opacity:0}to{opacity:1}}
-        @keyframes gmsModalUp{from{opacity:0;transform:translateY(20px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-        @keyframes gmsToastIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
-        @keyframes gmsToastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100px)}}
-        @keyframes gmsPulse{0%,100%{opacity:1}50%{opacity:.4}}
-        @keyframes gmsPillIn{from{opacity:0;transform:translateY(20px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
-        .gms-btn{padding:10px 16px;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap;}
-        .gms-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12);}
-        .gms-btn:active:not(:disabled){transform:translateY(0);}
-        .gms-btn:disabled{opacity:.5;cursor:not-allowed;}
-        .gms-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;}
-        .gms-secondary{background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;}
-        .gms-danger{background:#fee2e2;color:#dc2626;border:1px solid #fecaca;}
-        .gms-warning{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
-        .gms-tab.active{color:#6366f1;border-bottom-color:#6366f1;}
-        .gms-tab:hover:not(.active){color:#334155;background:#f8fafc;}
-      </style>
-      ${headerHTML}
-      ${tabsHTML}
-      <div style="flex:1;overflow-y:auto;background:#fff;">
-        ${activeTab === 'extract' ? extractHTML : resultsHTML}
-      </div>
-      ${isGM ? `
-        <div style="padding:10px 24px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:11px;color:#94a3b8;display:flex;justify-content:space-between;align-items:center;">
-          <span>Shortcuts: <b>Ctrl+E</b> Auto-scroll • <b>Ctrl+S</b> Stop • <b>Ctrl+M</b> Minimize • <b>Esc</b> Close</span>
-          <span>${isScrolling ? '⏳ Extracting...' : '✓ Ready'}</span>
-        </div>
-      ` : ''}
-    `;
-
-    bindEvents();
-  };
-
-  const bindEvents = () => {
-    $('#gms-close')?.addEventListener('click', destroy);
-    $('#gms-minimize')?.addEventListener('click', toggleMinimize);
-
-    $$('.gms-tab').forEach(t => {
-      t.addEventListener('click', () => { activeTab = t.dataset.tab; render(); });
-    });
-
-    $('#gms-open-maps')?.addEventListener('click', () => window.open('https://maps.google.com', '_blank'));
-    $('#gms-search-btn')?.addEventListener('click', () => {
-      const q = $('#gms-search-q')?.value.trim();
-      if (q) window.open(`https://www.google.com/maps/search/${encodeURIComponent(q)}`, '_blank');
-    });
-    $('#gms-search-q')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#gms-search-btn')?.click(); });
-
-    $('#gms-btn-auto')?.addEventListener('click', () => { startAutoScroll(); render(); });
-    $('#gms-btn-stop')?.addEventListener('click', () => { stopAll(); toast('Stopped', 'info'); render(); });
-    $('#gms-btn-visible')?.addEventListener('click', () => {
-      const added = merge(extractAll());
-      render();
-      toast(added ? `Added ${added} businesses` : 'No new businesses found', added ? 'success' : 'warning');
-    });
-
-    $('#gms-btn-manual')?.addEventListener('click', toggleManual);
-
-    $('#gms-filter-input')?.addEventListener('input', () => render());
-    $('#gms-clear')?.addEventListener('click', () => {
-      if (!confirm(`Clear all ${scraped.length} extracted businesses?`)) return;
-      scraped = []; stopAll(); render(); toast('Cleared', 'info');
-    });
-
-    $('#gms-export-trigger')?.addEventListener('click', showExportMenu);
-
-    $$('.gms-del').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.idx);
-        scraped.splice(idx, 1);
-        render();
-        toast('Removed', 'info');
-      });
-    });
-  };
-
-  // ============ MANUAL MODE ============
-  const toggleManual = () => {
-    const btn = $('#gms-btn-manual');
-    if (isManual) {
-      isManual = false;
-      if (manualHandler) { document.removeEventListener('click', manualHandler, true); manualHandler = null; }
-      $$('.gms-selected-item').forEach(el => { el.style.outline = ''; el.style.cursor = ''; el.classList.remove('gms-selected-item'); });
-      render();
-      toast('Manual mode off', 'info');
-      return;
-    }
-    isManual = true; render();
-    toast('Manual mode on — click listings to add', 'info');
-
-    manualHandler = (e) => {
-      const target = e.target.closest('div[role="article"], a[href*="/maps/place/"], [data-result-index]');
-      if (!target) return;
-      const container = target.closest('div[role="article"]') || target.closest('[data-result-index]') || target;
-
-      if (container.classList.contains('gms-selected-item')) {
-        container.classList.remove('gms-selected-item');
-        container.style.outline = ''; container.style.cursor = '';
-        const idx = scraped.findIndex(b => b._key === (container._gmsKey || ''));
-        if (idx > -1) { scraped.splice(idx, 1); render(); }
-        return;
-      }
-
-      e.preventDefault(); e.stopPropagation();
-      const business = extractBiz(container);
-      if (business?.name) {
-        container._gmsKey = business._key;
-        container.classList.add('gms-selected-item');
-        container.style.cssText += ';outline:3px solid #8b5cf6 !important;border-radius:12px !important;cursor:pointer !important;';
-        if (!scraped.find(b => b._key === business._key)) {
-          scraped.push(business); render();
-          toast(`Added: ${business.name}`, 'success');
-        }
-      }
-    };
-    document.addEventListener('click', manualHandler, true);
-  };
-
-  // ============ EXPORT MENU ============
-  const showExportMenu = () => {
-    const existing = $('#gms-export-menu');
-    if (existing) { existing.remove(); return; }
-
-    const menu = document.createElement('div');
-    menu.id = 'gms-export-menu';
-    menu.style.cssText = `
-      position:absolute;right:24px;bottom:80px;z-index:10;
-      background:#fff;border:1px solid #e2e8f0;border-radius:14px;
-      box-shadow:0 20px 50px rgba(0,0,0,.15);padding:8px;min-width:200px;
-      animation:gmsFadeIn .2s ease;
-    `;
-    menu.innerHTML = `
-      <div style="padding:8px 12px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Export Format</div>
-      <button id="gms-exp-csv" class="gms-menu-item" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:8px;"><span>📊</span> CSV Spreadsheet</button>
-      <button id="gms-exp-json" class="gms-menu-item" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:8px;"><span>📦</span> JSON Data</button>
-      <button id="gms-exp-md" class="gms-menu-item" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:8px;"><span>📝</span> Markdown Table</button>
-      <div style="height:1px;background:#e2e8f0;margin:6px 0;"></div>
-      <button id="gms-exp-copy" class="gms-menu-item" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:8px;"><span>📋</span> Copy to Clipboard</button>
-    `;
-    modal.appendChild(menu);
-
-    const closeMenu = (e) => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', closeMenu); } };
-    setTimeout(() => document.addEventListener('click', closeMenu), 10);
-
-    menu.querySelectorAll('.gms-menu-item').forEach(item => {
-      item.addEventListener('mouseenter', () => item.style.background = '#f8fafc');
-      item.addEventListener('mouseleave', () => item.style.background = 'transparent');
-    });
-
-    $('#gms-exp-csv', menu).addEventListener('click', () => { doExport('csv'); menu.remove(); });
-    $('#gms-exp-json', menu).addEventListener('click', () => { doExport('json'); menu.remove(); });
-    $('#gms-exp-md', menu).addEventListener('click', () => { doExport('md'); menu.remove(); });
-    $('#gms-exp-copy', menu).addEventListener('click', async () => {
-      const lines = scraped.map(b => `${b.name} | ${b.rating || 'N/A'}★ | ${b.category || ''} | ${b.address || ''}`);
-      const ok = await copy(lines.join('\n'));
-      toast(ok ? 'Copied!' : 'Failed', ok ? 'success' : 'error');
-      menu.remove();
-    });
-  };
-
-  const doExport = (type) => {
-    if (!scraped.length) return;
-    let blob, filename, mime;
-
-    if (type === 'csv') {
-      const h = ['Name', 'Rating', 'Reviews', 'Category', 'Address', 'Phone', 'Website', 'Price Level', 'Status', 'Lat', 'Lng', 'Place ID', 'Maps URL', 'Image URL'];
-      const rows = scraped.map(b => [b.name, b.rating, b.reviews, b.category, b.address, b.phone, b.website, b.priceLevel, b.status, b.lat, b.lng, b.placeId, b.mapsUrl, b.image]);
-      const csv = [h, ...rows].map(r => r.map(c => `"${String(c || '').replace(/"/g, '""')}"`).join(',')).join('\n');
-      blob = new Blob(['\ufeff' + csv], { type: 'text/csv' }); filename = `maps-${new Date().toISOString().split('T')[0]}.csv`;
-    } else if (type === 'json') {
-      blob = new Blob([JSON.stringify({ source: location.href, extractedAt: new Date().toISOString(), count: scraped.length, businesses: scraped }, null, 2)], { type: 'application/json' });
-      filename = `maps-${new Date().toISOString().split('T')[0]}.json`;
-    } else {
-      let md = `# Google Maps Extraction — ${new Date().toLocaleString()}\n\n| # | Business | Rating | Category | Address | Phone | Maps |\n|---|----------|--------|----------|---------|-------|------|\n`;
-      scraped.forEach((b, i) => {
-        md += `| ${i + 1} | ${b.name.replace(/\|/g, '\\|')} | ${b.rating ? `★ ${b.rating}` : ''} | ${(b.category || '').replace(/\|/g, '\\|')} | ${(b.address || '').replace(/\|/g, '\\|')} | ${b.phone || ''} | ${b.mapsUrl ? `[Link](${b.mapsUrl})` : ''} |\n`;
-      });
-      blob = new Blob([md], { type: 'text/markdown' }); filename = `maps-${new Date().toISOString().split('T')[0]}.md`;
-    }
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; a.click();
-    URL.revokeObjectURL(url);
-    toast(`${type.toUpperCase()} downloaded`, 'success');
-  };
-
-  // ============ INIT ============
-  buildModal();
-  render();
-}
 // ==================== TOOL: COLOR THEME EXTRACTOR ====================
 
 function toolExtractColorTheme() {
-  const content = createElement('div');
+  const content = GDI.createElement('div');
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🎨 Color Theme Extractor',
     'Scanning page styles and calculating visual dominance...',
-    'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
 
   // Helper to convert rgb/rgba to HEX
@@ -12246,11 +9124,11 @@ function toolExtractColorTheme() {
 
   content.appendChild(createStatGrid([
     { label: 'Elements Scanned', value: elements.length.toLocaleString(), icon: '🔍' },
-    { label: 'Unique Colors', value: colorScores.size.toLocaleString(), icon: '🎨', color: DT.colors.success },
+    { label: 'Unique Colors', value: colorScores.size.toLocaleString(), icon: '🎨', color: window.DESIGN_TOKENS.colors.success },
   ]));
 
   // Swatch Grid
-  const grid = createElement('div', {
+  const grid = GDI.createElement('div', {
     styles: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
@@ -12263,11 +9141,11 @@ function toolExtractColorTheme() {
     const textColor = getContrastYIQ(hex);
     const count = colorCounts.get(hex);
     
-    const card = createElement('div', {
+    const card = GDI.createElement('div', {
       styles: {
-        background: DT.colors.surface,
-        border: `1px solid ${DT.colors.border}`,
-        borderRadius: DT.radii.md,
+        background: 'var(--gdi-surface)',
+        border: `1px solid ${'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.md,
         overflow: 'hidden',
         cursor: 'pointer',
         transition: `all ${DT.transitions.fast}`,
@@ -12278,23 +9156,23 @@ function toolExtractColorTheme() {
     card.addEventListener('mouseenter', () => {
       card.style.transform = 'translateY(-2px)';
       card.style.boxShadow = DT.shadows.md;
-      card.style.borderColor = DT.colors.primary;
+      card.style.borderColor = window.DESIGN_TOKENS.colors.primary;
     });
 
     card.addEventListener('mouseleave', () => {
       card.style.transform = 'translateY(0)';
       card.style.boxShadow = DT.shadows.xs;
-      card.style.borderColor = DT.colors.border;
+      card.style.borderColor = 'var(--gdi-border)';
     });
 
     card.addEventListener('click', () => {
-      copyToClipboard(hex).then(() => {
-        showNotification(`✅ Copied ${hex}`, 'success');
+      GDI.copyToClipboard(hex).then(() => {
+        GDI.showNotification(`✅ Copied ${hex}`, 'success');
       });
     });
 
     // Color Box
-    const colorBox = createElement('div', {
+    const colorBox = GDI.createElement('div', {
       styles: {
         height: '60px',
         width: '100%',
@@ -12307,7 +9185,7 @@ function toolExtractColorTheme() {
 
     // Badge inside color box for Top 3 most dominant
     if (index < 3 && !isBoringColor(hex)) {
-      colorBox.appendChild(createElement('span', {
+      colorBox.appendChild(GDI.createElement('span', {
         styles: {
           background: 'rgba(0,0,0,0.4)',
           color: '#fff',
@@ -12322,23 +9200,23 @@ function toolExtractColorTheme() {
     }
 
     // Info area
-    const infoBox = createElement('div', {
+    const infoBox = GDI.createElement('div', {
       styles: { padding: '10px', textAlign: 'center' },
       children: [
-        createElement('div', {
+        GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.md,
             fontWeight: DT.typography.weights.bold,
             fontFamily: DT.typography.fontMono,
-            color: DT.colors.textPrimary,
+            color: 'var(--gdi-text-primary)',
             marginBottom: '2px'
           },
           text: hex
         }),
-        createElement('div', {
+        GDI.createElement('div', {
           styles: {
             fontSize: DT.typography.sizes.xs,
-            color: DT.colors.textMuted
+            color: 'var(--gdi-text-muted)'
           },
           text: `Used ${count} times`
         })
@@ -12350,17 +9228,17 @@ function toolExtractColorTheme() {
     grid.appendChild(card);
   });
 
-  content.appendChild(createSection('🎨 Visual Dominance Palette', [grid]));
+  content.appendChild(GDI.createSection('🎨 Visual Dominance Palette', [grid]));
 
   // Action Buttons
-  const btnRow = createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
+  const btnRow = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
 
-  btnRow.appendChild(createButton('📋 Copy All Hex Codes', () => {
+  btnRow.appendChild(GDI.createButton('📋 Copy All Hex Codes', () => {
     const hexList = sortedColors.map(c => c[0]).join('\n');
-    copyToClipboard(hexList).then(() => showNotification(`✅ ${sortedColors.length} colors copied!`, 'success'));
+    GDI.copyToClipboard(hexList).then(() => GDI.showNotification(`✅ ${sortedColors.length} colors copied!`, 'success'));
   }, { variant: 'primary' }));
 
-  btnRow.appendChild(createButton('📊 Export Palette (.txt)', () => {
+  btnRow.appendChild(GDI.createButton('📊 Export Palette (.txt)', () => {
     let txt = `Website Color Palette - ${window.location.hostname}\n${'='.repeat(40)}\n`;
     txt += `Sorted by visual dominance (Area Size & Usage Frequency)\n\n`;
     
@@ -12371,7 +9249,7 @@ function toolExtractColorTheme() {
     
     const blob = new Blob([txt], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = GDI.createElement('a');
     a.href = url;
     a.download = `palette-${window.location.hostname}.txt`;
     a.click();
@@ -12380,7 +9258,7 @@ function toolExtractColorTheme() {
 
   content.appendChild(btnRow);
 
-  const { close } = createModal('Website Color Theme', content, { width: '650px' });
+  const { close } = GDI.createModal('Website Color Theme', content, { width: '650px' });
 }
 
 // ==================== TOOL: TYPOGRAPHY INSPECTOR ====================
@@ -12388,10 +9266,10 @@ function toolExtractColorTheme() {
 function toolExtractTypography() {
   const content = GDI.createElement('div');
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🔤 Typography Inspector',
     'Extracting and analyzing all fonts used on this page...',
-    'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
 
   const fonts = new Map();
@@ -12426,7 +9304,7 @@ function toolExtractTypography() {
 
   content.appendChild(createStatGrid([
     { label: 'Text Elements', value: elements.length.toLocaleString(), icon: '📝' },
-    { label: 'Unique Fonts', value: fonts.size, icon: '🔤', color: DT.colors.primary }
+    { label: 'Unique Fonts', value: fonts.size, icon: '🔤', color: window.DESIGN_TOKENS.colors.primary }
   ]));
 
   const fontList = GDI.createElement('div', {
@@ -12436,9 +9314,9 @@ function toolExtractTypography() {
   sortedFonts.forEach(([name, data]) => {
     const card = GDI.createElement('div', {
       styles: {
-        background: DT.colors.surface,
-        border: `1px solid ${DT.colors.border}`,
-        borderRadius: DT.radii.lg,
+        background: 'var(--gdi-surface)',
+        border: `1px solid ${'var(--gdi-border)'}`,
+        borderRadius: window.DESIGN_TOKENS.radii.lg,
         padding: '16px',
         boxShadow: DT.shadows.xs
       }
@@ -12448,7 +9326,7 @@ function toolExtractTypography() {
       styles: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
       children: [
         GDI.createElement('div', {
-          styles: { fontSize: '18px', fontWeight: 'bold', color: DT.colors.textPrimary },
+          styles: { fontSize: '18px', fontWeight: 'bold', color: 'var(--gdi-text-primary)' },
           text: name
         }),
         GDI.createBadge(`Used ${data.count} times`, 'info')
@@ -12461,10 +9339,10 @@ function toolExtractTypography() {
         fontFamily: data.raw,
         fontSize: '24px',
         padding: '16px',
-        background: DT.colors.surfaceSecondary,
-        borderRadius: DT.radii.md,
-        border: `1px solid ${DT.colors.borderLight}`,
-        color: DT.colors.textPrimary,
+        background: 'var(--gdi-surface-secondary)',
+        borderRadius: window.DESIGN_TOKENS.radii.md,
+        border: `1px solid ${'var(--gdi-border-light)'}`,
+        color: 'var(--gdi-text-primary)',
         marginBottom: '12px',
         wordBreak: 'break-word'
       },
@@ -12472,7 +9350,7 @@ function toolExtractTypography() {
     });
 
     const details = GDI.createElement('div', {
-      styles: { display: 'flex', gap: '16px', fontSize: '12px', color: DT.colors.textSecondary },
+      styles: { display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--gdi-text-secondary)' },
       children: [
         GDI.createElement('span', { text: `📏 Sizes: ${[...data.sizes].sort().join(', ')}` }),
         GDI.createElement('span', { text: `⚖️ Weights: ${[...data.weights].sort().join(', ')}` })
@@ -12485,7 +9363,7 @@ function toolExtractTypography() {
     fontList.appendChild(card);
   });
 
-  content.appendChild(createSection('📐 Font Families', [fontList]));
+  content.appendChild(GDI.createSection('📐 Font Families', [fontList]));
 
   const { close } = GDI.createModal('Typography Inspector', content, { width: '700px' });
 }
@@ -12495,10 +9373,10 @@ function toolExtractTypography() {
 function toolSocialCardPreview() {
   const content = GDI.createElement('div');
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📱 Social Card Preview',
     'How this page looks when shared on social media',
-    'linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
 
   // Extract OG Data
@@ -12516,9 +9394,9 @@ function toolSocialCardPreview() {
   // Facebook / LinkedIn Style Card
   const fbCard = GDI.createElement('div', {
     styles: {
-      border: `1px solid ${DT.colors.border}`,
+      border: `1px solid ${'var(--gdi-border)'}`,
       borderRadius: '8px', overflow: 'hidden',
-      background: DT.colors.surface,
+      background: 'var(--gdi-surface)',
       maxWidth: '500px', margin: '0 auto',
       boxShadow: DT.shadows.sm
     }
@@ -12545,14 +9423,14 @@ function toolSocialCardPreview() {
 
   fbCard.appendChild(fbImage);
   fbCard.appendChild(fbText);
-  previewContainer.appendChild(createSection('📘 Facebook / LinkedIn Preview', [fbCard]));
+  previewContainer.appendChild(GDI.createSection('📘 Facebook / LinkedIn Preview', [fbCard]));
 
   // Twitter Style Card
   const twCard = GDI.createElement('div', {
     styles: {
-      border: `1px solid ${DT.colors.border}`,
+      border: `1px solid ${'var(--gdi-border)'}`,
       borderRadius: '16px', overflow: 'hidden',
-      background: DT.colors.surface,
+      background: 'var(--gdi-surface)',
       maxWidth: '500px', margin: '0 auto',
       boxShadow: DT.shadows.sm
     }
@@ -12564,7 +9442,7 @@ function toolSocialCardPreview() {
       background: ogImage ? `url(${ogImage}) center/cover no-repeat` : '#E2E8F0',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       color: '#94A3B8', fontSize: '14px',
-      borderBottom: `1px solid ${DT.colors.border}`
+      borderBottom: `1px solid ${'var(--gdi-border)'}`
     },
     text: ogImage ? '' : 'No twitter:image specified'
   });
@@ -12580,13 +9458,13 @@ function toolSocialCardPreview() {
 
   twCard.appendChild(twImage);
   twCard.appendChild(twText);
-  previewContainer.appendChild(createSection('🐦 Twitter / X Preview', [twCard]));
+  previewContainer.appendChild(GDI.createSection('🐦 Twitter / X Preview', [twCard]));
 
   content.appendChild(previewContainer);
   
   if (!ogImage || !getMeta('og:title')) {
     content.appendChild(GDI.createElement('div', {
-      styles: { padding: '16px', background: DT.colors.warningLight, color: '#92400E', borderRadius: DT.radii.md, marginTop: '16px' },
+      styles: { padding: '16px', background: window.DESIGN_TOKENS.colors.warningLight, color: '#92400E', borderRadius: window.DESIGN_TOKENS.radii.md, marginTop: '16px' },
       text: '⚠️ Warning: Missing crucial Open Graph tags. Your link may not render correctly when shared.'
     }));
   }
@@ -12599,10 +9477,10 @@ function toolSocialCardPreview() {
 function toolImageDownloader() {
   const content = GDI.createElement('div');
   
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🖼️ Bulk Image Downloader',
     'Extract images, backgrounds, and media from this page',
-    'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+    window.DESIGN_TOKENS.colors.primaryGradient
   ));
 
   // ─── EXTRACTION ENGINE ───
@@ -12720,8 +9598,8 @@ function toolImageDownloader() {
     const selected = validImages.filter(i => i._selected).length;
     statsContainer.innerHTML = '';
     statsContainer.appendChild(createStatGrid([
-      { label: 'Images Found', value: validImages.length.toString(), icon: '📸', color: DT.colors.warning },
-      { label: 'Selected', value: selected.toString(), icon: '☑️', color: DT.colors.primary }
+      { label: 'Images Found', value: validImages.length.toString(), icon: '📸', color: window.DESIGN_TOKENS.colors.warning },
+      { label: 'Selected', value: selected.toString(), icon: '☑️', color: window.DESIGN_TOKENS.colors.primary }
     ]));
   };
   updateStats();
@@ -12732,24 +9610,24 @@ function toolImageDownloader() {
     styles: {
       display: 'flex', gap: '12px', marginTop: '16px', marginBottom: '12px',
       flexWrap: 'wrap', alignItems: 'center',
-      padding: '12px', background: DT.colors.surface, borderRadius: DT.radii.md,
-      border: `1px solid ${DT.colors.border}`, position: 'sticky', top: '0', zIndex: '10'
+      padding: '12px', background: 'var(--gdi-surface)', borderRadius: window.DESIGN_TOKENS.radii.md,
+      border: `1px solid ${'var(--gdi-border)'}`, position: 'sticky', top: '0', zIndex: '10'
     }
   });
 
   const searchInput = GDI.createElement('input', {
     attrs: { type: 'text', placeholder: '🔍 Search filenames/alt text...' },
     styles: {
-      flex: '1', minWidth: '180px', padding: '8px 12px', borderRadius: DT.radii.sm,
-      border: `1px solid ${DT.colors.border}`, background: DT.colors.surfaceSecondary,
-      color: DT.colors.textPrimary, fontSize: '13px', outline: 'none'
+      flex: '1', minWidth: '180px', padding: '8px 12px', borderRadius: window.DESIGN_TOKENS.radii.sm,
+      border: `1px solid ${'var(--gdi-border)'}`, background: 'var(--gdi-surface-secondary)',
+      color: 'var(--gdi-text-primary)', fontSize: '13px', outline: 'none'
     }
   });
 
   const minSizeSelect = GDI.createElement('select', {
     styles: {
-      padding: '8px', borderRadius: DT.radii.sm, border: `1px solid ${DT.colors.border}`,
-      background: DT.colors.surfaceSecondary, color: DT.colors.textPrimary, fontSize: '13px', cursor: 'pointer'
+      padding: '8px', borderRadius: window.DESIGN_TOKENS.radii.sm, border: `1px solid ${'var(--gdi-border)'}`,
+      background: 'var(--gdi-surface-secondary)', color: 'var(--gdi-text-primary)', fontSize: '13px', cursor: 'pointer'
     },
     children: [
       GDI.createElement('option', { attrs: { value: '0' }, text: 'All sizes' }),
@@ -12762,8 +9640,8 @@ function toolImageDownloader() {
 
   const sortSelect = GDI.createElement('select', {
     styles: {
-      padding: '8px', borderRadius: DT.radii.sm, border: `1px solid ${DT.colors.border}`,
-      background: DT.colors.surfaceSecondary, color: DT.colors.textPrimary, fontSize: '13px', cursor: 'pointer'
+      padding: '8px', borderRadius: window.DESIGN_TOKENS.radii.sm, border: `1px solid ${'var(--gdi-border)'}`,
+      background: 'var(--gdi-surface-secondary)', color: 'var(--gdi-text-primary)', fontSize: '13px', cursor: 'pointer'
     },
     children: [
       GDI.createElement('option', { attrs: { value: 'default' }, text: 'Default order' }),
@@ -12821,7 +9699,7 @@ function toolImageDownloader() {
 
     if (filtered.length === 0) {
       grid.appendChild(GDI.createElement('div', {
-        styles: { gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: DT.colors.textSecondary, fontSize: '14px' },
+        styles: { gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--gdi-text-secondary)', fontSize: '14px' },
         text: 'No images match your filters.'
       }));
       return;
@@ -12830,19 +9708,19 @@ function toolImageDownloader() {
     filtered.forEach((imgData, index) => {
       const card = GDI.createElement('div', {
         styles: {
-          background: DT.colors.surface,
-          border: `1px solid ${imgData._selected ? DT.colors.primary : DT.colors.border}`,
-          borderRadius: DT.radii.md, overflow: 'hidden',
+          background: 'var(--gdi-surface)',
+          border: `1px solid ${imgData._selected ? window.DESIGN_TOKENS.colors.primary : 'var(--gdi-border)'}`,
+          borderRadius: window.DESIGN_TOKENS.radii.md, overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
           transition: 'box-shadow 0.2s, border-color 0.2s',
-          boxShadow: imgData._selected ? `0 0 0 2px ${DT.colors.primary}20` : 'none',
+          boxShadow: imgData._selected ? `0 0 0 2px ${window.DESIGN_TOKENS.colors.primary}20` : 'none',
           position: 'relative'
         }
       });
 
       const checkbox = GDI.createElement('input', {
         attrs: { type: 'checkbox', checked: !!imgData._selected },
-        styles: { position: 'absolute', top: '8px', left: '8px', zIndex: '2', width: '18px', height: '18px', cursor: 'pointer', accentColor: DT.colors.primary }
+        styles: { position: 'absolute', top: '8px', left: '8px', zIndex: '2', width: '18px', height: '18px', cursor: 'pointer', accentColor: window.DESIGN_TOKENS.colors.primary }
       });
       checkbox.addEventListener('change', (e) => {
         imgData._selected = e.target.checked;
@@ -12853,7 +9731,7 @@ function toolImageDownloader() {
 
       const preview = GDI.createElement('div', {
         styles: {
-          height: '130px', width: '100%', background: '#F1F5F9', borderBottom: `1px solid ${DT.colors.border}`,
+          height: '130px', width: '100%', background: '#F1F5F9', borderBottom: `1px solid ${'var(--gdi-border)'}`,
           cursor: 'zoom-in', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
         }
       });
@@ -12872,13 +9750,13 @@ function toolImageDownloader() {
       card.appendChild(preview);
 
       const info = GDI.createElement('div', {
-        styles: { padding: '10px', fontSize: '11px', color: DT.colors.textSecondary, flex: '1', minHeight: '0' }
+        styles: { padding: '10px', fontSize: '11px', color: 'var(--gdi-text-secondary)', flex: '1', minHeight: '0' }
       });
 
       const filename = getFilename(imgData.src);
       info.appendChild(GDI.createElement('div', { 
         attrs: { title: filename },
-        styles: { fontWeight: '600', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: DT.colors.textPrimary }, 
+        styles: { fontWeight: '600', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--gdi-text-primary)' }, 
         text: filename 
       }));
 
@@ -12888,7 +9766,7 @@ function toolImageDownloader() {
       if (imgData.type !== 'img') {
         metaEl.appendChild(GDI.createElement('span', {
           text: imgData.type,
-          styles: { fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '2px 6px', borderRadius: '4px', background: DT.colors.border, color: DT.colors.textSecondary }
+          styles: { fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '2px 6px', borderRadius: '4px', background: 'var(--gdi-border)', color: 'var(--gdi-text-secondary)' }
         }));
       }
 
@@ -12925,7 +9803,7 @@ function toolImageDownloader() {
 
   const triggerDownload = (blob, filename) => {
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = GDI.createElement('a');
     a.style.display = 'none';
     a.href = url;
     a.download = filename;
@@ -12973,7 +9851,7 @@ function toolImageDownloader() {
       attrs: { src: imgData.src },
       styles: { 
         maxWidth: '90vw', maxHeight: '80vh', objectFit: 'contain',
-        borderRadius: DT.radii.md, boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+        borderRadius: window.DESIGN_TOKENS.radii.md, boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
       }
     });
 
@@ -13043,7 +9921,7 @@ function toolClearSiteData() {
   // ─── BUILD UI ───
   const content = GDI.createElement('div');
 
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '🧹 Clear Site Data',
     'Selectively remove stored data for this website',
     'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
@@ -13052,9 +9930,9 @@ function toolClearSiteData() {
   // Info banner
   const banner = GDI.createElement('div', {
     styles: {
-      background: 'rgba(239,68,68,0.1)', border: `1px solid ${DT.colors.error}`,
-      borderRadius: DT.radii.md, padding: '12px 16px', marginBottom: '20px',
-      fontSize: '13px', color: DT.colors.text, lineHeight: '1.5'
+      background: 'rgba(239,68,68,0.1)', border: `1px solid ${window.DESIGN_TOKENS.colors.error}`,
+      borderRadius: window.DESIGN_TOKENS.radii.md, padding: '12px 16px', marginBottom: '20px',
+      fontSize: '13px', color: window.DESIGN_TOKENS.colors.text, lineHeight: '1.5'
     },
     text: '⚠️ This action cannot be undone. You will be logged out of this site and any unsaved work may be lost.'
   });
@@ -13071,25 +9949,25 @@ function toolClearSiteData() {
     const row = GDI.createElement('label', {
       styles: {
         display: 'flex', alignItems: 'flex-start', gap: '12px',
-        padding: '14px', borderRadius: DT.radii.md,
-        border: `1px solid ${selected[key] ? DT.colors.primary : DT.colors.border}`,
-        background: selected[key] ? `${DT.colors.primary}08` : DT.colors.surface,
+        padding: '14px', borderRadius: window.DESIGN_TOKENS.radii.md,
+        border: `1px solid ${selected[key] ? window.DESIGN_TOKENS.colors.primary : 'var(--gdi-border)'}`,
+        background: selected[key] ? `${window.DESIGN_TOKENS.colors.primary}08` : 'var(--gdi-surface)',
         cursor: 'pointer', transition: 'all 0.2s', userSelect: 'none'
       }
     });
 
     const checkbox = GDI.createElement('input', {
       attrs: { type: 'checkbox', checked: selected[key] },
-      styles: { width: '18px', height: '18px', marginTop: '2px', accentColor: DT.colors.primary, cursor: 'pointer' }
+      styles: { width: '18px', height: '18px', marginTop: '2px', accentColor: window.DESIGN_TOKENS.colors.primary, cursor: 'pointer' }
     });
 
     const textWrap = GDI.createElement('div', { styles: { flex: '1' } });
     const title = GDI.createElement('div', { 
-      styles: { fontWeight: '600', fontSize: '14px', color: DT.colors.text, marginBottom: '2px' },
+      styles: { fontWeight: '600', fontSize: '14px', color: window.DESIGN_TOKENS.colors.text, marginBottom: '2px' },
       text: `${icon} ${label}` 
     });
     const desc = GDI.createElement('div', { 
-      styles: { fontSize: '12px', color: DT.colors.textSecondary, lineHeight: '1.4' },
+      styles: { fontSize: '12px', color: 'var(--gdi-text-secondary)', lineHeight: '1.4' },
       text: description 
     });
 
@@ -13103,8 +9981,8 @@ function toolClearSiteData() {
         checkbox.checked = !checkbox.checked;
       }
       selected[key] = checkbox.checked;
-      row.style.borderColor = selected[key] ? DT.colors.primary : DT.colors.border;
-      row.style.background = selected[key] ? `${DT.colors.primary}08` : DT.colors.surface;
+      row.style.borderColor = selected[key] ? window.DESIGN_TOKENS.colors.primary : 'var(--gdi-border)';
+      row.style.background = selected[key] ? `${window.DESIGN_TOKENS.colors.primary}08` : 'var(--gdi-surface)';
     });
 
     return row;
@@ -13123,18 +10001,18 @@ function toolClearSiteData() {
   const reloadWrap = GDI.createElement('label', {
     styles: {
       display: 'flex', alignItems: 'center', gap: '10px',
-      padding: '12px', borderRadius: DT.radii.sm,
-      background: DT.colors.surface, border: `1px solid ${DT.colors.border}`,
+      padding: '12px', borderRadius: window.DESIGN_TOKENS.radii.sm,
+      background: 'var(--gdi-surface)', border: `1px solid ${'var(--gdi-border)'}`,
       cursor: 'pointer', marginBottom: '20px', userSelect: 'none'
     }
   });
   const reloadCheckbox = GDI.createElement('input', {
     attrs: { type: 'checkbox', checked: selected.reload },
-    styles: { width: '16px', height: '16px', accentColor: DT.colors.primary, cursor: 'pointer' }
+    styles: { width: '16px', height: '16px', accentColor: window.DESIGN_TOKENS.colors.primary, cursor: 'pointer' }
   });
   reloadWrap.appendChild(reloadCheckbox);
   reloadWrap.appendChild(GDI.createElement('span', {
-    styles: { fontSize: '13px', color: DT.colors.text },
+    styles: { fontSize: '13px', color: window.DESIGN_TOKENS.colors.text },
     text: '🔄 Reload page after clearing (recommended for full effect)'
   }));
   reloadWrap.addEventListener('click', (e) => {
@@ -13146,7 +10024,7 @@ function toolClearSiteData() {
   // ─── PROGRESS LOG ───
   const logContainer = GDI.createElement('div', {
     styles: {
-      background: '#0F172A', borderRadius: DT.radii.md, padding: '14px',
+      background: '#0F172A', borderRadius: window.DESIGN_TOKENS.radii.md, padding: '14px',
       fontFamily: 'monospace', fontSize: '12px', color: '#94A3B8',
       maxHeight: '180px', overflowY: 'auto', marginBottom: '20px',
       lineHeight: '1.6', display: 'none'
@@ -13374,7 +10252,7 @@ function toolMultiDeviceTester() {
     styles: { display: 'flex', flexDirection: 'column', height: '80vh', gap: '16px' }
   });
 
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '📱 Multi-Device Emulator',
     'Test responsive design across different breakpoints simultaneously.',
     'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)'
@@ -13392,8 +10270,8 @@ function toolMultiDeviceTester() {
   const dashboard = GDI.createElement('div', {
     styles: {
       display: 'flex', gap: '32px', flex: '1', overflowX: 'auto', overflowY: 'hidden',
-      padding: '24px', background: DT.colors.surfaceSecondary, borderRadius: DT.radii.lg,
-      border: `1px solid ${DT.colors.border}`
+      padding: '24px', background: 'var(--gdi-surface-secondary)', borderRadius: window.DESIGN_TOKENS.radii.lg,
+      border: `1px solid ${'var(--gdi-border)'}`
     },
     attrs: { className: 'gdi-scrollbar' }
   });
@@ -13409,7 +10287,7 @@ function toolMultiDeviceTester() {
     });
 
     const title = GDI.createElement('div', {
-      styles: { fontWeight: DT.typography.weights.bold, color: DT.colors.textPrimary, fontSize: '14px' },
+      styles: { fontWeight: DT.typography.weights.bold, color: 'var(--gdi-text-primary)', fontSize: '14px' },
       text: dev.name
     });
 
@@ -13479,7 +10357,7 @@ function toolMultiDeviceTester() {
 
     // Dimensions Label
     const dims = GDI.createElement('div', {
-      styles: { marginTop: '16px', fontSize: '12px', color: DT.colors.textMuted, fontFamily: DT.typography.fontMono, fontWeight: 'bold' },
+      styles: { marginTop: '16px', fontSize: '12px', color: 'var(--gdi-text-muted)', fontFamily: DT.typography.fontMono, fontWeight: 'bold' },
       text: `${dev.w} × ${dev.h} px`
     });
 
@@ -13493,7 +10371,7 @@ function toolMultiDeviceTester() {
 
   // Fallback Warning
   const footer = GDI.createElement('div', {
-    styles: { marginTop: '8px', fontSize: '12px', color: DT.colors.textMuted, textAlign: 'center', background: DT.colors.warningLight, color: '#92400E', padding: '10px', borderRadius: DT.radii.md }
+    styles: { marginTop: '8px', fontSize: '12px', color: 'var(--gdi-text-muted)', textAlign: 'center', background: window.DESIGN_TOKENS.colors.warningLight, color: '#92400E', padding: '10px', borderRadius: window.DESIGN_TOKENS.radii.md }
   });
   footer.innerHTML = '<strong>Note:</strong> If the frames refuse to load, the website has strict <code style="background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 4px;">X-Frame-Options</code> security enabled. Use the <strong>Pop Out</strong> buttons instead.';
   content.appendChild(footer);
@@ -13501,329 +10379,13 @@ function toolMultiDeviceTester() {
   const { close } = GDI.createModal('Multi-Device Emulator', content, { width: '95vw', maxWidth: '1400px' });
 }
 
-// ==================== TOOL: IMAGE OCR EXTRACTOR (PRO) ====================
 
-function toolImageOCR() {
-  const content = GDI.createElement('div');
-  
-  content.appendChild(createToolHeader(
-    '👁️ Image OCR Extractor Pro',
-    'Extract text from images with AI, featuring auto-enhancement and drag & drop.',
-    'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)'
-  ));
-
-  // --- 1. Settings Bar ---
-  const settingsRow = GDI.createElement('div', {
-    styles: { display: 'flex', gap: '16px', alignItems: 'flex-end', marginBottom: '16px', flexWrap: 'wrap' }
-  });
-
-  const langSelect = GDI.createSelect({
-    label: 'Language',
-    options: [
-      { value: 'eng', label: 'English' },
-      { value: 'spa', label: 'Spanish' },
-      { value: 'fre', label: 'French' },
-      { value: 'ger', label: 'German' },
-      { value: 'ita', label: 'Italian' }
-    ],
-    defaultValue: 'eng'
-  });
-  langSelect.wrapper.style.flex = '1';
-  langSelect.wrapper.style.marginBottom = '0';
-
-  const enhanceToggle = GDI.createToggle({
-    label: 'Enhance Image (B&W Contrast)',
-    checked: true
-  });
-  enhanceToggle.wrapper.style.marginBottom = '8px';
-
-  settingsRow.appendChild(langSelect.wrapper);
-  settingsRow.appendChild(enhanceToggle.wrapper);
-  content.appendChild(createSection('⚙️ OCR Settings', [settingsRow]));
-
-  // --- 2. Upload & Paste Area ---
-  const uploadArea = GDI.createElement('div', {
-    styles: { 
-      background: GDI.ThemeEngine.token('colors.surfaceSecondary'), 
-      padding: '24px', 
-      borderRadius: GDI.DESIGN_TOKENS.radii.lg, 
-      border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`,
-      marginBottom: '20px',
-      position: 'relative'
-    }
-  });
-  
-  const dropZone = GDI.createElement('div', {
-    attrs: { tabindex: '0' },
-    styles: { 
-      border: `2px dashed ${GDI.ThemeEngine.token('colors.primary')}`, 
-      borderRadius: GDI.DESIGN_TOKENS.radii.md, 
-      padding: '40px 20px', 
-      textAlign: 'center', 
-      cursor: 'pointer', 
-      transition: 'all 0.3s',
-      background: `${GDI.ThemeEngine.token('colors.primary')}08`,
-      outline: 'none'
-    },
-    html: `
-      <div style="font-size: 36px; margin-bottom: 12px; pointer-events: none;">📸</div>
-      <div style="color:${GDI.ThemeEngine.token('colors.textPrimary')}; font-weight: 700; font-size: 15px; pointer-events: none;">Drag & Drop, Paste (Ctrl+V), or Click to upload</div>
-      <div style="font-size: 12px; color: ${GDI.ThemeEngine.token('colors.textMuted')}; margin-top: 8px; pointer-events: none;">Supports JPG, PNG, WebP</div>
-    `
-  });
-  
-  const fileInput = GDI.createElement('input', { attrs: { type: 'file', accept: 'image/*' }, styles: { display: 'none' } });
-  
-  const previewWrap = GDI.createElement('div', { styles: { marginTop: '20px', display: 'none', textAlign: 'center', position: 'relative' } });
-  const previewImg = GDI.createElement('img', { styles: { maxWidth: '100%', maxHeight: '250px', borderRadius: GDI.DESIGN_TOKENS.radii.md, border: `1px solid ${GDI.ThemeEngine.token('colors.border')}`, boxShadow: GDI.DESIGN_TOKENS.shadows.md } });
-  
-  const clearImgBtn = GDI.createButton('✕', () => resetUI(), { variant: 'danger', size: 'sm', fullWidth: false });
-  clearImgBtn.style.position = 'absolute';
-  clearImgBtn.style.top = '-10px';
-  clearImgBtn.style.right = '-10px';
-  clearImgBtn.style.borderRadius = '50%';
-  clearImgBtn.style.width = '30px';
-  clearImgBtn.style.height = '30px';
-  clearImgBtn.style.padding = '0';
-  clearImgBtn.title = "Clear Image";
-
-  previewWrap.appendChild(previewImg);
-  previewWrap.appendChild(clearImgBtn);
-  
-  uploadArea.appendChild(dropZone);
-  uploadArea.appendChild(fileInput);
-  uploadArea.appendChild(previewWrap);
-  content.appendChild(uploadArea);
-// >>> ADD THIS NEW CAPTURE BUTTON <<<
-  const captureBtn = GDI.createButton('📸 Auto-Capture Current Page', () => {
-    if (isProcessing) return;
-    
-    resultsArea.style.display = 'block';
-    statusDisplay.textContent = '📸 Capturing visible screen...';
-    statusDisplay.style.background = GDI.ThemeEngine.token('colors.infoLight');
-    statusDisplay.style.color = GDI.ThemeEngine.token('colors.info');
-    
-    // Call your existing background.js capture function
-    chrome.runtime.sendMessage({ action: 'captureVisibleTab' }, (response) => {
-      if (chrome.runtime.lastError || !response || !response.dataUrl) {
-        GDI.showNotification('Failed to capture screen.', 'error');
-        statusDisplay.textContent = '❌ Capture failed.';
-        return;
-      }
-      
-      // Feed the automatic screenshot directly into the OCR processor
-      processImage(response.dataUrl);
-    });
-  }, { variant: 'primary', size: 'lg' });
-  
-  captureBtn.style.marginBottom = '20px';
-  content.appendChild(captureBtn);
-  // --- 3. Results Area ---
-  const resultsArea = GDI.createElement('div', { styles: { display: 'none' } });
-  
-  const statusDisplay = GDI.createElement('div', {
-    styles: {
-      padding: '12px', background: GDI.ThemeEngine.token('colors.infoLight'),
-      color: GDI.ThemeEngine.token('colors.info'), borderRadius: GDI.DESIGN_TOKENS.radii.md,
-      marginBottom: '16px', fontWeight: 'bold', textAlign: 'center', fontSize: '13px'
-    }
-  });
-
-  const { wrapper: textWrapper, textarea: resultTextarea } = createTextarea({
-    label: 'Extracted Text',
-    id: 'ocr-result',
-    rows: 8
-  });
-  
-  // Toolbar for extracted text
-  const actionToolbar = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' } });
-  
-  actionToolbar.appendChild(GDI.createButton('📋 Copy', () => {
-    GDI.copyToClipboard(resultTextarea.value).then(() => GDI.showNotification('Text copied!', 'success'));
-  }, { variant: 'primary', fullWidth: false }));
-
-  actionToolbar.appendChild(GDI.createButton('🧹 Clean Line Breaks', () => {
-    // Replaces multiple newlines with a single space, fixing broken OCR paragraphs
-    const cleaned = resultTextarea.value.replace(/\n+/g, ' ').replace(/\s{2,}/g, ' ').trim();
-    resultTextarea.value = cleaned;
-    GDI.showNotification('Text formatted!', 'info');
-  }, { variant: 'secondary', fullWidth: false }));
-
-  resultsArea.appendChild(statusDisplay);
-  resultsArea.appendChild(textWrapper);
-  resultsArea.appendChild(actionToolbar);
-  content.appendChild(resultsArea);
-
-  // --- 4. Logic: Image Processing & API ---
-  let isProcessing = false;
-
-  const resetUI = () => {
-    previewWrap.style.display = 'none';
-    resultsArea.style.display = 'none';
-    dropZone.style.display = 'block';
-    resultTextarea.value = '';
-    fileInput.value = '';
-  };
-
-  const processImage = async (imageSrc) => {
-    if (isProcessing) return;
-    isProcessing = true;
-    
-    dropZone.style.display = 'none';
-    previewImg.src = imageSrc;
-    previewWrap.style.display = 'block';
-    resultsArea.style.display = 'block';
-    
-    statusDisplay.textContent = '☁️ Optimizing & Enhancing image...';
-    statusDisplay.style.background = GDI.ThemeEngine.token('colors.warningLight');
-    statusDisplay.style.color = GDI.ThemeEngine.token('colors.warning');
-    resultTextarea.value = '';
-
-    try {
-      const compressedImage = await new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let { width, height } = img;
-          const maxDim = 1500; 
-          
-          if (width > maxDim || height > maxDim) {
-            if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; } 
-            else { width = Math.round((width * maxDim) / height); height = maxDim; }
-          }
-          canvas.width = width; canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // Enhancement Engine: Convert to High-Contrast Grayscale if toggled
-          if (enhanceToggle.getValue()) {
-            const imgData = ctx.getImageData(0, 0, width, height);
-            const data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-              const brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
-              // Threshold binarization to make text pop against background
-              const threshold = brightness > 128 ? 255 : 0; 
-              data[i] = data[i + 1] = data[i + 2] = threshold;
-            }
-            ctx.putImageData(imgData, 0, 0);
-          }
-
-          resolve(canvas.toDataURL('image/jpeg', 0.9)); 
-        };
-        img.src = imageSrc;
-      });
-
-      // Update preview to show the enhanced version to the user
-      previewImg.src = compressedImage;
-
-      statusDisplay.textContent = '☁️ Extracting text via Secure Background Worker...';
-
-      chrome.runtime.sendMessage(
-        { 
-          action: 'performOCR', 
-          base64Image: compressedImage, 
-          language: langSelect.select.value 
-        }, 
-        (response) => {
-          if (chrome.runtime.lastError) throw new Error(chrome.runtime.lastError.message);
-          if (!response || !response.success) throw new Error(response?.error || 'Unknown extension error');
-          
-          const data = response.data;
-          if (data.IsErroredOnProcessing) throw new Error(data.ErrorMessage?.[0] || 'API Processing Error');
-
-          const text = data.ParsedResults?.[0]?.ParsedText || '';
-          resultTextarea.value = text.trim();
-          
-          if (text.trim()) {
-            statusDisplay.textContent = '✅ Extraction Complete!';
-            statusDisplay.style.background = GDI.ThemeEngine.token('colors.successLight');
-            statusDisplay.style.color = GDI.ThemeEngine.token('colors.success');
-          } else {
-            statusDisplay.textContent = '⚠️ No readable text found in this image.';
-          }
-          isProcessing = false;
-        }
-      );
-
-    } catch (error) {
-      console.error('OCR Error:', error);
-      statusDisplay.textContent = '❌ Error processing image. Please try again.';
-      statusDisplay.style.background = GDI.ThemeEngine.token('colors.errorLight');
-      statusDisplay.style.color = GDI.ThemeEngine.token('colors.error');
-      isProcessing = false;
-    }
-  };
-
-  // --- 5. Event Listeners ---
-  
-  // Click to upload
-  dropZone.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => processImage(e.target.result);
-      reader.readAsDataURL(file);
-    }
-  });
-
-  // Paste (Ctrl+V)
-  uploadArea.addEventListener('paste', (e) => {
-    e.preventDefault();
-    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-    for (let index in items) {
-      const item = items[index];
-      if (item.kind === 'file' && item.type.startsWith('image/')) {
-        const blob = item.getAsFile();
-        const reader = new FileReader();
-        reader.onload = (event) => processImage(event.target.result);
-        reader.readAsDataURL(blob);
-        return;
-      }
-    }
-    GDI.showNotification('No image found in clipboard!', 'warning');
-  });
-
-  // Real Drag & Drop
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = GDI.ThemeEngine.token('colors.primaryDark');
-    dropZone.style.background = `${GDI.ThemeEngine.token('colors.primary')}20`;
-  });
-
-  dropZone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = GDI.ThemeEngine.token('colors.primary');
-    dropZone.style.background = `${GDI.ThemeEngine.token('colors.primary')}08`;
-  });
-
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = GDI.ThemeEngine.token('colors.primary');
-    dropZone.style.background = `${GDI.ThemeEngine.token('colors.primary')}08`;
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (ev) => processImage(ev.target.result);
-        reader.readAsDataURL(file);
-      } else {
-        GDI.showNotification('Please drop an image file.', 'error');
-      }
-    }
-  });
-
-  setTimeout(() => dropZone.focus(), 100);
-
-  GDI.createModal('Image OCR Extractor Pro', content, { width: '650px' });
-}
 // ==================== TOOL: BULK CURRENCY CONVERTER ====================
 
 function toolBulkCurrencyConverter() {
   const content = GDI.createElement('div');
 
-  content.appendChild(createToolHeader(
+  content.appendChild(GDI.createToolHeader(
     '💱 Bulk Currency Converter',
     'Paste a list of numbers to convert them instantly',
     'linear-gradient(135deg, #10B981 0%, #047857 100%)'
@@ -13891,7 +10453,7 @@ function toolBulkCurrencyConverter() {
 
   fetchRow.appendChild(fetchBtn);
   
-  content.appendChild(createSection('⚙️ Conversion Settings', [configRow, fetchRow]));
+  content.appendChild(GDI.createSection('⚙️ Conversion Settings', [configRow, fetchRow]));
 
   // --- Input & Output Section ---
   const textRow = GDI.createElement('div', {
@@ -13921,7 +10483,7 @@ function toolBulkCurrencyConverter() {
   textRow.appendChild(inputArea.wrapper);
   textRow.appendChild(outputArea.wrapper);
   
-  content.appendChild(createSection('📝 Data Entry', [textRow]));
+  content.appendChild(GDI.createSection('📝 Data Entry', [textRow]));
 
   // --- Logic ---
   function processConversion() {
@@ -13969,9 +10531,88 @@ function toolBulkCurrencyConverter() {
   GDI.createModal('Bulk Currency Converter', content, { width: '750px' });
 }
 
+// ==================== TOOL: CUSTOM TEMPLATE (DYNAMIC) ====================
+
+function toolCustomTemplate(templateId, settings = {}, templates = {}) {
+  const template = templates[templateId];
+  if (!template) {
+    GDI.showNotification('Template not found!', 'error');
+    return;
+  }
+
+  const content = GDI.createElement('div');
+  content.appendChild(GDI.createToolHeader(
+    '📋 ' + template.name,
+    template.description || 'Fill in the details to generate your email',
+    window.DESIGN_TOKENS.colors.primaryGradient
+  ));
+
+  const varRegex = /\{\{([^}]+)\}\}/g;
+  let match;
+  const variables = new Set();
+  while ((match = varRegex.exec(template.content)) !== null) {
+    variables.add(match[1]);
+  }
+
+  const inputs = {};
+  if (variables.size > 0) {
+    const formSection = GDI.createSection('📝 Variables', [
+      GDI.createElement('div', { styles: { display: 'flex', flexDirection: 'column', gap: '12px' } })
+    ]);
+    
+    variables.forEach(v => {
+      let def = '';
+      if (v === 'yourName') def = settings.userName || '';
+      if (v === 'amount') def = settings.defaultAmount || '';
+      if (v === 'currency') def = settings.defaultCurrency || '';
+      if (v === 'website') def = window.location.hostname.replace(/^www\./, '');
+      
+      const { wrapper, input } = GDI.createInputField({
+        label: v.charAt(0).toUpperCase() + v.slice(1).replace(/([A-Z])/g, ' $1'),
+        id: 'var-' + v,
+        defaultValue: def
+      });
+      formSection.querySelector('div').appendChild(wrapper);
+      inputs[v] = input;
+    });
+    content.appendChild(formSection);
+  }
+
+  const previewSection = GDI.createSection('👁️ Preview', [
+    GDI.createElement('div', {
+      attrs: { id: 'custom-preview' },
+      styles: { padding: '16px', background: 'var(--gdi-surface-secondary)', borderRadius: window.DESIGN_TOKENS.radii.md, whiteSpace: 'pre-wrap', fontSize: DT.typography.sizes.base, border: `1px solid ${'var(--gdi-border)'}`, color: 'var(--gdi-text-primary)', minHeight: '100px' }
+    })
+  ]);
+  content.appendChild(previewSection);
+
+  function updatePreview() {
+    let text = template.content;
+    variables.forEach(v => {
+      const val = inputs[v] ? inputs[v].value : '';
+      text = text.replace(new RegExp('\\{\\{' + v + '\\}\\}', 'g'), val);
+    });
+    const previewEl = document.getElementById('custom-preview') || content.querySelector('#custom-preview');
+    if(previewEl) previewEl.textContent = text;
+  }
+
+  Object.values(inputs).forEach(input => input.addEventListener('input', updatePreview));
+  setTimeout(updatePreview, 100);
+
+  const btnRow = GDI.createElement('div', { styles: { display: 'flex', gap: '10px', marginTop: '16px' } });
+  btnRow.appendChild(GDI.createButton('📋 Copy Email', () => {
+    const previewEl = document.getElementById('custom-preview') || content.querySelector('#custom-preview');
+    GDI.copyToClipboard(previewEl.textContent).then(() => GDI.showNotification('✅ Email copied!', 'success'));
+  }, { variant: 'primary' }));
+  
+  content.appendChild(btnRow);
+  GDI.createModal(template.name, content, { width: '600px' });
+}
+
 // ==================== EXPORT ====================
 
     Object.assign(window.SEOTools, {
+      toolCustomTemplate,
       toolCopyUrl, toolCopyDomain, toolScrollToBottom, toolUrlSlugGenerator,
       toolWhatsappLinkGenerator, toolEmailExtractor, toolHighlightDoFollow,
       toolRemoveHighlights, toolAnalyzeHeadings, toolAnalyzeMeta,
@@ -13990,10 +10631,9 @@ function toolBulkCurrencyConverter() {
       toolSEOAuditChecklist, toolAuditChecklist, toolSEODashboard, toolFindLocalCitations,
       
       // ADD THE MISSING ADVANCED TOOLS HERE:
-      advancedSEOCompare, advancedImageToolkit, visualizeSiteStructure, 
-      scrapeGoogleMaps, keywordRankTracker, toolExtractColorTheme, 
+      toolExtractColorTheme, 
       toolExtractTypography, toolSocialCardPreview, toolImageDownloader,
-      toolClearSiteData, toolMultiDeviceTester, toolImageOCR, toolBulkCurrencyConverter
+      toolClearSiteData, toolMultiDeviceTester, toolBulkCurrencyConverter
     });
     
   })();

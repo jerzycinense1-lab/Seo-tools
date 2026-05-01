@@ -11,13 +11,13 @@
     ? module.exports = factory() 
     : typeof define === 'function' && define.amd 
       ? define(factory) 
-      : (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.GDI = factory());
+      : (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.GDI = global.GDI || factory());
 })(this, function() {
   'use strict';
 
   // ==================== DESIGN TOKENS ====================
 
-  const DESIGN_TOKENS = {
+  window.DESIGN_TOKENS = window.DESIGN_TOKENS || {
     colors: {
       primary: '#2563EB', primaryLight: '#3B82F6', primaryDark: '#1D4ED8',
       primaryGradient: 'linear-gradient(135deg, #1B2A4A 0%, #2563EB 100%)',
@@ -86,7 +86,12 @@
     
     set(mode, persist = true) {
       this._current = mode;
-      document.documentElement.setAttribute('data-gdi-theme', mode);
+      const root = window.ShadowEngine ? window.ShadowEngine.root : null;
+      if (root && root.host) {
+        root.host.setAttribute('data-gdi-theme', mode);
+      } else {
+        document.documentElement.setAttribute('data-gdi-theme', mode);
+      }
       if (persist) localStorage.setItem('gdi-theme', mode);
       this._listeners.forEach(cb => cb(mode));
     },
@@ -95,6 +100,39 @@
     get() { return this._current; },
     isDark() { return this._current === 'dark'; },
     onChange(cb) { this._listeners.add(cb); return () => this._listeners.delete(cb); },
+    
+    applyCustomColors(primary, accent) {
+      if (primary) {
+        DESIGN_TOKENS.colors.primary = primary;
+        DESIGN_TOKENS.colors.primaryGradient = `linear-gradient(135deg, #1B2A4A 0%, ${primary} 100%)`;
+        if (DESIGN_TOKENS.colors.dark) {
+          DESIGN_TOKENS.colors.dark.primary = primary;
+          DESIGN_TOKENS.colors.dark.primaryGradient = `linear-gradient(135deg, #0F172A 0%, ${primary} 100%)`;
+        }
+      }
+      if (accent) {
+        DESIGN_TOKENS.colors.accent = accent;
+        if (DESIGN_TOKENS.colors.dark) DESIGN_TOKENS.colors.dark.accent = accent;
+      }
+      
+      let override = ShadowEngine.root.querySelector('#gdi-custom-theme');
+      if (!override) {
+        override = document.createElement('style');
+        override.id = 'gdi-custom-theme';
+        ShadowEngine.root.appendChild(override);
+      }
+      override.textContent = `
+        :host {
+          --gdi-primary: ${primary || '#2563EB'} !important;
+          --gdi-primary-gradient: linear-gradient(135deg, #1B2A4A 0%, ${primary || '#2563EB'} 100%) !important;
+          --gdi-accent: ${accent || '#F59E0B'} !important;
+        }
+        :host([data-gdi-theme="dark"]) {
+          --gdi-primary: ${primary || '#3B82F6'} !important;
+          --gdi-primary-gradient: linear-gradient(135deg, #0F172A 0%, ${primary || '#3B82F6'} 100%) !important;
+        }
+      `;
+    },
     
     token(path) {
       const keys = path.split('.');
@@ -113,7 +151,7 @@
 
   // ==================== SHADOW DOM ENGINE ====================
 
-  const ShadowEngine = {
+  window.ShadowEngine = window.ShadowEngine || {
     _root: null,
     get root() {
       if (this._root) return this._root;
@@ -146,27 +184,58 @@
     style.textContent = `
       /* CSS Resets for Shadow DOM */
       :host { all: initial; pointer-events: none; }
-      * { box-sizing: border-box; font-family: ${DESIGN_TOKENS.typography.fontFamily}; }
+      * { box-sizing: border-box; font-family: ${DESIGN_TOKENS.typography.fontFamily}; color: var(--gdi-text-primary) !important; }
+      span, p, div, label, h1, h2, h3, h4, h5, h6, input, textarea, select { color: var(--gdi-text-primary); }
       .gdi-modal-overlay, [data-notif-id], .gdi-pointer-auto { pointer-events: auto; }
       
-      :root {
+      :host {
         --gdi-primary: ${DESIGN_TOKENS.colors.primary};
         --gdi-primary-light: ${DESIGN_TOKENS.colors.primaryLight};
+        --gdi-primary-dark: ${DESIGN_TOKENS.colors.primaryDark};
+        --gdi-primary-gradient: ${DESIGN_TOKENS.colors.primaryGradient};
+        --gdi-success: ${DESIGN_TOKENS.colors.success};
+        --gdi-success-light: ${DESIGN_TOKENS.colors.successLight};
+        --gdi-success-gradient: ${DESIGN_TOKENS.colors.successGradient};
+        --gdi-warning: ${DESIGN_TOKENS.colors.warning};
+        --gdi-warning-light: ${DESIGN_TOKENS.colors.warningLight};
+        --gdi-warning-gradient: ${DESIGN_TOKENS.colors.warningGradient};
+        --gdi-error: ${DESIGN_TOKENS.colors.error};
+        --gdi-error-light: ${DESIGN_TOKENS.colors.errorLight};
+        --gdi-error-gradient: ${DESIGN_TOKENS.colors.errorGradient};
+        --gdi-info: ${DESIGN_TOKENS.colors.info};
+        --gdi-info-light: ${DESIGN_TOKENS.colors.infoLight};
+        --gdi-info-gradient: ${DESIGN_TOKENS.colors.infoGradient};
         --gdi-surface: ${DESIGN_TOKENS.colors.surface};
         --gdi-surface-secondary: ${DESIGN_TOKENS.colors.surfaceSecondary};
+        --gdi-surface-tertiary: ${DESIGN_TOKENS.colors.surfaceTertiary};
         --gdi-text-primary: ${DESIGN_TOKENS.colors.textPrimary};
         --gdi-text-secondary: ${DESIGN_TOKENS.colors.textSecondary};
+        --gdi-text-muted: ${DESIGN_TOKENS.colors.textMuted};
         --gdi-border: ${DESIGN_TOKENS.colors.border};
+        --gdi-border-light: ${DESIGN_TOKENS.colors.borderLight};
+        --gdi-overlay: ${DESIGN_TOKENS.colors.overlay};
+        --gdi-background: ${DESIGN_TOKENS.colors.surface};
       }
       
-      [data-gdi-theme="dark"] {
+      :host([data-gdi-theme="dark"]) {
         --gdi-primary: ${DESIGN_TOKENS.colors.dark.primary};
         --gdi-primary-light: ${DESIGN_TOKENS.colors.dark.primaryLight};
+        --gdi-primary-dark: ${DESIGN_TOKENS.colors.dark.primaryDark};
+        --gdi-primary-gradient: ${DESIGN_TOKENS.colors.dark.primaryGradient};
+        --gdi-success-light: ${DESIGN_TOKENS.colors.dark.successLight};
+        --gdi-warning-light: ${DESIGN_TOKENS.colors.dark.warningLight};
+        --gdi-error-light: ${DESIGN_TOKENS.colors.dark.errorLight};
+        --gdi-info-light: ${DESIGN_TOKENS.colors.dark.infoLight};
         --gdi-surface: ${DESIGN_TOKENS.colors.dark.surface};
         --gdi-surface-secondary: ${DESIGN_TOKENS.colors.dark.surfaceSecondary};
+        --gdi-surface-tertiary: ${DESIGN_TOKENS.colors.dark.surfaceTertiary};
         --gdi-text-primary: ${DESIGN_TOKENS.colors.dark.textPrimary};
         --gdi-text-secondary: ${DESIGN_TOKENS.colors.dark.textSecondary};
+        --gdi-text-muted: ${DESIGN_TOKENS.colors.dark.textMuted};
         --gdi-border: ${DESIGN_TOKENS.colors.dark.border};
+        --gdi-border-light: ${DESIGN_TOKENS.colors.dark.borderLight};
+        --gdi-overlay: ${DESIGN_TOKENS.colors.dark.overlay};
+        --gdi-background: ${DESIGN_TOKENS.colors.dark.surface};
       }
       
       /* --- Animations --- */
@@ -193,8 +262,8 @@
       .gdi-selection ::selection { background: ${DESIGN_TOKENS.colors.primaryLight}40; color: var(--gdi-text-primary); }
       
       /* --- Glass Effect --- */
-      .gdi-glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
-      [data-gdi-theme="dark"] .gdi-glass { background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); }
+      .gdi-glass { background: var(--gdi-surface); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--gdi-border); }
+      :host([data-gdi-theme="dark"]) .gdi-glass { background: var(--gdi-surface); border: 1px solid var(--gdi-border); }
       
       /* --- Reduced Motion --- */
       @media (prefers-reduced-motion: reduce) {
@@ -501,12 +570,12 @@
     
     const modal = createElement('div', {
       styles: {
-        background: ThemeEngine.token('colors.surface'),
+        background: 'var(--gdi-surface)',
         borderRadius: DESIGN_TOKENS.radii['2xl'],
         width: width, maxWidth: maxWidth, maxHeight: maxHeight,
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         boxShadow: ThemeEngine.isDark() ? DESIGN_TOKENS.shadows.dark['2xl'] : DESIGN_TOKENS.shadows['2xl'],
-        border: `1px solid ${ThemeEngine.token('colors.border')}`,
+        border: `1px solid ${'var(--gdi-border)'}`,
         transform: 'translateY(20px) scale(0.96)', opacity: '0',
         transition: `all ${DESIGN_TOKENS.transitions.spring}`
       }
@@ -515,9 +584,9 @@
     const header = createElement('div', {
       styles: {
         padding: '18px 24px',
-        borderBottom: `1px solid ${ThemeEngine.token('colors.border')}`,
+        borderBottom: `1px solid ${'var(--gdi-border)'}`,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: `linear-gradient(135deg, ${ThemeEngine.token('colors.surfaceSecondary')}, ${ThemeEngine.token('colors.surfaceTertiary')})`,
+        background: `linear-gradient(135deg, ${'var(--gdi-surface-secondary)'}, ${'var(--gdi-surface-tertiary)'})`,
         flexShrink: '0'
       }
     });
@@ -540,7 +609,7 @@
       styles: {
         margin: '0', fontSize: DESIGN_TOKENS.typography.sizes.xl,
         fontWeight: DESIGN_TOKENS.typography.weights.extrabold,
-        color: ThemeEngine.token('colors.textPrimary'),
+        color: 'var(--gdi-text-primary)',
         letterSpacing: '-0.3px'
       },
       text: title
@@ -548,7 +617,7 @@
     const subtitle = createElement('div', {
       styles: {
         fontSize: DESIGN_TOKENS.typography.sizes.sm,
-        color: ThemeEngine.token('colors.textSecondary'),
+        color: 'var(--gdi-text-secondary)',
         fontWeight: DESIGN_TOKENS.typography.weights.medium,
         marginTop: '2px'
       },
@@ -588,7 +657,7 @@
     const body = createElement('div', {
       styles: {
         flex: '1', overflow: 'hidden', display: 'flex',
-        flexDirection: 'column', background: ThemeEngine.token('colors.surface')
+        flexDirection: 'column', background: 'var(--gdi-surface)'
       }
     });
     const contentWrapper = createElement('div', {
@@ -677,7 +746,7 @@
       attrs: { for: id },
       styles: {
         display: 'block', fontWeight: DESIGN_TOKENS.typography.weights.semibold,
-        marginBottom: '6px', color: ThemeEngine.token('colors.textPrimary'),
+        marginBottom: '6px', color: 'var(--gdi-text-primary)',
         fontSize: DESIGN_TOKENS.typography.sizes.base
       },
       text: label + (required ? ' *' : '')
@@ -688,13 +757,13 @@
       attrs: { type, id, name: id, placeholder, value: defaultValue, autocomplete },
       styles: {
         width: '100%', padding: '12px 16px',
-        border: `1.5px solid ${ThemeEngine.token('colors.border')}`,
+        border: '1.5px solid var(--gdi-border)',
         borderRadius: DESIGN_TOKENS.radii.lg,
         fontSize: DESIGN_TOKENS.typography.sizes.md,
         fontFamily: DESIGN_TOKENS.typography.fontFamily,
         outline: 'none', transition: `all ${DESIGN_TOKENS.transitions.fast}`,
-        boxSizing: 'border-box', color: ThemeEngine.token('colors.textPrimary'),
-        background: ThemeEngine.token('colors.surface')
+        boxSizing: 'border-box', color: 'var(--gdi-text-primary)',
+        background: 'var(--gdi-surface)'
       },
     });
     
@@ -717,7 +786,7 @@
         errorMsg.style.display = 'block';
         return false;
       } else {
-        input.style.borderColor = ThemeEngine.token('colors.border');
+        input.style.borderColor = 'var(--gdi-border)';
         errorMsg.style.display = 'none';
         return true;
       }
@@ -726,17 +795,17 @@
     input.addEventListener('focus', () => {
       input.style.borderColor = ThemeEngine.token('colors.primary');
       input.style.boxShadow = `0 0 0 3px ${ThemeEngine.token('colors.primary')}15`;
-      input.style.background = ThemeEngine.token('colors.surfaceSecondary');
+      input.style.background = 'var(--gdi-surface-secondary)';
     });
     
     input.addEventListener('blur', () => {
-      input.style.background = ThemeEngine.token('colors.surface');
+      input.style.background = 'var(--gdi-surface)';
       input.style.boxShadow = 'none';
       if (required || pattern) validate();
       else if (!input.value.trim() && required) {
         input.style.borderColor = ThemeEngine.token('colors.error');
       } else {
-        input.style.borderColor = ThemeEngine.token('colors.border');
+        input.style.borderColor = 'var(--gdi-border)';
       }
     });
     
@@ -760,7 +829,7 @@
       attrs: { for: id },
       styles: {
         display: 'block', fontWeight: DESIGN_TOKENS.typography.weights.semibold,
-        marginBottom: '6px', color: ThemeEngine.token('colors.textPrimary'),
+        marginBottom: '6px', color: 'var(--gdi-text-primary)',
         fontSize: DESIGN_TOKENS.typography.sizes.base
       },
       text: label + (required ? ' *' : '')
@@ -770,14 +839,14 @@
       attrs: { id, name: id, placeholder, rows: rows.toString(), maxlength: maxLength },
       styles: {
         width: '100%', padding: '12px 16px',
-        border: `1.5px solid ${ThemeEngine.token('colors.border')}`,
+        border: '1.5px solid var(--gdi-border)',
         borderRadius: DESIGN_TOKENS.radii.lg,
         fontSize: DESIGN_TOKENS.typography.sizes.md,
         fontFamily: DESIGN_TOKENS.typography.fontFamily,
         outline: 'none', transition: `all ${DESIGN_TOKENS.transitions.fast}`,
         boxSizing: 'border-box', resize: 'vertical', minHeight: '60px',
-        color: ThemeEngine.token('colors.textPrimary'),
-        background: ThemeEngine.token('colors.surface')
+        color: 'var(--gdi-text-primary)',
+        background: 'var(--gdi-surface)'
       },
       text: defaultValue,
     });
@@ -787,7 +856,7 @@
     const charCount = createElement('div', {
       styles: {
         textAlign: 'right', fontSize: DESIGN_TOKENS.typography.sizes.xs,
-        color: ThemeEngine.token('colors.textMuted'), marginTop: '4px'
+        color: 'var(--gdi-text-muted)', marginTop: '4px'
       }
     });
     
@@ -796,7 +865,7 @@
         charCount.textContent = `${textarea.value.length}/${maxLength}`;
         charCount.style.color = textarea.value.length > maxLength * 0.9 
           ? ThemeEngine.token('colors.warning') 
-          : ThemeEngine.token('colors.textMuted');
+          : 'var(--gdi-text-muted)';
       }
     }
     
@@ -810,7 +879,7 @@
       if (required && !textarea.value.trim()) {
         textarea.style.borderColor = ThemeEngine.token('colors.error');
       } else {
-        textarea.style.borderColor = ThemeEngine.token('colors.border');
+        textarea.style.borderColor = 'var(--gdi-border)';
       }
     });
     
@@ -834,7 +903,7 @@
       attrs: { for: id },
       styles: {
         display: 'block', fontWeight: DESIGN_TOKENS.typography.weights.semibold,
-        marginBottom: '6px', color: ThemeEngine.token('colors.textPrimary'),
+        marginBottom: '6px', color: 'var(--gdi-text-primary)',
         fontSize: DESIGN_TOKENS.typography.sizes.base
       },
       text: label + (required ? ' *' : '')
@@ -844,13 +913,13 @@
       attrs: { id, name: id, required },
       styles: {
         width: '100%', padding: '12px 16px',
-        border: `1.5px solid ${ThemeEngine.token('colors.border')}`,
+        border: '1.5px solid var(--gdi-border)',
         borderRadius: DESIGN_TOKENS.radii.lg,
         fontSize: DESIGN_TOKENS.typography.sizes.md,
         fontFamily: DESIGN_TOKENS.typography.fontFamily,
         outline: 'none', transition: `all ${DESIGN_TOKENS.transitions.fast}`,
-        boxSizing: 'border-box', color: ThemeEngine.token('colors.textPrimary'),
-        background: ThemeEngine.token('colors.surface'), cursor: 'pointer',
+        boxSizing: 'border-box', color: 'var(--gdi-text-primary)',
+        background: 'var(--gdi-surface)', cursor: 'pointer',
         appearance: 'none',
         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', paddingRight: '40px'
@@ -870,7 +939,7 @@
       select.style.boxShadow = `0 0 0 3px ${ThemeEngine.token('colors.primary')}15`;
     });
     select.addEventListener('blur', () => {
-      select.style.borderColor = ThemeEngine.token('colors.border');
+      select.style.borderColor = 'var(--gdi-border)';
       select.style.boxShadow = 'none';
     });
     
@@ -884,10 +953,10 @@
     
     const variantStyles = {
       primary: { background: ThemeEngine.token('colors.primaryGradient'), color: '#FFFFFF', boxShadow: `0 4px 12px ${ThemeEngine.token('colors.primary')}40` },
-      secondary: { background: ThemeEngine.token('colors.surfaceTertiary'), color: ThemeEngine.token('colors.textPrimary'), border: `1px solid ${ThemeEngine.token('colors.border')}` },
+      secondary: { background: 'var(--gdi-surface-tertiary)', color: 'var(--gdi-text-primary)', border: `1px solid ${'var(--gdi-border)'}` },
       danger: { background: ThemeEngine.token('colors.errorGradient'), color: '#FFFFFF', boxShadow: `0 4px 12px ${ThemeEngine.token('colors.error')}40` },
       success: { background: ThemeEngine.token('colors.successGradient'), color: '#FFFFFF', boxShadow: `0 4px 12px ${ThemeEngine.token('colors.success')}40` },
-      ghost: { background: 'transparent', color: ThemeEngine.token('colors.textSecondary'), border: 'none' }
+      ghost: { background: 'transparent', color: 'var(--gdi-text-secondary)', border: 'none' }
     };
     
     const sizeStyles = {
@@ -989,7 +1058,7 @@
     const container = createElement('div', {
       styles: {
         width: '100%', height: `${height}px`,
-        background: ThemeEngine.token('colors.surfaceTertiary'),
+        background: 'var(--gdi-surface-tertiary)',
         borderRadius: DESIGN_TOKENS.radii.full, overflow: 'hidden'
       }
     });
@@ -1032,7 +1101,7 @@
     bgCircle.setAttribute('cy', size / 2);
     bgCircle.setAttribute('r', radius);
     bgCircle.setAttribute('fill', 'none');
-    bgCircle.setAttribute('stroke', ThemeEngine.token('colors.surfaceTertiary'));
+    bgCircle.setAttribute('stroke', 'var(--gdi-surface-tertiary)');
     bgCircle.setAttribute('stroke-width', '7');
     
     const fgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -1065,7 +1134,7 @@
     const label = createElement('div', {
       styles: {
         fontSize: `${size * 0.1}px`,
-        color: ThemeEngine.token('colors.textSecondary'),
+        color: 'var(--gdi-text-secondary)',
         fontWeight: DESIGN_TOKENS.typography.weights.semibold
       },
       text: '/100'
@@ -1093,8 +1162,8 @@
     
     const card = createElement('div', {
       styles: {
-        background: ThemeEngine.token('colors.surface'),
-        border: `1px solid ${ThemeEngine.token('colors.border')}`,
+        background: 'var(--gdi-surface)',
+        border: `1px solid ${'var(--gdi-border)'}`,
         borderRadius: DESIGN_TOKENS.radii.xl, padding: '16px',
         boxShadow: ThemeEngine.isDark() ? DESIGN_TOKENS.shadows.dark.xs : DESIGN_TOKENS.shadows.xs,
         transition: `all ${DESIGN_TOKENS.transitions.fast}`
@@ -1114,7 +1183,7 @@
       styles: {
         fontSize: DESIGN_TOKENS.typography.sizes.xs,
         fontWeight: DESIGN_TOKENS.typography.weights.bold,
-        color: ThemeEngine.token('colors.textSecondary'),
+        color: 'var(--gdi-text-secondary)',
         textTransform: 'uppercase', letterSpacing: '0.5px',
         marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'
       },
@@ -1161,7 +1230,7 @@
     const container = createElement('div', {
       styles: {
         maxHeight: `${maxHeight}px`, overflowY: 'auto',
-        border: `1px solid ${ThemeEngine.token('colors.border')}`,
+        border: `1px solid ${'var(--gdi-border)'}`,
         borderRadius: DESIGN_TOKENS.radii.lg,
         position: 'relative'
       },
@@ -1172,14 +1241,14 @@
       styles: {
         width: '100%', borderCollapse: 'collapse',
         fontSize: DESIGN_TOKENS.typography.sizes.base,
-        background: ThemeEngine.token('colors.surface')
+        background: 'var(--gdi-surface)'
       }
     });
     
     const thead = createElement('thead');
     const headerRow = createElement('tr', {
       styles: {
-        background: ThemeEngine.token('colors.surfaceSecondary'),
+        background: 'var(--gdi-surface-secondary)',
         position: 'sticky', top: '0', zIndex: '1'
       }
     });
@@ -1189,8 +1258,8 @@
         styles: {
           padding: '12px 14px', textAlign: 'left',
           fontWeight: DESIGN_TOKENS.typography.weights.semibold,
-          color: ThemeEngine.token('colors.textPrimary'),
-          borderBottom: `2px solid ${ThemeEngine.token('colors.border')}`,
+          color: 'var(--gdi-text-primary)',
+          borderBottom: `2px solid ${'var(--gdi-border)'}`,
           fontSize: DESIGN_TOKENS.typography.sizes.xs,
           textTransform: 'uppercase', letterSpacing: '0.5px',
           width: col.width || 'auto'
@@ -1206,11 +1275,11 @@
     
     tbody.addEventListener('mouseover', (e) => {
       const row = e.target.closest('tr');
-      if (row) row.style.background = ThemeEngine.token('colors.surfaceSecondary');
+      if (row) row.style.background = 'var(--gdi-surface-secondary)';
     });
     tbody.addEventListener('mouseout', (e) => {
       const row = e.target.closest('tr');
-      if (row) row.style.background = ThemeEngine.token('colors.surface');
+      if (row) row.style.background = 'var(--gdi-surface)';
     });
 
     if (!virtual) {
@@ -1218,7 +1287,7 @@
       rows.forEach((row, index) => {
         const tr = createElement('tr', {
           styles: {
-            borderBottom: `1px solid ${ThemeEngine.token('colors.borderLight')}`,
+            borderBottom: `1px solid ${'var(--gdi-border-light)'}`,
             transition: `background ${DESIGN_TOKENS.transitions.fast}`
           },
           attrs: { 'data-row-index': index }
@@ -1228,9 +1297,9 @@
           const td = createElement('td', {
             styles: {
               padding: '10px 14px',
-              color: ThemeEngine.token('colors.textSecondary'),
+              color: 'var(--gdi-text-secondary)',
               fontSize: DESIGN_TOKENS.typography.sizes.base,
-              borderBottom: `1px solid ${ThemeEngine.token('colors.borderLight')}`
+              borderBottom: `1px solid ${'var(--gdi-border-light)'}`
             },
             text: String(row[col.key] ?? '')
           });
@@ -1259,8 +1328,8 @@
               position: 'absolute', top: `${i * rowHeight}px`,
               height: `${rowHeight}px`, width: '100%',
               display: 'table', tableLayout: 'fixed',
-              borderBottom: `1px solid ${ThemeEngine.token('colors.borderLight')}`,
-              background: ThemeEngine.token('colors.surface'),
+              borderBottom: `1px solid ${'var(--gdi-border-light)'}`,
+              background: 'var(--gdi-surface)',
               transition: `background ${DESIGN_TOKENS.transitions.fast}`
             },
             attrs: { 'data-row-index': i }
@@ -1270,9 +1339,9 @@
             const td = createElement('td', {
               styles: {
                 padding: '10px 14px',
-                color: ThemeEngine.token('colors.textSecondary'),
+                color: 'var(--gdi-text-secondary)',
                 fontSize: DESIGN_TOKENS.typography.sizes.base,
-                borderBottom: `1px solid ${ThemeEngine.token('colors.borderLight')}`,
+                borderBottom: `1px solid ${'var(--gdi-border-light)'}`,
                 width: col.width || 'auto'
               },
               text: String(row[col.key] ?? '')
@@ -1299,12 +1368,12 @@
         const fragment = document.createDocumentFragment();
         rows.forEach((row, index) => {
           const tr = createElement('tr', {
-            styles: { borderBottom: `1px solid ${ThemeEngine.token('colors.borderLight')}`, transition: `background ${DESIGN_TOKENS.transitions.fast}` },
+            styles: { borderBottom: `1px solid ${'var(--gdi-border-light)'}`, transition: `background ${DESIGN_TOKENS.transitions.fast}` },
             attrs: { 'data-row-index': index }
           });
           columns.forEach(col => {
             const td = createElement('td', {
-              styles: { padding: '10px 14px', color: ThemeEngine.token('colors.textSecondary'), fontSize: DESIGN_TOKENS.typography.sizes.base, borderBottom: `1px solid ${ThemeEngine.token('colors.borderLight')}` },
+              styles: { padding: '10px 14px', color: 'var(--gdi-text-secondary)', fontSize: DESIGN_TOKENS.typography.sizes.base, borderBottom: `1px solid ${'var(--gdi-border-light)'}` },
               text: String(row[col.key] ?? '')
             });
             tr.appendChild(td);
@@ -1342,7 +1411,7 @@
     const track = createElement('span', {
       styles: {
         position: 'relative', width: '44px', height: '24px',
-        background: checked ? ThemeEngine.token('colors.primary') : ThemeEngine.token('colors.border'),
+        background: checked ? ThemeEngine.token('colors.primary') : 'var(--gdi-border)',
         borderRadius: DESIGN_TOKENS.radii.full,
         transition: `background ${DESIGN_TOKENS.transitions.fast}`,
         flexShrink: '0'
@@ -1363,7 +1432,7 @@
     const labelText = createElement('span', {
       styles: {
         fontSize: DESIGN_TOKENS.typography.sizes.md,
-        color: ThemeEngine.token('colors.textPrimary'),
+        color: 'var(--gdi-text-primary)',
         fontWeight: DESIGN_TOKENS.typography.weights.medium
       },
       text: label
@@ -1371,7 +1440,7 @@
     
     input.addEventListener('change', (e) => {
       const isChecked = e.target.checked;
-      track.style.background = isChecked ? ThemeEngine.token('colors.primary') : ThemeEngine.token('colors.border');
+      track.style.background = isChecked ? ThemeEngine.token('colors.primary') : 'var(--gdi-border)';
       thumb.style.transform = isChecked ? 'translateX(20px)' : 'translateX(0)';
       if (typeof onChange === 'function') onChange(isChecked);
     });
@@ -1392,7 +1461,7 @@
       styles: {
         width, height,
         borderRadius: circle ? '50%' : DESIGN_TOKENS.radii.md,
-        background: `linear-gradient(90deg, ${ThemeEngine.token('colors.surfaceSecondary')} 25%, ${ThemeEngine.token('colors.surfaceTertiary')} 50%, ${ThemeEngine.token('colors.surfaceSecondary')} 75%)`,
+        background: `linear-gradient(90deg, ${'var(--gdi-surface-secondary)'} 25%, ${'var(--gdi-surface-tertiary)'} 50%, ${'var(--gdi-surface-secondary)'} 75%)`,
         backgroundSize: '200% 100%',
         animation: 'gdi-shimmer 1.5s infinite',
         display: 'inline-block'
@@ -1423,8 +1492,8 @@
           styles: {
             position: 'absolute', zIndex: '99999',
             padding: '6px 10px', borderRadius: DESIGN_TOKENS.radii.md,
-            background: ThemeEngine.token('colors.textPrimary'),
-            color: ThemeEngine.token('colors.surface'),
+            background: 'var(--gdi-text-primary)',
+            color: 'var(--gdi-surface)',
             fontSize: DESIGN_TOKENS.typography.sizes.sm,
             fontWeight: DESIGN_TOKENS.typography.weights.medium,
             whiteSpace: 'nowrap', pointerEvents: 'none',
